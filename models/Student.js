@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 // Define Students Schema
 const studentsSchema = new mongoose.Schema(
   {
-    name: { type: String },
+    studentName: { type: String },
     StudentsId: { type: String }, // Unique constraint for StudentsId
     email: {
       type: String,

@@ -126,7 +126,7 @@ const generateAdmitCard = async (req, res) => {
     // Allocate a new StudentsId
    
     const data = {
-      name: student.name,
+      name: student.studentName,
       class: batchDetails.classForAdmission,
       stream: batchDetails.subjectCombination,
       examDate: basicDetails.examDate,

@@ -35,11 +35,14 @@ const studentSignup = async (req, res) => {
 
     const dataExistInEnquiry = await User.find({ fatherContactNumber: phone });
 
-    if (dataExistInEnquiry) {
+    console.log("dataExistInEnquiry before response", dataExistInEnquiry)
+
+    if (dataExistInEnquiry.length > 0) {
       const tokenForExistingStudentInEnquiry = jwt.sign(
         { role: "Student", phone },
         JWT_SECRET
       );
+      
       console.log("dataExistInEnquiry", dataExistInEnquiry);
       return res
         .status(200)
@@ -71,6 +74,9 @@ const studentSignup = async (req, res) => {
       { _id: newStudent._id, role: newStudent.role, phone },
       JWT_SECRET
     );
+
+
+    console.log("newStudent created ", newStudent);
     res.status(200).send({ token, newStudent });
   } catch (error) {
     console.error("Error in signup:", error.message);

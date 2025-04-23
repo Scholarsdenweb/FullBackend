@@ -13,6 +13,8 @@ const {
   uploadStudentResult,
   getAllStudentByPhone,
   enquiryWithPhoneNumber,
+  continueWithExistingStudent,
+  createNewStudent,
 } = require("../controllers/Students");
 
 const {
@@ -81,10 +83,16 @@ router.get(
 router.get("/getAllStudentByPhone", takenPhoneByToken(), getAllStudentByPhone);
 
 router.post(
-  "/continueWithExistingStudent",
+  "/fetchExistingUserFormEnquiryDetails",
   takenPhoneByToken(),
   enquiryWithPhoneNumber
 );
+router.post(
+  "/continueWithExistingStudent",
+  takenPhoneByToken(),
+  continueWithExistingStudent
+);
+router.post("/createNewStudent", takenPhoneByToken(), createNewStudent);
 
 router.post("/sendVerification", async (req, res) => {
   try {
@@ -249,11 +257,13 @@ router.post("/filter/Student", async (req, res) => {
   try {
     const { data } = req.body;
 
+    console.log("Data", data);
+
     // 1. Find students by name
     const allStudents = await Students.find({
-      name: { $regex: data, $options: "i" },
+      studentName: { $regex: data, $options: "i" },
     });
-
+    console.log("allStudents data", allStudents);
     // 2. Get list of student IDs
     const studentIds = allStudents.map((student) => student._id);
 

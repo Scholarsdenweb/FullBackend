@@ -123,7 +123,7 @@ const editStudent = async (req, res) => {
 
   console.log("req.body from editStudent update", req.body);
 
-  const { name, email, role, password, payment_id, profilePicture } = req.body;
+  const { studentName, email, role, password, payment_id, profilePicture } = req.body;
 
   try {
     const student = await Students.findById(student_id);
@@ -139,7 +139,7 @@ const editStudent = async (req, res) => {
       student.email = email;
     }
 
-    if (name) student.name = name;
+    if (studentName) student.studentName = studentName;
     if (role) student.role = role;
     if (payment_id) student.paymentId = payment_id;
     if (profilePicture) student.profilePicture = profilePicture;
@@ -267,8 +267,105 @@ const enquiryWithPhoneNumber = async (req, res) => {
       data: dataExistInEnquiry,
     });
   }
+};
+const continueWithExistingStudent = async (req, res) => {
+  console.log("req.body continueWithExistingStudent", req.body);
 
-  console.log("student for studentsSignup", student);
+  const { phone, role } = req.user;
+
+  const {
+    studentName,
+    enquiryNumber,
+    courseOfIntrested,
+    program,
+    schoolName,
+    fatherName,
+    fatherOccupations,
+    fatherContactNumber,
+  } = req.body.userData;
+
+  console.log(
+    "name form existing data",
+    studentName,
+    enquiryNumber,
+    courseOfIntrested,
+    program,
+    schoolName,
+    fatherName,
+    fatherOccupations,
+    fatherContactNumber
+  );
+
+  const newStudent = new Students({
+    role,
+    phone,
+    studentName,
+    enquiryNumber,
+  });
+  await newStudent.save();
+
+  console.log("nEWStudent created", newStudent);
+
+  const newBasicDetails = new BasicDetails({
+    student_id: newStudent._id,
+  });
+  await newBasicDetails.save();
+  const newBatchDetails = new BatchRelatedDetails({
+    student_id: newStudent._id,
+    classForAdmission: courseOfIntrested,
+    program: program,
+  });
+  await newBatchDetails.save();
+  const newEducationalDetails = new EducationalDetails({
+    student_id: newStudent._id,
+    SchoolName: schoolName,
+  });
+  await newEducationalDetails.save();
+  const newFamilyDetails = new FamilyDetails({
+    student_id: newStudent._id,
+    FatherName: fatherName,
+    FatherOccupation: fatherOccupations,
+    fatherContactNumber: fatherContactNumber,
+  });
+  await newFamilyDetails.save();
+
+  console.log(
+    "Medical",
+    newFamilyDetails,
+    newEducationalDetails,
+    newBatchDetails,
+    newBasicDetails
+  );
+
+  // Generate token
+  const token = jwt.sign(
+    { _id: newStudent._id, role: newStudent.role, phone },
+    JWT_SECRET
+  );
+  return res.status(200).json({ token, newStudent });
+};
+
+const createNewStudent = async (req, res) => {
+  try {
+    const { role, phone } = req.user;
+    const newStudent = new Students({
+      role,
+      phone,
+    });
+    await newStudent.save();
+
+    // Generate token
+    const token = jwt.sign(
+      { _id: newStudent._id, role: newStudent.role, phone },
+      JWT_SECRET
+    );
+
+    console.log("newStudent created ", newStudent);
+    res.status(200).json({ token, newStudent });
+  } catch (error) {
+    console.error("Error in signup:", error.message);
+    res.status(500).send("Internal Server Error");
+  }
 };
 
 module.exports = {
@@ -282,4 +379,6 @@ module.exports = {
   uploadStudentResult,
   getAllStudentByPhone,
   enquiryWithPhoneNumber,
+  continueWithExistingStudent,
+  createNewStudent,
 };

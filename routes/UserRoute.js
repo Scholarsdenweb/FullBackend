@@ -108,6 +108,22 @@ router.post("/filter/Student", async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
+router.post("/filter/filterByClass", async (req, res) => {
+  try {
+    const { filterByClassName } = req.body;
+
+    console.log("Inputvalue", filterByClassName);
+
+    const afterFilterStudents = await User.find({
+      courseOfIntrested: filterByClassName,
+    });
+
+    res.status(200).json(afterFilterStudents);
+  } catch (error) {
+    console.error("Error filtering students:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
 
 router.patch("/putFormData", verifyToken(), async (req, res) => {
   try {

@@ -39,8 +39,9 @@ router.post("/getData", adminCheck(allowedAdmins), async (req, res) => {
       .skip(skip)
       .limit(limit);
 
-
-      console.log("DAta", data);
+    console.log("DAta", data);
+    const totalStudents = await Students.countDocuments();
+    const totalPages = Math.ceil(totalStudents / limit);
 
     const basicDetails = await BasicDetails.findOne({
       student_id: data[0]._id,
@@ -84,24 +85,90 @@ router.post("/getData", adminCheck(allowedAdmins), async (req, res) => {
 
     const isLastPage = nextPageData.length === 0; // If nextPageData is empty, it's the last page
 
-
-    const fullData = [{
+    const fullData = [
+      {
         ...data[0]._doc, // spread student main data
         basicDetails,
         batchDetails,
         educationalDetails,
-        familyDetails
-      }];
+        familyDetails,
+      },
+    ];
 
     res.status(200).json({
       data: fullData,
       currentPage: page,
       isLastPage: isLastPage, // Send information whether it's the last page or not
+      totalPages,
     });
   } catch (e) {
     console.log("error in getEnquiryData", e);
     res.status(500).json({ message: "Internal Server Error" });
   }
+});
+
+router.post("/getAllData", adminCheck(allowedAdmins), async (req, res) => {
+  const data = await Students.find();
+
+  console.log("DAta", data);
+
+  const basicDetails = await BasicDetails.findOne({
+    student_id: data[0]._id,
+  });
+  if (!basicDetails) {
+    return res
+      .status(404)
+      .json({ success: false, message: "Basic Details not found" });
+  }
+  const batchDetails = await BatchRelatedDetails.findOne({
+    student_id: data[0]._id,
+  });
+  if (!batchDetails) {
+    return res
+      .status(404)
+      .json({ success: false, message: "Batch Details not found" });
+  }
+
+  const educationalDetails = await EducationalDetails.findOne({
+    student_id: data[0]._id,
+  });
+  const familyDetails = await FamilyDetails.findOne({
+    student_id: data[0]._id,
+  });
+
+  console.log("studentDetails", data);
+  console.log("familyDetails", familyDetails);
+  console.log("basicDetails", basicDetails);
+  console.log("educationalDetails", educationalDetails);
+  console.log("batchDetails", batchDetails);
+
+  console.log("data from getEnquiryData", data);
+
+  // Check if there is no data or if this is the last page
+  if (data.length === 0) {
+    return res.status(401).json({ message: "No data found" });
+  }
+  const nextPageData = await Students.find()
+    .skip(skip + limit)
+    .limit(limit);
+
+  const isLastPage = nextPageData.length === 0; // If nextPageData is empty, it's the last page
+
+  const fullData = [
+    {
+      ...data[0]._doc, // spread student main data
+      basicDetails,
+      batchDetails,
+      educationalDetails,
+      familyDetails,
+    },
+  ];
+
+  res.status(200).json({
+    data: fullData,
+    currentPage: page,
+    isLastPage: isLastPage, // Send information whether it's the last page or not
+  });
 });
 
 module.exports = router;

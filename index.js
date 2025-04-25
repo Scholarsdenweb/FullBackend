@@ -65,7 +65,7 @@ app.use("/api/user", userRoute);
 
 // app.use('/auth', authRoutes);
 
-app.use("/api/user", userRoute);
+// app.use("/api/user", userRoute);
 app.use("/api/admin", adminRoute);
 // app.use('/forms', formRoutes);
 

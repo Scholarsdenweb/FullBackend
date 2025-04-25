@@ -14,7 +14,7 @@ const studentsSchema = new mongoose.Schema(
     result: { type: String },
     paymentId: { type: String },
     role: { type: String, required: true },
-    phone: { type: String, required: true },
+    contactNumber: { type: String, required: true },
     enquiryNumber: {
       type : String
     },
@@ -84,7 +84,7 @@ studentsSchema.statics.allocateStudentsId = async function (classForAdmission) {
     return romanNumerals[number];
   }
 
-  const count = classStudentCount[0]?.totalStudentsWithAdmitCard + 1 || 1;
+  const count = classStudentCount[0]?.totalStudentsWithAdmitCard + 100 || 100;
 
   // Increment the count for the new student
   const studentNumber = String(count).padStart(3, "0"); // 3-digit padding

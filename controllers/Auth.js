@@ -14,14 +14,14 @@ const User = require("../models/UserModel");
 
 const studentSignup = async (req, res) => {
   try {
-    const { role = "Student", phone } = req.body;
+    const { role = "Student", contactNumber } = req.body;
 
     // Check if student already exists
-    const student = await Student.find({ phone });
+    const student = await Student.find({ contactNumber });
 
     if (student.length > 0) {
       const tokenForExistingStudent = jwt.sign(
-        { role: "Student", phone },
+        { role: "Student", contactNumber },
         JWT_SECRET
       );
       console.log("Token", tokenForExistingStudent);
@@ -33,13 +33,13 @@ const studentSignup = async (req, res) => {
       });
     }
 
-    const dataExistInEnquiry = await User.find({ fatherContactNumber: phone });
+    const dataExistInEnquiry = await User.find({ fatherContactNumber: contactNumber });
 
     console.log("dataExistInEnquiry before response", dataExistInEnquiry)
 
     if (dataExistInEnquiry.length > 0) {
       const tokenForExistingStudentInEnquiry = jwt.sign(
-        { role: "Student", phone },
+        { role: "Student", contactNumber },
         JWT_SECRET
       );
       
@@ -65,13 +65,13 @@ const studentSignup = async (req, res) => {
     // Create new student
     const newStudent = new Student({
       role,
-      phone,
+      contactNumber,
     });
     await newStudent.save();
 
     // Generate token
     const token = jwt.sign(
-      { _id: newStudent._id, role: newStudent.role, phone },
+      { _id: newStudent._id, role: newStudent.role, contactNumber },
       JWT_SECRET
     );
 

@@ -15,6 +15,7 @@ const {
   enquiryWithPhoneNumber,
   continueWithExistingStudent,
   createNewStudent,
+  continueRegistration,
 } = require("../controllers/Students");
 
 const {
@@ -92,6 +93,7 @@ router.post(
   takenPhoneByToken(),
   continueWithExistingStudent
 );
+router.post("/continueRegistration", takenPhoneByToken(), continueRegistration);
 router.post("/createNewStudent", takenPhoneByToken(), createNewStudent);
 
 router.post("/sendVerification", async (req, res) => {
@@ -321,25 +323,61 @@ router.post("/filter/Student", async (req, res) => {
 //   }
 // });
 
+router.post("/filter/filterById", async (req, res) => {
+  try {
+    const { studentId } = req.body;
 
+    console.log("Data", studentId);
 
+    // 1. Find students by name
+    const allStudents = await Students.find({
+      StudentsId: { $regex: studentId, $options: "i" },
+    });
+    console.log("allStudents data", allStudents);
+    // 2. Get list of student IDs
+    const studentIds = allStudents.map((student) => student._id);
 
+    // 3. Get batch details for those students
+    const batchDetails = await BatchRelatedDetails.find({
+      student_id: { $in: studentIds },
+    });
 
+    console.log("batchDetails", batchDetails);
+    // 4. Merge student with their batch details
+    const totalData = allStudents.map((student) => {
+      const studentBatch = batchDetails.find(
+        (detail) => detail.student_id.toString() === student._id.toString()
+      );
 
+      return {
+        ...student.toObject(),
+        batchDetail: studentBatch ? studentBatch.toObject() : null,
+      };
+    });
+
+    console.log("TotalData", totalData);
+
+    // 5. Return the final merged array
+    return res.status(200).json(totalData);
+  } catch (error) {
+    console.error("Error filtering students:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
 
 router.post("/filterByClass", async (req, res) => {
   try {
     const { filterByClassName } = req.body;
 
     // Get batch details matching the class
-    const batchDetails = await BatchRelatedDetails.find({
+    const batchDetail = await BatchRelatedDetails.find({
       classForAdmission: filterByClassName,
     });
 
-    console.log("batchDetails", batchDetails);
+    console.log("batchDetail", batchDetail);
 
     // Extract student IDs
-    const StudentsId = batchDetails.map((detail) => detail.student_id);
+    const StudentsId = batchDetail.map((detail) => detail.student_id);
 
     console.log("StudentsID", StudentsId);
 
@@ -352,7 +390,7 @@ router.post("/filterByClass", async (req, res) => {
 
     // Create a map for quick access to batch details by student_id
     const batchMap = {};
-    batchDetails.forEach((detail) => {
+    batchDetail.forEach((detail) => {
       batchMap[detail.student_id.toString()] = detail;
     });
 
@@ -361,7 +399,7 @@ router.post("/filterByClass", async (req, res) => {
       const batchInfo = batchMap[student._id.toString()];
       return {
         ...student.toObject(),
-        batchDetails: batchInfo || {},
+        batchDetail : batchInfo || {},
       };
     });
 
@@ -371,13 +409,6 @@ router.post("/filterByClass", async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
-
-
-
-
-
-
-
 
 router.post(
   "/uploadStudentResult",

@@ -123,7 +123,8 @@ const editStudent = async (req, res) => {
 
   console.log("req.body from editStudent update", req.body);
 
-  const { studentName, email, role, password, payment_id, profilePicture } = req.body;
+  const { studentName, email, role, password, payment_id, profilePicture } =
+    req.body;
 
   try {
     const student = await Students.findById(student_id);
@@ -242,13 +243,13 @@ const resultDetails = async (req, res) => {
 };
 
 const getAllStudentByPhone = async (req, res) => {
-  const { phone } = req.user;
+  const { contactNumber } = req.user;
 
-  console.log("phone", phone);
+  console.log("contactNumber", contactNumber);
 
   console.log("user req", req.user);
 
-  const students = await Students.find({ phone });
+  const students = await Students.find({ contactNumber });
 
   console.log("students getAllStudentByPhone", students);
 
@@ -256,10 +257,12 @@ const getAllStudentByPhone = async (req, res) => {
 };
 
 const enquiryWithPhoneNumber = async (req, res) => {
-  const { phone } = req.user;
+  const { contactNumber } = req.user;
 
-  console.log("dataExistInEnquiry phone number", phone);
-  const dataExistInEnquiry = await User.find({ fatherContactNumber: phone });
+  console.log("dataExistInEnquiry contactNumber", contactNumber);
+  const dataExistInEnquiry = await User.find({
+    fatherContactNumber: contactNumber,
+  });
 
   if (dataExistInEnquiry) {
     console.log("dataExistInEnquiry", dataExistInEnquiry);
@@ -271,7 +274,7 @@ const enquiryWithPhoneNumber = async (req, res) => {
 const continueWithExistingStudent = async (req, res) => {
   console.log("req.body continueWithExistingStudent", req.body);
 
-  const { phone, role } = req.user;
+  const { contactNumber, role } = req.user;
 
   const {
     studentName,
@@ -298,7 +301,7 @@ const continueWithExistingStudent = async (req, res) => {
 
   const newStudent = new Students({
     role,
-    phone,
+    contactNumber,
     studentName,
     enquiryNumber,
   });
@@ -339,24 +342,49 @@ const continueWithExistingStudent = async (req, res) => {
 
   // Generate token
   const token = jwt.sign(
-    { _id: newStudent._id, role: newStudent.role, phone },
+    { _id: newStudent._id, role: newStudent.role, contactNumber },
     JWT_SECRET
   );
   return res.status(200).json({ token, newStudent });
 };
 
+const continueRegistration = async (req, res) => {
+  const { _id } = req.body;
+
+  const findStudentById = await Students.findById({ _id });
+  console.log("findStudentById", findStudentById);
+
+  const token = jwt.sign(
+    {
+      _id: findStudentById._id,
+      role: findStudentById.role,
+      contactNumber: findStudentById.contactNumber,
+    },
+    JWT_SECRET
+  );
+
+  console.log("token", token);
+
+  res.status(200).json({
+    token,
+  });
+};
+
 const createNewStudent = async (req, res) => {
   try {
-    const { role, phone } = req.user;
+    const { role, contactNumber } = req.user;
+
+    console.log("ROle, contactNumber ", contactNumber);
+    console.log("ROle, contactNumber ", role);
     const newStudent = new Students({
       role,
-      phone,
+      contactNumber,
     });
     await newStudent.save();
 
     // Generate token
     const token = jwt.sign(
-      { _id: newStudent._id, role: newStudent.role, phone },
+      { _id: newStudent._id, role: newStudent.role, contactNumber },
       JWT_SECRET
     );
 
@@ -381,4 +409,5 @@ module.exports = {
   enquiryWithPhoneNumber,
   continueWithExistingStudent,
   createNewStudent,
+  continueRegistration,
 };

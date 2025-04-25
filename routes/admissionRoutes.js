@@ -53,7 +53,7 @@ router.post("/createAdmission", async (req, res) => {
     // });
 
     // const studentAvailableInSDAT = await Students.find({
-    //   phone: fatherContactNumber,
+    //   contactNumber: fatherContactNumber,
     // });
 
     // const tokenForExistingStudent = jwt.sign(

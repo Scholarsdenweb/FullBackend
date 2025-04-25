@@ -107,6 +107,10 @@ router.post("/getData", adminCheck(allowedAdmins), async (req, res) => {
   }
 });
 
+
+
+
+
 router.post("/getAllData", adminCheck(allowedAdmins), async (req, res) => {
   const data = await Students.find();
 

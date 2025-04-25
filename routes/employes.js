@@ -663,7 +663,7 @@ router.post("/addExamDate", async (req, res) => {
     //   name,
     //   email,
     //   role,
-    //   phone,
+    //   contactNumber,
     //   password: hashedPassword,
     // });
     // await newStudent.save();

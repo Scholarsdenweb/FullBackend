@@ -392,4 +392,15 @@ router.post("/verifyNumber", async (req, res) => {
   }
 });
 
+
+// router.post("/deleteUserByNumber", async(req, res) =>{
+//   const {fatherContactNumber} = req.body;
+
+//   const deleteEnquiryByPhoneNumber = await User.deleteMany({ fatherContactNumber });
+
+//   console.log("deleteEnquiryByPhoneNumber", deleteEnquiryByPhoneNumber);
+
+
+// });
+
 module.exports = router;

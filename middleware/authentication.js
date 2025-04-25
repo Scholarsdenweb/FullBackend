@@ -98,12 +98,12 @@ const takenPhoneByToken = () => {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       console.log("Decoded Token:", decoded);
 
-      const { phone, role } = decoded;
+      const { contactNumber, role } = decoded;
 
       console.log("role", role);
-      console.log("phone", phone);
+      console.log("contactNumber", contactNumber);
 
-      const user = { role, phone };
+      const user = { role, contactNumber };
 
       req.user = user;
       next();
@@ -242,10 +242,10 @@ const checkRole = (allowedRoles) => {
 
 const adminCheck = (allowedAdmin) => {
   return (req, res, next) => {
-    const phone = req.body.phone;
+    const contactNumber = req.body.contactNumber;
 
-    console.log("Phone ", phone);
-    const isAllowedAdmin = allowedAdmin.includes(phone);
+    console.log("contactNumber ", contactNumber);
+    const isAllowedAdmin = allowedAdmin.includes(contactNumber);
     if (!isAllowedAdmin) {
       return res.status(403).json({ message: "Access denied." });
     }

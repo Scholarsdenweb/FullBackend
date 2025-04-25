@@ -12,7 +12,7 @@ const adminRoute = require("./routes/AdminRoute");
 const fileUpload = require("express-fileupload");
 
 const mongoose = require("mongoose");
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 5004;
 require("dotenv").config();
 
 app.use(express.json());

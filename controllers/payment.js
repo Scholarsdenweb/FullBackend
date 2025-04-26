@@ -124,14 +124,14 @@ const generateAdmitCard = async (req, res) => {
     console.log("basicDetails", basicDetails);
     console.log("batchDetails", batchDetails);
     // Allocate a new StudentsId
-   
+
     const data = {
       name: student.studentName,
       class: batchDetails.classForAdmission,
       stream: batchDetails.subjectCombination,
       examDate: basicDetails.examDate,
       examTime: "12:00 PM",
-      profilePicture : student.profilePicture,
+      profilePicture: student.profilePicture,
 
       studentId: student.StudentsId,
       FatherName: familyDetails.FatherName,
@@ -140,6 +140,32 @@ const generateAdmitCard = async (req, res) => {
     };
     // Generate admit card
     const admitCard = await processHTMLAndGenerateAdmitCards(data);
+
+    //     const options = {
+    //       method: "POST",
+    //       url: "https://www.fast2sms.com/dev/bulkV2",
+    //       headers: {
+    //         authorization: `${process.env.FAST2SMS_API_KEY}`,
+    //         "Content-Type": "application/x-www-form-urlencoded",
+    //       },
+    //       data: {
+    //         route: "dlt",
+    //         sender_id: "SCHDEN",
+    // // chenge for send messssage
+    //         // message: "182187",
+    //         variables_values: `${student.studentName}| ${student.StudentsId}`,
+    //         flash: 0,
+    //         numbers: `${student.contactNumber}`,
+    //       },
+    //     };
+
+    //     // Make the API request to Fast2SMS
+    //     const response = await axios.post(options.url, options.data, {
+    //       headers: options.headers,
+    //     });
+
+    // console.log("response", response);
+
     console.log("Admit card generated:", admitCard);
     student.admitCard = admitCard;
     const updatedStudent = await student.save();
@@ -149,9 +175,9 @@ const generateAdmitCard = async (req, res) => {
     // return res.redirect(`${process.env.FRONTEND_URL}/registration/payment`);
 
     return res.status(200).json({
-        success: true,
-        message: "Admit Card Generated Successfully",
-        updatedStudent
+      success: true,
+      message: "Admit Card Generated Successfully",
+      updatedStudent,
     });
   } catch (error) {
     console.error("Error in payment verification:", error);
@@ -160,6 +186,79 @@ const generateAdmitCard = async (req, res) => {
       .json({ success: false, message: "Internal Server Error" });
   }
 };
+
+// router.post("/sendVerification", async (req, res) => {
+//   try {
+//     const { mobileNumber } = req.body;
+//     console.log("req.body from sendVerification", req.body);
+
+//     if (!mobileNumber) {
+//       return res
+//         .status(400)
+//         .json({ success: false, message: "Mobile number is required." });
+//     }
+
+//     console.log(mobileNumber);
+//     console.log(process.env.FAST2SMS_API_KEY);
+
+//     // Generate a random 4-digit OTP
+//     const otp = Math.floor(1000 + Math.random() * 9000);
+
+//     console.log("otp code ", otp);
+
+//     const options = {
+//       method: "POST",
+//       url: "https://www.fast2sms.com/dev/bulkV2",
+//       headers: {
+//         authorization: `${process.env.FAST2SMS_API_KEY}`,
+//         "Content-Type": "application/x-www-form-urlencoded",
+//       },
+//       data: {
+//         route: "dlt",
+//         sender_id: "SCHDEN",
+//         message: "182187",
+//         variables_values: `${otp}|`,
+//         flash: 0,
+//         numbers: `${mobileNumber}`,
+//       },
+//     };
+//     let otpStoreData;
+//     // Make the API request to Fast2SMS
+//     const response = await axios.post(options.url, options.data, {
+//       headers: options.headers,
+//     });
+
+//     console.log(response.data);
+
+//     // Store the OTP in the database
+//     const existingOtp = await OtpStore.findOne({ mobileNumber });
+
+//     if (existingOtp) {
+//       // Update the existing document if an OTP is already stored for this number
+//       existingOtp.otp = otp;
+//       existingOtp.createdAt = new Date();
+//       await existingOtp.save();
+//     } else {
+//       // Create a new document if no OTP exists for this number
+//       otpStoreData = await OtpStore.create({ otp, mobileNumber });
+//     }
+
+//     // Construct and send a custom response
+//     return res.status(200).json({
+//       success: true,
+//       message: "OTP sent successfully",
+//       smsResponse: response.data, // Include the response from Fast2SMS
+//       otpStoreData,
+//     });
+//   } catch (error) {
+//     console.error(error);
+//     return res.status(500).json({
+//       success: false,
+//       message: "Failed to send OTP.",
+//       error: error.message, // Include the error message for easier debugging
+//     });
+//   }
+// });
 
 const getKey = async (req, res) => {
   try {
@@ -181,6 +280,29 @@ const getAllPaymentDetails = async (req, res) => {
     res.status(400).json({ error: error });
   }
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 module.exports = {
   checkout,

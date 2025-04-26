@@ -43,26 +43,38 @@ router.post("/getData", adminCheck(allowedAdmins), async (req, res) => {
     const totalStudents = await Students.countDocuments();
     const totalPages = Math.ceil(totalStudents / limit);
 
+
+
+    console.log("totalStudent", totalStudents);
+    
     const basicDetails = await BasicDetails.findOne({
       student_id: data[0]._id,
     });
-    if (!basicDetails) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Basic Details not found" });
-    }
+    console.log("basicDetails", basicDetails);
+    // if (!basicDetails) {
+    //   return res
+    //     .status(404)
+    //     .json({ success: false, message: "Basic Details not found" });
+    // }
     const batchDetails = await BatchRelatedDetails.findOne({
       student_id: data[0]._id,
     });
-    if (!batchDetails) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Batch Details not found" });
-    }
+
+console.log("basicDetails",basicDetails);
+
+
+
+    // if (!batchDetails) {
+    //   return res
+    //     .status(404)
+    //     .json({ success: false, message: "Batch Details not found" });
+    // }
 
     const educationalDetails = await EducationalDetails.findOne({
       student_id: data[0]._id,
     });
+
+    console.log("educationalDetails", educationalDetails);
     const familyDetails = await FamilyDetails.findOne({
       student_id: data[0]._id,
     });
@@ -119,19 +131,19 @@ router.post("/getAllData", adminCheck(allowedAdmins), async (req, res) => {
   const basicDetails = await BasicDetails.findOne({
     student_id: data[0]._id,
   });
-  if (!basicDetails) {
-    return res
-      .status(404)
-      .json({ success: false, message: "Basic Details not found" });
-  }
+  // if (!basicDetails) {
+  //   return res
+  //     .status(404)
+  //     .json({ success: false, message: "Basic Details not found" });
+  // }
   const batchDetails = await BatchRelatedDetails.findOne({
     student_id: data[0]._id,
   });
-  if (!batchDetails) {
-    return res
-      .status(404)
-      .json({ success: false, message: "Batch Details not found" });
-  }
+  // if (!batchDetails) {
+  //   return res
+  //     .status(404)
+  //     .json({ success: false, message: "Batch Details not found" });
+  // }
 
   const educationalDetails = await EducationalDetails.findOne({
     student_id: data[0]._id,

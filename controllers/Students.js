@@ -276,6 +276,8 @@ const continueWithExistingStudent = async (req, res) => {
 
   const { contactNumber, role } = req.user;
 
+  console.log("req.body", req.body);
+
   const {
     studentName,
     enquiryNumber,

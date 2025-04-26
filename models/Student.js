@@ -53,7 +53,7 @@ studentsSchema.statics.allocateStudentsId = async function (classForAdmission) {
     },
     {
       $match: {
-        "studentDetails.admitCard": { $exists: true, $ne: null },
+        "studentDetails.StudentsId": { $exists: true, $ne: null },
       },
     },
     {

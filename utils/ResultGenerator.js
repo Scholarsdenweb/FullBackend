@@ -726,7 +726,7 @@ gap: 10px;
               <p><b>Father's Name:</b> ${data.Father}</p>
               <p><b>Class:</b> ${data.Class}</p>
               <p>
-                <b>Scholarship:</b> ${scholarship}% (Valid till 19th April '25)
+                <b>Scholarship:</b> ${scholarship}% (Valid till 1st May '25)
               </p>
               <p><b>Rank:</b> ${data.Rank}</p>
               <p><b>Percentage: </b>${percentage}%</p>
@@ -1377,9 +1377,9 @@ const processCSVAndGenerateReportCards = async (csvFilePath, res) => {
           studentLastName: capitalizeWords(student['Candidate Name']?.split(" ").length > 1 ? student['Candidate Name']?.split(" ").slice(1).join(" ") : ""),
           Registration: student['Roll No'],
           Rank: student['Rank'],
-          Scholarship: student['Scholarship%'],
+          Scholarship: student['Scholarship'],
           Father: capitalizeWords(student["Father's Name"]),
-          Class: capitalizeWords(student["Class"]),
+          Class: student["Class"],
           examDate: student["Exam Date"],
           Rank: student[allKeys[0]],
           subjects: checkMarksData,

@@ -9,13 +9,13 @@ const router = express.Router();
 
 // Admin Signup
 router.post("/signup", async (req, res) => {
-  const { name, email, password } = req.body;
+  const { email, password } = req.body;
   try {
     // Check if admin already exists
     let admin = await Admin.findOne({ email });
     if (admin) return res.status(400).json({ message: "Admin already exists" });
 
-    console.log("admin", name, email, password);
+    console.log("admin", email, password);
 
     // Hash password
     const salt = await bcrypt.genSalt(10);
@@ -23,7 +23,6 @@ router.post("/signup", async (req, res) => {
 
     // Create new admin
     admin = new Admin({
-      name,
       email,
       password: hashedPassword,
     });
@@ -43,8 +42,13 @@ router.post("/signup", async (req, res) => {
 
 // Admin Login
 router.post("/login", async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password } = req.body.adminDetails;
+  console.log("req.body", req.body);
   try {
+
+    console.log("email password", email , password);
+
+
     const admin = await Admin.findOne({ email });
     if (!admin) return res.status(404).json({ message: "Admin not found" });
     console.log("admin", admin);

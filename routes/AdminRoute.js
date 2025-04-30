@@ -58,10 +58,16 @@ router.post("/getEnquiryData", async (req, res) => {
 
     console.log("email form request", email);
 
-    const data = await User.find({ enquiryTakenBy: email })
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
+    let data;
+
+    if (email === "jatin@scholarsden.in") {
+      data = await User.find().sort({ createdAt: -1 }).skip(skip).limit(limit);
+    } else {
+      data = await User.find({ enquiryTakenBy: email })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit);
+    }
 
     console.log("data from getEnquiryData", data);
 
@@ -70,14 +76,22 @@ router.post("/getEnquiryData", async (req, res) => {
       return res.status(401).json({ message: "No data found" });
     }
 
-    // Check if there is a next page
-    const nextPageData = await User.find({ enquiryTakenBy: email })
-      .skip(skip + limit)
-      .limit(limit);
+    let nextPageData;
+    let totalStudents;
+    if (email === "jatin@scholarsden.in") {
+      nextPageData = await User.find()
+        .skip(skip + limit)
+        .limit(limit);
+      totalStudents = await User.countDocuments();
+    } else {
+      nextPageData = await User.find({ enquiryTakenBy: email })
+        .skip(skip + limit)
+        .limit(limit);
+
+      totalStudents = await User.countDocuments({ enquiryTakenBy: email });
+    }
 
     const isLastPage = nextPageData.length === 0; // If nextPageData is empty, it's the last page
-    const totalStudents = await User.countDocuments({ enquiryTakenBy: email });
-
 
     console.log("totalStudents", totalStudents);
     const totalPages = Math.ceil(totalStudents / limit);

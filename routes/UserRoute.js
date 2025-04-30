@@ -94,12 +94,53 @@ router.get("/getTokenNo", async (req, res) => {
 
 router.post("/filter/Student", async (req, res) => {
   try {
-    const { data } = req.body;
+    const { data, email } = req.body;
 
     console.log("Inputvalue", data);
+    let afterFilterStudents;
 
-    const afterFilterStudents = await User.find({
+    if(email === "jatin@scholarsden.in"){
+      afterFilterStudents = await User.find({
+        studentName: { $regex: data, $options: "i" },
+      });
+      return res.status(200).json(afterFilterStudents);
+
+
+    }
+
+     afterFilterStudents = await User.find({
+      enquiryTakenBy: email,
       studentName: { $regex: data, $options: "i" },
+    });
+
+    res.status(200).json(afterFilterStudents);
+  } catch (error) {
+    console.error("Error filtering students:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+router.post("/filter/enquiryNumber", async (req, res) => {
+  try {
+    const { data, email } = req.body;
+
+
+    console.log("enquiry data form filter function", data);
+
+    console.log("Inputvalue", data);
+    let afterFilterStudents;
+
+    if(email === "jatin@scholarsden.in"){
+      afterFilterStudents = await User.find({
+        enquiryNumber: { $regex: "^" + data, $options: "i" },
+      });
+      return res.status(200).json(afterFilterStudents);
+
+
+    }
+
+     afterFilterStudents = await User.find({
+
+      enquiryNumber: { $regex: "^" + data, $options: "i" },
     });
 
     res.status(200).json(afterFilterStudents);
@@ -110,12 +151,25 @@ router.post("/filter/Student", async (req, res) => {
 });
 router.post("/filter/filterByClass", async (req, res) => {
   try {
-    const { filterByClassName } = req.body;
+    const { filterByClassName, email } = req.body;
 
     console.log("Inputvalue", filterByClassName);
+    let afterFilterStudents;
 
-    const afterFilterStudents = await User.find({
+    if(email === "jatin@scholarsden.in"){
+      afterFilterStudents = await User.find({
+        courseOfIntrested: filterByClassName,
+      });
+
+      return res.status(200).json(afterFilterStudents);
+
+
+    }
+
+     afterFilterStudents = await User.find({
       courseOfIntrested: filterByClassName,
+      enquiryTakenBy : email
+
     });
 
     res.status(200).json(afterFilterStudents);

@@ -54,6 +54,8 @@ app.use("/api/payment", require("./routes/payment"));
 app.use("/api/result", require("./routes/result"));
 app.use("/api/adminData", require("./routes/adminData"));
 
+app.use("/api/approval", require("./routes/AdmissionApproval"));
+
 // Routes
 app.use("/api/admin", adminRoutes);
 app.use("/api/admissions", admissionRoutes);

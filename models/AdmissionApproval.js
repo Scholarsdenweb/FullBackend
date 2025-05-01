@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 
 const AdmissionApprovalSchema = new mongoose.Schema(
   {
-    admissionRollNo: {
+    acknowledgementNumber: {
       type: String,
       required: true,
     },
@@ -21,7 +21,7 @@ const AdmissionApprovalSchema = new mongoose.Schema(
   }
 );
 
-AdmissionApprovalSchema.index({ admissionRollNo: 1 }, { unique: true });
+AdmissionApprovalSchema.index({ acknowledgementNumber: 1 }, { unique: true });
 
 // Export the model
 const AdmissionApproval = mongoose.model(

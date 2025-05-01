@@ -73,7 +73,7 @@ const enrollmentNumberGenerator = async () => {
   try {
     const totalStudents = await TotalStudents.findOneAndUpdate(
       {},
-      { $inc: { total_students: 1 } },
+      { $inc: { total_count: 1 } },
       { new: true, upsert: true }
     );
 

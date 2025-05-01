@@ -15,6 +15,7 @@ const jwt = require("jsonwebtoken");
 const OtpStore = require("../models/OtpStore.js");
 const User = require("../models/UserModel.js");
 const Students = require("../models/Student.js");
+const AdmissionApproval = require("../models/AdmissionApproval.js");
 
 // Multer Storage Configuration
 const storage = multer.diskStorage({
@@ -203,74 +204,82 @@ router.patch(
   }
 );
 
-router.patch("/submitBankRefundForm", verifyTokenForAdmission(), async (req, res) => {
-  try {
-    const {
-      accountHolder,
-      bankName,
-      studentClass,
-      program,
-      accountNumber,
-      ifscCode,
-      relationWithStudent,
-      documents,
-      signatures,
-    } = req.body;
-    const { _id } = req.user;
-
-    console.log("data form submitBackend", req.user);
-
-    // const 
-
-    const { acknowledgementNumber } =
-      await Admission.allocatedAcknowledgement();
-
-
-      console.log("acknowledgement Number", acknowledgementNumber);
-
-
-      
-
-    // const { admissionRollNumber, enrollmentNumber } =
-    //   await Admission.allocateStudentsId(studentClass, program);
-    // console.log(
-    //   "newStudentsId",
-    //   admissionRollNumber,
-    //   "enrollmentNumberGenerator",
-    //   enrollmentNumber
-    // );
-
-    // Validation
-    // if (!signatures.student || !signatures.parent || !signatures.admissionOfficer) {
-    //     return res.status(400).json({ message: "All signatures are required" });
-    // }
-
-    const user = await Admission.findOneAndUpdate(
-      { _id },
-      {
+router.patch(
+  "/submitBankRefundForm",
+  verifyTokenForAdmission(),
+  async (req, res) => {
+    try {
+      const {
         accountHolder,
         bankName,
+        studentClass,
+        program,
         accountNumber,
         ifscCode,
         relationWithStudent,
         documents,
         signatures,
-        acknowledgementNumber: acknowledgementNumber,
-        // admissionRollNo: admissionRollNumber,
-        // enrollmentNumber: enrollmentNumber,
-      },
-      { new: true }
-    );
+      } = req.body;
+      const { _id } = req.user;
 
-    console.log("User form submit bank details", user);
+      console.log("data form submitBackend", req.user);
 
-    res.status(200).send({ user });
-  } catch (error) {
-    console.log("error from submitBackRefundForm", error);
-    res.status(500).json({ message: "Server error!" });
+      // const
+
+      const { acknowledgementNumber } =
+        await Admission.allocatedAcknowledgement();
+
+      console.log("acknowledgement Number", acknowledgementNumber);
+
+      // const { admissionRollNumber, enrollmentNumber } =
+      //   await Admission.allocateStudentsId(studentClass, program);
+      // console.log(
+      //   "newStudentsId",
+      //   admissionRollNumber,
+      //   "enrollmentNumberGenerator",
+      //   enrollmentNumber
+      // );
+
+      // Validation
+      // if (!signatures.student || !signatures.parent || !signatures.admissionOfficer) {
+      //     return res.status(400).json({ message: "All signatures are required" });
+      // }
+
+      const user = await Admission.findOneAndUpdate(
+        { _id },
+        {
+          accountHolder,
+          bankName,
+          accountNumber,
+          ifscCode,
+          relationWithStudent,
+          documents,
+          signatures,
+          acknowledgementNumber: acknowledgementNumber,
+          // admissionRollNo: admissionRollNumber,
+          // enrollmentNumber: enrollmentNumber,
+        },
+        { new: true }
+      );
+
+      const addAdmissionApproval = new AdmissionApproval({
+        acknowledgementNumber,
+        status: "pending",
+      });
+
+      await addAdmissionApproval.save();
+
+      console.log("admissionApproval from the backend", addAdmissionApproval);
+
+      console.log("User form submit bank details", user);
+
+      res.status(200).send({ user, addAdmissionApproval });
+    } catch (error) {
+      console.log("error from submitBackRefundForm", error);
+      res.status(500).json({ message: "Server error!" });
+    }
   }
-});
-
+);
 
 // Upload Student Photo
 router.post("/upload-photo", upload.single("photo"), async (req, res) => {
@@ -303,6 +312,9 @@ router.get("/getUserbyToken", verifyTokenForAdmission(), async (req, res) => {
     const admission = await Admission.findById(req.user.id);
     if (!admission)
       return res.status(404).json({ message: "Admission not found" });
+
+    console.log("ADMISSION ", admission);
+
     res.json(admission);
   } catch (err) {
     res.status(500).json({ message: "Server error" });

@@ -94,13 +94,11 @@ const AdmissionSchema = new mongoose.Schema(
     ifscCode: { type: String },
     relationWithStudent: { type: String },
 
-    documents: {
-      cancelledCheque: { type: String },
-      passbook: { type: String },
-      studentAadhar: { type: String },
-      parentAadhar: { type: String },
-      passportPhotos: { type: String },
-    },
+    cancelledCheque: { type: String },
+    passbook: { type: String },
+    studentAadhar: { type: String },
+    parentAadhar: { type: String },
+
     studentPhoto: {
       type: String,
     },

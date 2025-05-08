@@ -95,7 +95,7 @@ const AdmissionSchema = new mongoose.Schema(
     relationWithStudent: { type: String },
 
     cancelledCheque: { type: String },
-    passbook: { type: String },
+    passbookPhoto: { type: String },
     studentAadhar: { type: String },
     parentAadhar: { type: String },
 

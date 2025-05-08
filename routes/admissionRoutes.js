@@ -71,6 +71,30 @@ router.post("/createAdmission", async (req, res) => {
     //   });
     // }
 
+    const findAllAdmisssion = await Admission.findOne({
+      parentsContactNumber: fatherContactNumber,
+    });
+
+    console.log("FIndAllAdmission", findAllAdmisssion);
+    if (findAllAdmisssion) {
+      console.log(
+        "FIndAllAdmission inside the condition",
+        findAllAdmisssion.length
+      );
+      console.log("FIndAllAdmission inside the condition", findAllAdmisssion);
+      const token = jwt.sign(
+        { fatherContactNumber: fatherContactNumber },
+        process.env.JWT_SECRET
+      );
+
+      return res
+        .status(201)
+        .json({
+          token,
+          message: "Student Already Exist in Admission",
+        });
+    }
+
     const newAdmission = new Admission({
       parentsContactNumber: fatherContactNumber,
     });
@@ -110,7 +134,7 @@ router.patch("/putFormData", verifyTokenForAdmission(), async (req, res) => {
       cancelledCheque,
       studentAadhar,
       parentAadhar,
-      passportPhotos,
+      passbookPhoto,
     } = req.body;
     const { _id } = req.user;
 
@@ -123,7 +147,7 @@ router.patch("/putFormData", verifyTokenForAdmission(), async (req, res) => {
       studentPhoto,
       studentAadhar,
       parentAadhar,
-      passportPhotos,
+      passbookPhoto,
     };
 
     const user = await Admission.findOneAndUpdate(
@@ -146,7 +170,11 @@ router.patch("/putFormData", verifyTokenForAdmission(), async (req, res) => {
         program,
         category,
         studentPhoto,
-        documents: document,
+        cancelledCheque,
+        studentPhoto,
+        studentAadhar,
+        parentAadhar,
+        passbookPhoto,
       },
       { new: true }
     );

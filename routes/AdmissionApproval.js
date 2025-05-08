@@ -40,27 +40,30 @@ router.post("/addAdmissionApproval", async (req, res) => {
 });
 
 router.post("/editAdmissionApproval", async (req, res) => {
-  const { acknowledgementNumber, status } = req.body;
+  const { acknowledgementNumber, status, message } = req.body;
   try {
     // Check if AdmissionApproval already exists
-    let findAdmissionApproval = await AdmissionApproval.findOne({ email });
+    let findAdmissionApproval = await AdmissionApproval.findOne({
+      acknowledgementNumber,
+    });
     if (!findAdmissionApproval)
       return res.status(400).json({ message: "AdmissionApproval not exists" });
 
     const updateAdmissionApproval = await AdmissionApproval.findOneAndUpdate(
       { acknowledgementNumber },
-      { status },
+      { status, message },
       { new: true }
     );
     await updateAdmissionApproval.save();
 
-    res
-      .status(201)
-      .json({
-        updateAdmissionApproval,
-        message: "Update Admission Approval registered successfully",
-      });
+    console.log("Check message is added or not", updateAdmissionApproval);
+
+    return res.status(201).json({
+      updateAdmissionApproval,
+      message: "Update Admission Approval registered successfully",
+    });
   } catch (err) {
+    console.log("ERROR FRO EDITaDMISSIONaPPROVAL", err);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -71,12 +74,10 @@ router.get("/completedApproval", async (req, res) => {
       status: "approved",
     });
 
-    res
-      .status(200)
-      .json({
-        data: allCompletedApproval,
-        message: "Approved admissions retrieved",
-      });
+    res.status(200).json({
+      data: allCompletedApproval,
+      message: "Approved admissions retrieved",
+    });
   } catch (e) {
     res.status(500).json({ message: "Server error" });
   }
@@ -94,12 +95,10 @@ router.get("/pendingApproval", async (req, res) => {
         .json({ message: "Pending Approval not available" });
     }
 
-    res
-      .status(200)
-      .json({
-        data: allCompletedApproval,
-        message: "Pending admissions retrieved",
-      });
+    res.status(200).json({
+      data: allCompletedApproval,
+      message: "Pending admissions retrieved",
+    });
   } catch (e) {
     res.status(500).json({ message: "Server error" });
   }
@@ -110,12 +109,10 @@ router.get("/rejectedApproval", async (req, res) => {
       status: "rejected",
     });
 
-    res
-      .status(200)
-      .json({
-        data: allCompletedApproval,
-        message: "Rejected admissions retrieved",
-      });
+    res.status(200).json({
+      data: allCompletedApproval,
+      message: "Rejected admissions retrieved",
+    });
   } catch (e) {
     res.status(500).json({ message: "Server error" });
   }
@@ -123,7 +120,7 @@ router.get("/rejectedApproval", async (req, res) => {
 
 router.get("/details/:ackNumber", async (req, res) => {
   const { ackNumber } = req.params;
-  
+
   console.log("ackNUmber from backend", ackNumber);
   const findAdmissionDetail = await Admission.find({
     acknowledgementNumber: ackNumber,
@@ -133,6 +130,5 @@ router.get("/details/:ackNumber", async (req, res) => {
 
   res.status(200).json({ data: findAdmissionDetail });
 });
-
 
 module.exports = router;

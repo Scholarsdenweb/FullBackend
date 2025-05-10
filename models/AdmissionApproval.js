@@ -1,14 +1,32 @@
 const mongoose = require("mongoose");
 
+const DetailStatusSchema = new mongoose.Schema({
+  status: {
+    type: Boolean,
+    required: true,
+  },
+  message: {
+    type: String,
+    required: true,
+  },
+}, { _id: false });
+
 const AdmissionApprovalSchema = new mongoose.Schema(
   {
     acknowledgementNumber: {
       type: String,
       required: true,
+      unique: true,
     },
+    studentDetails: DetailStatusSchema,
+    parentDetails: DetailStatusSchema,
+    documentsDetails: DetailStatusSchema,
+    signatureDetails: DetailStatusSchema,
+    bankDetails: DetailStatusSchema,
+
+    // Optional global status
     status: {
       type: String,
-      required: true,
       enum: ["pending", "approved", "rejected"],
       default: "pending",
     },
@@ -21,9 +39,8 @@ const AdmissionApprovalSchema = new mongoose.Schema(
   }
 );
 
-AdmissionApprovalSchema.index({ acknowledgementNumber: 1 }, { unique: true });
+// Create a unique index on acknowledgementNumber (redundant if `unique: true` in schema)
 
-// Export the model
 const AdmissionApproval = mongoose.model(
   "AdmissionApproval",
   AdmissionApprovalSchema

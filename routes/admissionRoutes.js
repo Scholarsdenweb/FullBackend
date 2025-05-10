@@ -4,7 +4,10 @@ const Admission = require("../models/Admission");
 const ClassStrength = require("../models/ClassStrength.js");
 const TotalStudents = require("../models/TotalStudents.js");
 
-const { verifyTokenForAdmission } = require("../middleware/authentication.js");
+const {
+  verifyTokenForAdmission,
+  verifyTokenForExistingAdmission,
+} = require("../middleware/authentication.js");
 
 const axios = require("axios");
 
@@ -40,6 +43,29 @@ const upload = multer({
   },
 });
 
+router.post(
+  "/getStudentByPhone",
+  verifyTokenForExistingAdmission(),
+  async (req, res) => {
+    const { parentsContactNumber } = req.user;
+
+    try {
+      const findExistingAdmission = await Admission.find({
+        parentsContactNumber,
+      });
+
+      console.log("findExistingAdmission", findExistingAdmission);
+      return res.status(200).json({
+        data: findExistingAdmission,
+        message: "Student Already Exist",
+      });
+    } catch (error) {
+      console.log("error ", error);
+      return res.status(500).json({ message: "Server Error" });
+    }
+  }
+);
+
 // Create Admission (Student fills form)
 router.post("/createAdmission", async (req, res) => {
   try {
@@ -71,35 +97,34 @@ router.post("/createAdmission", async (req, res) => {
     //   });
     // }
 
-    const findAllAdmisssion = await Admission.findOne({
+    const findAllAdmisssion = await Admission.find({
       parentsContactNumber: fatherContactNumber,
     });
 
     console.log("FIndAllAdmission", findAllAdmisssion);
-    if (findAllAdmisssion) {
+    if (findAllAdmisssion.length > 0) {
       console.log(
         "FIndAllAdmission inside the condition",
         findAllAdmisssion.length
       );
       console.log("FIndAllAdmission inside the condition", findAllAdmisssion);
       const token = jwt.sign(
-        { fatherContactNumber: fatherContactNumber },
+        { parentsContactNumber: fatherContactNumber },
         process.env.JWT_SECRET
       );
 
-      return res
-        .status(201)
-        .json({
-          token,
-          message: "Student Already Exist in Admission",
-        });
+      return res.status(201).json({
+        token,
+        message: "Student Already Exist in Admission",
+        data: findAllAdmisssion,
+      });
     }
 
     const newAdmission = new Admission({
       parentsContactNumber: fatherContactNumber,
     });
     console.log("jwt_seCRET", process.env.JWT_SECRET);
-    const token = jwt.sign({ _id: newAdmission._id }, process.env.JWT_SECRET);
+    const token = jwt.sign({ _id: newAdmission._id, parentsContactNumber: fatherContactNumber  }, process.env.JWT_SECRET);
 
     await newAdmission.save();
     res.status(201).json({ token, newAdmission });
@@ -111,6 +136,8 @@ router.post("/createAdmission", async (req, res) => {
 
 router.patch("/putFormData", verifyTokenForAdmission(), async (req, res) => {
   console.log("req.body from putFormData", req.body);
+
+
 
   try {
     const {
@@ -136,7 +163,7 @@ router.patch("/putFormData", verifyTokenForAdmission(), async (req, res) => {
       parentAadhar,
       passbookPhoto,
     } = req.body;
-    const { _id } = req.user;
+    const { _id, parentsContactNumber } = req.user[0];
 
     console.log("req.body", req.body);
 
@@ -150,8 +177,13 @@ router.patch("/putFormData", verifyTokenForAdmission(), async (req, res) => {
       passbookPhoto,
     };
 
+    const findUser = await Admission.find({parentsContactNumber });
+
+
+    console.log("findUser from backend", findUser);
+
     const user = await Admission.findOneAndUpdate(
-      { _id },
+      { parentsContactNumber : Number(parentsContactNumber) },
       {
         fatherName,
         fatherAadharId,
@@ -179,11 +211,10 @@ router.patch("/putFormData", verifyTokenForAdmission(), async (req, res) => {
       { new: true }
     );
     console.log("user", user);
-    console.log("user", user.documents);
 
     res.status(200).send({ user });
   } catch (error) {
-    console.error("Error in signup:", error.message);
+    console.error("Error in signup:", error);
     res.status(500).send("Internal Server Error");
   }
 });
@@ -248,9 +279,9 @@ router.patch(
         documents,
         signatures,
       } = req.body;
-      const { _id } = req.user;
+      const { _id } = req.user[0];
 
-      console.log("data form submitBackend", req.user);
+      console.log("data form submitBackend", req.user[0]);
 
       // const
 
@@ -289,11 +320,32 @@ router.patch(
         },
         { new: true }
       );
-
       const addAdmissionApproval = new AdmissionApproval({
         acknowledgementNumber,
-        status: "pending",
+        studentDetails: {
+          status: false,
+          message: "Student info not verified",
+        },
+        documentsDetails: {
+          status: false,
+          message: "Documents info not verified"
+        },
+        signatureDetails: {
+          status: false,
+          message: "Signature info not verified",
+        },
+        bankDetails: {
+          status: false,
+          message: "Bank account info not verified",
+        },
+        parentDetails: {
+          status: false,
+          message: "Parent ID info not verified",
+        },
+        status: "pending", 
       });
+
+      // Save to database
 
       await addAdmissionApproval.save();
 
@@ -337,14 +389,21 @@ router.get("/", verifyTokenForAdmission(), async (req, res) => {
 // Get a specific Admission
 router.get("/getUserbyToken", verifyTokenForAdmission(), async (req, res) => {
   try {
-    const admission = await Admission.findById(req.user.id);
+
+console.log("Req.body form backend", req.user);
+
+    const {_id, parentsContactNumber} = req.user;
+    const admission = await Admission.find({parentsContactNumber});
+    console.log("ADMISSION from backend route", admission);
+
     if (!admission)
       return res.status(404).json({ message: "Admission not found" });
 
-    console.log("ADMISSION ", admission);
+    console.log("ADMISSION from backend route", admission);
 
     res.json(admission);
   } catch (err) {
+    console.log("error from backend", err);
     res.status(500).json({ message: "Server error" });
   }
 });

@@ -166,12 +166,11 @@ const verifyTokenForAdmission = () => {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       console.log("Decoded Token:", decoded);
 
-      const { _id } = decoded;
+      const { _id, parentsContactNumber } = decoded;
 
       // Use the correct User model to fetch the user
 
-      console.log("_id form admission", _id);
-      const user = await AdmissionUser.findById(_id); // Ensure User is your actual model
+      const user = await AdmissionUser.findOne({parentsContactNumber}); // Ensure User is your actual model
       console.log("User from verifyToken form admission:", user);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
@@ -187,6 +186,53 @@ const verifyTokenForAdmission = () => {
     }
   };
 };
+
+
+
+
+const verifyTokenForExistingAdmission = ()=>{
+
+  return async (req, res, next) => {
+    try {
+      console.log("req.headers.authorization:", req.headers.authorization);
+
+      // Extract the token from the Authorization header
+      const token = req.headers.authorization?.split(" ")[1];
+      if (!token) {
+        return res.status(401).json({ message: "No token provided" });
+      }
+
+      // Verify the token
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      console.log("Decoded Token:", decoded);
+
+      const { _id, parentsContactNumber } = decoded;
+
+      // Use the correct User model to fetch the user
+
+      console.log("fatherContactNumber form admission", parentsContactNumber);
+      // const user = await AdmissionUser.find({parentsContactNumber: fatherContactNumber}); // Ensure User is your actual model
+      // console.log("User from verifyToken form admission:", user);
+      // if (!user) {
+      //   return res.status(404).json({ message: "User not found" });
+      // }
+
+      req.user = { parentsContactNumber, _id }; // Attach the user to the request object
+
+      // Call the next middleware
+      next();
+    } catch (error) {
+      console.error("Error in verifyToken middleware:", error);
+      return res.status(401).json({ message: "Invalid or expired token" });
+    }
+  };
+
+
+
+
+
+
+}
 
 // const verifyTokenForAdmission = () => {
 //   return async (req, res, next) => {
@@ -260,4 +306,5 @@ module.exports = {
   verifyTokenForRegistration,
   verifyTokenForAdmission,
   takenPhoneByToken,
+  verifyTokenForExistingAdmission
 };

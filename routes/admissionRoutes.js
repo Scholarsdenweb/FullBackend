@@ -66,6 +66,26 @@ router.post(
   }
 );
 
+
+
+
+
+// Need to delete aftersome time 
+router.delete("/deleteAdmissionForContactNumber", async (req, res) => {
+
+
+const {parentsContactNumber} = req.body;
+
+
+  try {
+ const deletedAdmission = await Admission.deleteMany({ parentsContactNumber });
+    res.json({ message: "Admission deleted", data: deletedAdmission });
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+
 // Create Admission (Student fills form)
 router.post("/createAdmission", async (req, res) => {
   try {
@@ -163,7 +183,7 @@ router.patch("/putFormData", verifyTokenForAdmission(), async (req, res) => {
       parentAadhar,
       passbookPhoto,
     } = req.body;
-    const { _id, parentsContactNumber } = req.user[0];
+    const { _id, parentsContactNumber } = req.user;
 
     console.log("req.body", req.body);
 
@@ -279,9 +299,9 @@ router.patch(
         documents,
         signatures,
       } = req.body;
-      const { _id } = req.user[0];
+      const { _id } = req.user;
 
-      console.log("data form submitBackend", req.user[0]);
+      console.log("data form submitBackend", req.user);
 
       // const
 
@@ -626,6 +646,40 @@ router.post("/verifyNumber", async (req, res) => {
       message: "Failed to verify OTP.",
       error: error.message,
     });
+  }
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// Need to delete aftersome time 
+router.delete("/deleteAdmissionForContactNumber", async (req, res) => {
+
+
+const {parentsContactNumber} = req.body;
+
+
+  try {
+    await Admission.findAndDelete({parentsContactNumber});
+    res.json({ message: "Admission deleted" });
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
   }
 });
 

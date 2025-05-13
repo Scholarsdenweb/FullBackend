@@ -66,25 +66,19 @@ router.post(
   }
 );
 
-
-
-
-
-// Need to delete aftersome time 
+// Need to delete aftersome time
 router.delete("/deleteAdmissionForContactNumber", async (req, res) => {
-
-
-const {parentsContactNumber} = req.body;
-
+  const { parentsContactNumber } = req.body;
 
   try {
- const deletedAdmission = await Admission.deleteMany({ parentsContactNumber });
+    const deletedAdmission = await Admission.deleteMany({
+      parentsContactNumber,
+    });
     res.json({ message: "Admission deleted", data: deletedAdmission });
   } catch (err) {
     res.status(500).json({ message: "Server error" });
   }
 });
-
 
 // Create Admission (Student fills form)
 router.post("/createAdmission", async (req, res) => {
@@ -144,7 +138,10 @@ router.post("/createAdmission", async (req, res) => {
       parentsContactNumber: fatherContactNumber,
     });
     console.log("jwt_seCRET", process.env.JWT_SECRET);
-    const token = jwt.sign({ _id: newAdmission._id, parentsContactNumber: fatherContactNumber  }, process.env.JWT_SECRET);
+    const token = jwt.sign(
+      { _id: newAdmission._id, parentsContactNumber: fatherContactNumber },
+      process.env.JWT_SECRET
+    );
 
     await newAdmission.save();
     res.status(201).json({ token, newAdmission });
@@ -154,10 +151,44 @@ router.post("/createAdmission", async (req, res) => {
   }
 });
 
+router.post(
+  "/editAdmissionDetails",
+  verifyTokenForExistingAdmission(),
+  async (req, res) => {
+    try {
+      console.log("req.user from editAdmissionDetsails", req.user);
+      const { acknowledgementNumber } = req.body;
+
+      const findAdmission = await Admission.findOne({ acknowledgementNumber });
+
+      console.log("findAdmission.length ", findAdmission);
+
+      if (findAdmission) {
+        const token = jwt.sign(
+          {
+            _id: findAdmission._id,
+            parentsContactNumber: findAdmission.fatherContactNumber,
+          },
+          process.env.JWT_SECRET
+        );
+        console.log("token form edit ", token);
+        return res.status(201).json({
+          token,
+        });
+      } else {
+        console.log("findAdmission", findAdmission);
+
+        return res.status(200).json({ message: "Admission Form not found" });
+      }
+    } catch (error) {
+      console.log("error from createAdmission", error);
+      return res.status(500).json({ error });
+    }
+  }
+);
+
 router.patch("/putFormData", verifyTokenForAdmission(), async (req, res) => {
   console.log("req.body from putFormData", req.body);
-
-
 
   try {
     const {
@@ -197,13 +228,12 @@ router.patch("/putFormData", verifyTokenForAdmission(), async (req, res) => {
       passbookPhoto,
     };
 
-    const findUser = await Admission.find({parentsContactNumber });
-
+    const findUser = await Admission.find({ parentsContactNumber });
 
     console.log("findUser from backend", findUser);
 
     const user = await Admission.findOneAndUpdate(
-      { parentsContactNumber : Number(parentsContactNumber) },
+      { parentsContactNumber: Number(parentsContactNumber) },
       {
         fatherName,
         fatherAadharId,
@@ -303,13 +333,21 @@ router.patch(
 
       console.log("data form submitBackend", req.user);
 
-      // const
+      const findAdmission = await Admission.findById({ _id });
 
-      const { acknowledgementNumber } =
-        await Admission.allocatedAcknowledgement();
+      console.log("findAdmission from bank", findAdmission);
 
-      console.log("acknowledgement Number", acknowledgementNumber);
+      const acknowledgementNumberData = "";
 
+      if (findAdmission.acknowledgementNumber === "") {
+        const { acknowledgementNumber } =
+          await Admission.allocatedAcknowledgement();
+
+        acknowledgementNumberData = acknowledgementNumber;
+        console.log("acknowledgement Number", acknowledgementNumber);
+      }
+
+      console.log("acknowledgementNumberData", acknowledgementNumberData);
       // const { admissionRollNumber, enrollmentNumber } =
       //   await Admission.allocateStudentsId(studentClass, program);
       // console.log(
@@ -334,46 +372,78 @@ router.patch(
           relationWithStudent,
           documents,
           signatures,
-          acknowledgementNumber: acknowledgementNumber,
+          acknowledgementNumber:
+            acknowledgementNumberData || findAdmission.acknowledgementNumber,
           // admissionRollNo: admissionRollNumber,
           // enrollmentNumber: enrollmentNumber,
         },
         { new: true }
       );
-      const addAdmissionApproval = new AdmissionApproval({
-        acknowledgementNumber,
-        studentDetails: {
-          status: false,
-          message: "Student info not verified",
-        },
-        documentsDetails: {
-          status: false,
-          message: "Documents info not verified"
-        },
-        signatureDetails: {
-          status: false,
-          message: "Signature info not verified",
-        },
-        bankDetails: {
-          status: false,
-          message: "Bank account info not verified",
-        },
-        parentDetails: {
-          status: false,
-          message: "Parent ID info not verified",
-        },
-        status: "pending", 
+
+      const findAdmissionApproval = await AdmissionApproval.findOne({
+        acknowledgementNumber:
+          acknowledgementNumberData || findAdmission.acknowledgementNumber,
       });
 
+      if (findAdmissionApproval) {
+        if (findAdmissionApproval.status === "rejected") {
+          findAdmissionApproval.status = "pending";
+          await findAdmissionApproval.save();
+        }
+      } else {
+        const addAdmissionApproval = new AdmissionApproval({
+          acknowledgementNumber: acknowledgementNumberData,
+          studentDetails: {
+            status: false,
+            message: "Student info not verified",
+          },
+          documentsDetails: {
+            studentPhoto: {
+              status: false,
+              message: "Student Photo info not verified",
+            },
+            cancelledCheque: {
+              status: false,
+              message: "Cancelled Cheque info not verified",
+            },
+            passbookPhoto: {
+              status: false,
+              message: "Passbook Photo info not verified",
+            },
+            studentAadhar: {
+              status: false,
+              message: "Student Aadhar info not verified",
+            },
+            parentAadhar: {
+              status: false,
+              message: "Parent Aadhar info not verified",
+            },
+          },
+          signatureDetails: {
+            status: false,
+            message: "Signature info not verified",
+          },
+          bankDetails: {
+            status: false,
+            message: "Bank account info not verified",
+          },
+          parentDetails: {
+            status: false,
+            message: "Parent ID info not verified",
+          },
+          status: "pending",
+        });
+
+        await addAdmissionApproval.save();
+
+        console.log("admissionApproval from the backend", addAdmissionApproval);
+
+        console.log("User form submit bank details", user);
+
+        res.status(200).send({ user, addAdmissionApproval });
+      }
+
       // Save to database
-
-      await addAdmissionApproval.save();
-
-      console.log("admissionApproval from the backend", addAdmissionApproval);
-
-      console.log("User form submit bank details", user);
-
-      res.status(200).send({ user, addAdmissionApproval });
     } catch (error) {
       console.log("error from submitBackRefundForm", error);
       res.status(500).json({ message: "Server error!" });
@@ -409,11 +479,10 @@ router.get("/", verifyTokenForAdmission(), async (req, res) => {
 // Get a specific Admission
 router.get("/getUserbyToken", verifyTokenForAdmission(), async (req, res) => {
   try {
+    console.log("Req.body form backend", req.user);
 
-console.log("Req.body form backend", req.user);
-
-    const {_id, parentsContactNumber} = req.user;
-    const admission = await Admission.find({parentsContactNumber});
+    const { _id, parentsContactNumber } = req.user;
+    const admission = await Admission.find({ parentsContactNumber });
     console.log("ADMISSION from backend route", admission);
 
     if (!admission)
@@ -649,34 +718,12 @@ router.post("/verifyNumber", async (req, res) => {
   }
 });
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// Need to delete aftersome time 
+// Need to delete aftersome time
 router.delete("/deleteAdmissionForContactNumber", async (req, res) => {
-
-
-const {parentsContactNumber} = req.body;
-
+  const { parentsContactNumber } = req.body;
 
   try {
-    await Admission.findAndDelete({parentsContactNumber});
+    await Admission.findAndDelete({ parentsContactNumber });
     res.json({ message: "Admission deleted" });
   } catch (err) {
     res.status(500).json({ message: "Server error" });

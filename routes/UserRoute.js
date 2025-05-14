@@ -458,4 +458,25 @@ router.post("/deleteUserByNumber", async(req, res) =>{
 
 });
 
+
+
+
+router.post("/changeProgram", async(req, res) =>{
+ const changeProgram = await User.updateMany(
+  { program: "JEE(Main & Adv)" , courseOfIntrested : "XII Passed" }, 
+  { $set: { courseOfIntrested: "XII Passed Medical" } }
+);
+
+console.log(`${changeProgram.modifiedCount} documents updated.`);
+
+  return res.status(200).json({data: changeProgram});
+
+
+
+
+})
+
+
+
+
 module.exports = router;

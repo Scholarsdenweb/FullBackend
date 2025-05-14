@@ -128,7 +128,7 @@ const generateAdmitCard = async (req, res) => {
     const data = {
       name: student.studentName,
       class: batchDetails.classForAdmission,
-      stream: batchDetails.subjectCombination,
+      stream: batchDetails.program,
       examDate: basicDetails.examDate,
       examTime: "12:00 PM",
       profilePicture: student.profilePicture,

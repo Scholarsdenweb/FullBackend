@@ -399,7 +399,7 @@ router.post("/filterByClass", async (req, res) => {
       const batchInfo = batchMap[student._id.toString()];
       return {
         ...student.toObject(),
-        batchDetail : batchInfo || {},
+        batchDetail: batchInfo || {},
       };
     });
 
@@ -417,6 +417,62 @@ router.post(
   uploadStudentResult
 );
 
-router.post("/");
+router.post("/fetchAllData", async (req, res) => {
+  try {
+    const { date } = req.body;
+    const start = new Date(`${date}T00:00:00.000Z`);
+    const end = new Date(`${date}T00:00:00.000Z`);
+      end.setDate(end.getDate() + 1); 
+
+    const alldata = await Students.find({
+      createdAt: { $gte: start, $lt: end },
+    });
+
+    console.log("allData ", alldata);
+
+    res.status(200).json({ data: alldata });
+  } catch (error) {
+    console.log("error", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+const jsonData = [
+    { name: 'John', age: 30, city: 'New York' },
+    { name: 'Alice', age: 25, city: 'Los Angeles' }
+];
+
+
+
+router.get('/download-excel', async (req, res) => {
+    try {
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('Data');
+
+        // Add header row from keys of the first object
+        const columns = Object.keys(jsonData[0]).map(key => ({ header: key, key }));
+        worksheet.columns = columns;
+
+        // Add rows
+        jsonData.forEach(row => worksheet.addRow(row));
+
+        // Set response headers
+        res.setHeader('Content-Type', 
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', 'attachment; filename=my_excel_file.xlsx');
+
+        // Write Excel to response stream
+        await workbook.xlsx.write(res);
+        res.end();
+    } catch (err) {
+        console.error('Error generating Excel file:', err);
+        res.status(500).send('Failed to generate Excel file');
+    }
+});
+
+
+
+
+
 
 module.exports = router;

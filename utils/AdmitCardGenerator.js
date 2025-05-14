@@ -15,9 +15,10 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-const isFileValid = (filePath) => {
+const isFileValid = async (filePath) => {
   try {
-    const stats = fs.statSync(filePath);
+    const stats = await fs.statSync(filePath);
+
     return stats.size > 0;
   } catch (error) {
     console.error("Error checking file size:", error);
@@ -74,8 +75,6 @@ const isFileValid = (filePath) => {
 // </div>
 
 const generateAdmitCardPDF = async (data, filePath) => {
-  console.log("data form generateAdmitCardPDF", data);
-
   let browser = null;
   try {
     if (process.env.NODE_ENV === "production") {
@@ -96,12 +95,10 @@ const generateAdmitCardPDF = async (data, filePath) => {
     }
 
     const page = await browser.newPage();
-    const logoPath = path.resolve(__dirname, "SDATLogo.png");
-    const logoBase64 = fs.readFileSync(logoPath, { encoding: "base64" });
+    const logoPath =  path.resolve(__dirname, "SDATLogo.png");
+    const logoBase64 =  fs.readFileSync(logoPath, { encoding: "base64" });
     const logoDataUrl = `data:image/png;base64,${logoBase64}`;
     //  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@100;300;400;700&display=swap" rel="stylesheet">
-
-    console.log("data.classs", data.class);
 
     let currentClass = "";
     if (data.class.split(" ").length === 1) {
@@ -286,13 +283,11 @@ const uploadToCloudinary = async (filePath, rollNumber, studentName) => {
     const folder = "admit_cards"; // Folder name in Cloudinary
     const publicId = `${folder}/${studentName}/${rollNumber}`; // Store the file with the student's roll number as the name
 
-    console.log(`Uploading ${filePath} to Cloudinary...`);
     const result = await cloudinary.uploader.upload(filePath, {
       resource_type: "raw", // Specify 'raw' for non-image files like PDFs
-      public_id: publicId, 
-      folder : "SDAT270425AdmitCard"// Set custom public ID for the file
+      public_id: publicId,
+      folder: "SDAT270425AdmitCard", // Set custom public ID for the file
     });
-    console.log(`Uploaded to Cloudinary: ${result.url}`);
     return result.url;
   } catch (error) {
     console.error("Error uploading to Cloudinary:", error);
@@ -302,8 +297,6 @@ const uploadToCloudinary = async (filePath, rollNumber, studentName) => {
 
 // Function to process CSV data and generate admit cards
 const processHTMLAndGenerateAdmitCards = async (student) => {
-  console.log("student form processCSVAndGenerateAdmitCards", student);
-
   const pdfFilePath = `./admit_card_${student.studentId}.pdf`;
   // const date = new Date(student.dob);
 
@@ -337,16 +330,22 @@ const processHTMLAndGenerateAdmitCards = async (student) => {
     CenterAddress: student.CenterAddress,
     profilePicture: student.profilePicture,
   };
-  console.log("studentData after the function", studentData);
 
   try {
-    await generateAdmitCardPDF(studentData, pdfFilePath);
+    const data = await generateAdmitCardPDF(studentData, pdfFilePath);
+    console.log("Data from StudentData ", data);
 
-    console.log(`Generated admit card for Roll Number: ${student.studentId}`);
+    const fileValidData = await isFileValid(pdfFilePath);
+    
 
-    if (isFileValid(pdfFilePath)) {
-      const url = await uploadToCloudinary(pdfFilePath, student.studentId, student.name);
-      console.log(`Admit card URL for ${student.studentId}: ${url}`);
+    console.log("Check fileValidData from generateAdmitCardPDF", fileValidData);
+
+    if (true) {
+      const url = await uploadToCloudinary(
+        pdfFilePath,
+        student.studentId,
+        student.name
+      );
       return url;
     } else {
       console.log(

@@ -16,7 +16,7 @@ const studentsSchema = new mongoose.Schema(
     role: { type: String, required: true },
     contactNumber: { type: String, required: true },
     enquiryNumber: {
-      type : String
+      type: String,
     },
     password: { type: String },
     resetToken: { type: String },
@@ -27,12 +27,83 @@ const studentsSchema = new mongoose.Schema(
   }
 );
 
+// const normalizeValue = (data) => {
+//   const parts = data.trim().split(/\s+/);
+//   const first = parts[0].replace(/(st|nd|rd|th)$/i, "").toUpperCase();
+//   const rest = parts.slice(1).join(" ");
+
+//   let roman;
+//   if (validRomans.has(first)) {
+//     roman = first;
+//   } else {
+//     const num = parseInt(first);
+//     roman = isNaN(num) ? first : numberToRoman(num);
+//   }
+
+//   return `${roman} ${rest}`.trim();
+// };
+
+const normalizeValue = (data) => {
+  const parts = data.trim().split(/\s+/);
+  const first = parts[0].replace(/(st|nd|rd|th)$/i, "").toUpperCase();
+  const rest = parts.slice(1).join(" ");
+
+  // If already a valid Roman numeral, return original input
+  if (validRomans.has(first)) {
+    return data.trim();
+  }
+
+  // Try converting number to Roman
+  const num = parseInt(first);
+  const roman = isNaN(num) ? first : numberToRoman(num);
+
+  return `${roman} ${rest}`.trim();
+};
+
+const numberToRoman = (value) => {
+  const romanMap = {
+    1: "I",
+    2: "II",
+    3: "III",
+    4: "IV",
+    5: "V",
+    6: "VI",
+    7: "VII",
+    8: "VIII",
+    9: "IX",
+    10: "X",
+    11: "XI",
+    12: "XII",
+  };
+  return romanMap[value] || "Invalid";
+};
+
+const validRomans = new Set([
+  "I",
+  "II",
+  "III",
+  "IV",
+  "V",
+  "VI",
+  "VII",
+  "VIII",
+  "IX",
+  "X",
+  "XI",
+  "XII",
+]);
+
 // Static Method to Allocate /StudentsId
 studentsSchema.statics.allocateStudentsId = async function (classForAdmission) {
   let currentYear = new Date().getFullYear();
   const currentmonth = new Date().getMonth();
 
-  console.log("ClassForAdmisssion", classForAdmission);
+  console.log("classAdmission.......,,,,,,,,,,", classForAdmission);
+
+  const admissionClass = normalizeValue(classForAdmission);
+
+
+  console.log("admisisionClass,,,,,,,,,,,,,,,,,,,", admissionClass);
 
   if (currentmonth > 9 && currentmonth < 12) {
     currentYear = currentYear + 1;
@@ -41,7 +112,7 @@ studentsSchema.statics.allocateStudentsId = async function (classForAdmission) {
   const BatchRelatedDetails = mongoose.model("BatchRelatedDetails");
   const classStudentCount = await BatchRelatedDetails.aggregate([
     {
-      $match: { classForAdmission }, // Match students of a specific class
+      $match: { classForAdmission: admissionClass }, // Match students of a specific class
     },
     {
       $lookup: {
@@ -89,8 +160,14 @@ studentsSchema.statics.allocateStudentsId = async function (classForAdmission) {
   // Increment the count for the new student
   const studentNumber = String(count).padStart(3, "0"); // 3-digit padding
   console.log("studentNumber", studentNumber);
+
+  console.log("admissionClass./.........", admissionClass)
+
+  console.log("romanToInt(admissionClass)..............", romanToInt(
+    admissionClass
+  ))
   const StudentsId = `${currentYear}${romanToInt(
-    classForAdmission
+    admissionClass
   )}${studentNumber}`;
   console.log("StudentsId", StudentsId);
 

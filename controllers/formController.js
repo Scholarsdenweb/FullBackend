@@ -31,7 +31,7 @@ const addForm = async (Model, req, res) => {
 
 
 
-    console.log("MOdel", Model.modelName);
+    console.log("MOdel from addForm", Model.modelName);
 
     if (Model.modelName === "FamilyDetails") {
       console.log("FamilyDetails is working");
@@ -80,11 +80,43 @@ const updateForm = async (Model, req, res) => {
 
 
 
+    
+    console.log("MOdel from addForm", Model.modelName);
+
+    if (Model.modelName === "FamilyDetails") {
+      console.log("FamilyDetails is working");
+      const batchDetails = await BatchRelatedDetails.findOne({
+        student_id: req.user._id,
+      });
+      if (!batchDetails) {
+        return res
+          .status(404)
+          .json({ success: false, message: "Batch Details not found" });
+      }
+
+      const newStudentsId = await Students.allocateStudentsId(
+        batchDetails.classForAdmission
+      );
+      console.log("Allocated StudentsId:", newStudentsId);
+
+
+
+      // Update the student document
+      await Students.findByIdAndUpdate(
+        req.user._id,
+        { StudentsId: newStudentsId },
+        { new: true }
+      );
+
+    }
+
+
 
 
 
     return res.status(200).json(result);
   } catch (error) {
+    console.log("error from familyDetails", error);
     return res.status(500).json({ message: "Error updating form", error });
   }
 };

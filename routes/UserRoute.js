@@ -99,16 +99,14 @@ router.post("/filter/Student", async (req, res) => {
     console.log("Inputvalue", data);
     let afterFilterStudents;
 
-    if(email === "jatin@scholarsden.in"){
+    if (email === "jatin@scholarsden.in") {
       afterFilterStudents = await User.find({
         studentName: { $regex: data, $options: "i" },
       });
       return res.status(200).json(afterFilterStudents);
-
-
     }
 
-     afterFilterStudents = await User.find({
+    afterFilterStudents = await User.find({
       enquiryTakenBy: email,
       studentName: { $regex: data, $options: "i" },
     });
@@ -123,23 +121,19 @@ router.post("/filter/enquiryNumber", async (req, res) => {
   try {
     const { data, email } = req.body;
 
-
     console.log("enquiry data form filter function", data);
 
     console.log("Inputvalue", data);
     let afterFilterStudents;
 
-    if(email === "jatin@scholarsden.in"){
+    if (email === "jatin@scholarsden.in") {
       afterFilterStudents = await User.find({
         enquiryNumber: { $regex: "^" + data, $options: "i" },
       });
       return res.status(200).json(afterFilterStudents);
-
-
     }
 
-     afterFilterStudents = await User.find({
-
+    afterFilterStudents = await User.find({
       enquiryNumber: { $regex: "^" + data, $options: "i" },
     });
 
@@ -156,20 +150,17 @@ router.post("/filter/filterByClass", async (req, res) => {
     console.log("Inputvalue", filterByClassName);
     let afterFilterStudents;
 
-    if(email === "jatin@scholarsden.in"){
+    if (email === "jatin@scholarsden.in") {
       afterFilterStudents = await User.find({
         courseOfIntrested: filterByClassName,
       });
 
       return res.status(200).json(afterFilterStudents);
-
-
     }
 
-     afterFilterStudents = await User.find({
+    afterFilterStudents = await User.find({
       courseOfIntrested: filterByClassName,
-      enquiryTakenBy : email
-
+      enquiryTakenBy: email,
     });
 
     res.status(200).json(afterFilterStudents);
@@ -446,37 +437,35 @@ router.post("/verifyNumber", async (req, res) => {
   }
 });
 
+router.post("/deleteUserByNumber", async (req, res) => {
+  const { fatherContactNumber } = req.body;
 
-router.post("/deleteUserByNumber", async(req, res) =>{
-  const {fatherContactNumber} = req.body;
-
-  const deleteEnquiryByPhoneNumber = await User.deleteMany({ fatherContactNumber });
+  const deleteEnquiryByPhoneNumber = await User.deleteMany({
+    fatherContactNumber,
+  });
 
   console.log("deleteEnquiryByPhoneNumber", deleteEnquiryByPhoneNumber);
-  return res.status(200).json({message : "Successfully deleted"})
+  return res.status(200).json({ message: "Successfully deleted" });
+});
 
+router.post("/changeProgram", async (req, res) => {
+  const changeProgram = await User.updateMany(
+    { program: "NEET(UG)", courseOfIntrested : "XI"  },
+    // { program: "Medical (XI -XII)" , courseOfIntrested : "XII Passed" },
+    // { $set: { program: "JEE(Main & Adv)" } }
+    { $set: { courseOfIntrested: "XI Medical" } }
+  );
 
+  console.log(`${changeProgram.modifiedCount} documents updated.`);
+
+  return res.status(200).json({ data: changeProgram });
 });
 
 
+router.post("/fetchAllData", async (req, res)=>{
+  const allData = await User.find();
 
-
-router.post("/changeProgram", async(req, res) =>{
- const changeProgram = await User.updateMany(
-  { program: "JEE(Main & Adv)" , courseOfIntrested : "XII Passed" }, 
-  { $set: { courseOfIntrested: "XII Passed Medical" } }
-);
-
-console.log(`${changeProgram.modifiedCount} documents updated.`);
-
-  return res.status(200).json({data: changeProgram});
-
-
-
-
+  res.status(200).json({"Data": allData});
 })
-
-
-
 
 module.exports = router;

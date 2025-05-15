@@ -118,6 +118,8 @@ AdmissionSchema.statics.allocateStudentsId = async function (
 AdmissionSchema.statics.allocatedAcknowledgement = async () => {
   const acknowledgementNumber = await enrollmentNumberGenerator();
 
+  console.log("log form Schema ", acknowledgementNumber);
+
   return { acknowledgementNumber };
 };
 

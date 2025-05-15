@@ -54,7 +54,6 @@ router.post(
         parentsContactNumber,
       });
 
-      console.log("findExistingAdmission", findExistingAdmission);
       return res.status(200).json({
         data: findExistingAdmission,
         message: "Student Already Exist",
@@ -85,9 +84,7 @@ router.post("/createAdmission", async (req, res) => {
   try {
     const { fatherContactNumber } = req.body;
 
-    console.log("CHECK CREATE ADMISSION ", req.body);
 
-    console.log("Request Body:", req.body); // Log request data
 
     // const studentAvailableInEnquiry = await User.find({
     //   fatherContactNumber,
@@ -115,13 +112,8 @@ router.post("/createAdmission", async (req, res) => {
       parentsContactNumber: fatherContactNumber,
     });
 
-    console.log("FIndAllAdmission", findAllAdmisssion);
     if (findAllAdmisssion.length > 0) {
-      console.log(
-        "FIndAllAdmission inside the condition",
-        findAllAdmisssion.length
-      );
-      console.log("FIndAllAdmission inside the condition", findAllAdmisssion);
+
       const token = jwt.sign(
         { parentsContactNumber: fatherContactNumber },
         process.env.JWT_SECRET
@@ -137,7 +129,7 @@ router.post("/createAdmission", async (req, res) => {
     const newAdmission = new Admission({
       parentsContactNumber: fatherContactNumber,
     });
-    console.log("jwt_seCRET", process.env.JWT_SECRET);
+
     const token = jwt.sign(
       { _id: newAdmission._id, parentsContactNumber: fatherContactNumber },
       process.env.JWT_SECRET
@@ -156,12 +148,12 @@ router.post(
   verifyTokenForExistingAdmission(),
   async (req, res) => {
     try {
-      console.log("req.user from editAdmissionDetsails", req.user);
+
       const { acknowledgementNumber } = req.body;
 
       const findAdmission = await Admission.findOne({ acknowledgementNumber });
 
-      console.log("findAdmission.length ", findAdmission);
+
 
       if (findAdmission) {
         const token = jwt.sign(
@@ -171,12 +163,12 @@ router.post(
           },
           process.env.JWT_SECRET
         );
-        console.log("token form edit ", token);
+
         return res.status(201).json({
           token,
         });
       } else {
-        console.log("findAdmission", findAdmission);
+       
 
         return res.status(200).json({ message: "Admission Form not found" });
       }
@@ -188,7 +180,7 @@ router.post(
 );
 
 router.patch("/putFormData", verifyTokenForAdmission(), async (req, res) => {
-  console.log("req.body from putFormData", req.body);
+
 
   try {
     const {
@@ -216,9 +208,7 @@ router.patch("/putFormData", verifyTokenForAdmission(), async (req, res) => {
     } = req.body;
     const { _id, parentsContactNumber } = req.user;
 
-    console.log("req.body", req.body);
 
-    console.log("req.user", req.user);
 
     const document = {
       cancelledCheque,
@@ -230,7 +220,7 @@ router.patch("/putFormData", verifyTokenForAdmission(), async (req, res) => {
 
     const findUser = await Admission.find({ parentsContactNumber });
 
-    console.log("findUser from backend", findUser);
+  
 
     const user = await Admission.findOneAndUpdate(
       { parentsContactNumber: Number(parentsContactNumber) },
@@ -260,7 +250,7 @@ router.patch("/putFormData", verifyTokenForAdmission(), async (req, res) => {
       },
       { new: true }
     );
-    console.log("user", user);
+ 
 
     res.status(200).send({ user });
   } catch (error) {
@@ -273,7 +263,7 @@ router.patch(
   "/submitSiblingsDetails",
   verifyTokenForAdmission(),
   async (req, res) => {
-    console.log("req.body from submitSiblingsDetails", req.body);
+
 
     try {
       const {
@@ -285,7 +275,7 @@ router.patch(
       } = req.body;
       const { _id } = req.user;
 
-      console.log("req.body", signatures);
+   
 
       // Validation
       if (!signatures.student || !signatures.parent) {
@@ -303,7 +293,6 @@ router.patch(
         },
         { new: true }
       );
-      console.log("user from submitSiblingsDetails", user);
 
       res.status(200).send({ user });
     } catch (error) {
@@ -331,23 +320,25 @@ router.patch(
       } = req.body;
       const { _id } = req.user;
 
-      console.log("data form submitBackend", req.user);
 
       const findAdmission = await Admission.findById({ _id });
 
-      console.log("findAdmission from bank", findAdmission);
 
-      const acknowledgementNumberData = "";
 
-      if (findAdmission.acknowledgementNumber === "") {
+      let acknowledgementNumberData = "";
+
+      console.log("findAdmission from acknowledgement", findAdmission.acknowledgementNumber);
+
+      if (!findAdmission.acknowledgementNumber) {
         const { acknowledgementNumber } =
           await Admission.allocatedAcknowledgement();
 
         acknowledgementNumberData = acknowledgementNumber;
-        console.log("acknowledgement Number", acknowledgementNumber);
+
+        console.log("acknowledgementNumber", acknowledgementNumber)
       }
 
-      console.log("acknowledgementNumberData", acknowledgementNumberData);
+      console.log("acknowledgementNumberData,,,,,,,,,,,,,,,,,,,", acknowledgementNumberData);
       // const { admissionRollNumber, enrollmentNumber } =
       //   await Admission.allocateStudentsId(studentClass, program);
       // console.log(
@@ -380,10 +371,14 @@ router.patch(
         { new: true }
       );
 
+      console.log("uSERdATA FORM SUBMIT ", user.parentsContactNumber);
+
       const findAdmissionApproval = await AdmissionApproval.findOne({
         acknowledgementNumber:
           acknowledgementNumberData || findAdmission.acknowledgementNumber,
       });
+
+      console.log("findAdmissionApproval", findAdmissionApproval);
 
       if (findAdmissionApproval) {
         if (findAdmissionApproval.status === "rejected") {
@@ -438,10 +433,10 @@ router.patch(
 
         console.log("admissionApproval from the backend", addAdmissionApproval);
 
-        console.log("User form submit bank details", user);
 
         res.status(200).send({ user, addAdmissionApproval });
       }
+      res.status(200).send({"Message" : "Data"});
 
       // Save to database
     } catch (error) {
@@ -479,16 +474,13 @@ router.get("/", verifyTokenForAdmission(), async (req, res) => {
 // Get a specific Admission
 router.get("/getUserbyToken", verifyTokenForAdmission(), async (req, res) => {
   try {
-    console.log("Req.body form backend", req.user);
 
     const { _id, parentsContactNumber } = req.user;
     const admission = await Admission.find({ parentsContactNumber });
-    console.log("ADMISSION from backend route", admission);
 
     if (!admission)
       return res.status(404).json({ message: "Admission not found" });
 
-    console.log("ADMISSION from backend route", admission);
 
     res.json(admission);
   } catch (err) {
@@ -514,9 +506,6 @@ router.put("/:id", verifyTokenForAdmission(), async (req, res) => {
     } = req.body;
     const { _id } = req.user;
 
-    console.log("req.body", req.body);
-
-    console.log("req.user", req.user);
 
     const user = await Admission.findOneAndUpdate(
       { _id },
@@ -534,7 +523,6 @@ router.put("/:id", verifyTokenForAdmission(), async (req, res) => {
       },
       { new: true }
     );
-    console.log("user", user);
 
     res.status(200).send({ user });
   } catch (error) {
@@ -612,7 +600,6 @@ router.post("/totalStudents", async (req, res) => {
 router.post("/sendVerification", async (req, res) => {
   try {
     const { mobileNumber } = req.body;
-    console.log("req.body from sendVerification", req.body);
 
     if (!mobileNumber) {
       return res
@@ -620,13 +607,11 @@ router.post("/sendVerification", async (req, res) => {
         .json({ success: false, message: "Mobile number is required." });
     }
 
-    console.log(mobileNumber);
-    console.log(process.env.FAST2SMS_API_KEY);
+ 
 
     // Generate a random 4-digit OTP
     const otp = Math.floor(1000 + Math.random() * 9000);
 
-    console.log("otp code ", otp);
 
     const options = {
       method: "POST",
@@ -650,7 +635,7 @@ router.post("/sendVerification", async (req, res) => {
       headers: options.headers,
     });
 
-    console.log(response.data);
+
 
     // Store the OTP in the database
     const existingOtp = await OtpStore.findOne({ mobileNumber });

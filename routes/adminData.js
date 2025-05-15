@@ -24,7 +24,7 @@ const BatchRelatedDetails = require("../models/form/BatchRelatedDetails");
 const FamilyDetails = require("../models/form/FamilyDetails");
 const EducationalDetails = require("../models/form/EducationalDetails");
 
-const allowedAdmins = ["9719706242"];
+const allowedAdmins = ["9719706242", "7037550621", "9068833360"];
 
 router.post("/getData", adminCheck(allowedAdmins), async (req, res) => {
   try {
@@ -119,6 +119,8 @@ console.log("basicDetails",basicDetails);
   }
 });
 
+
+router.post("")
 
 
 

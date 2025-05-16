@@ -22,6 +22,7 @@ const {
   verifyTokenForRegistration,
   checkRole,
   takenPhoneByToken,
+  adminCheck,
 } = require("../middleware/authentication");
 const OtpStore = require("../models/OtpStore");
 const Students = require("../models/Student");
@@ -31,6 +32,8 @@ const BatchRelatedDetails = require("../models/form/BatchRelatedDetails");
 const EducationalDetails = require("../models/form/EducationalDetails");
 const FamilyDetails = require("../models/form/FamilyDetails");
 
+const allowedAdmins = ["7037550621", "9068833360"];
+
 router.get(
   "/",
   verifyTokenForRegistration("hr"),
@@ -39,28 +42,24 @@ router.get(
 );
 
 // GET /students/:id - Get complete student details
-router.get('/:id', async (req, res) => {
+router.get("/:id", async (req, res) => {
   try {
     const studentId = req.params.id;
-    
+
     // First, find the main student record
     const student = await Students.findById(studentId).lean();
     if (!student) {
-      return res.status(404).json({ error: 'Student not found' });
+      return res.status(404).json({ error: "Student not found" });
     }
 
     // Fetch all related data in parallel
-    const [
-      basicDetails,
-      batchDetails,
-      familyDetails,
-      educationalDetails
-    ] = await Promise.all([
-      BasicDetails.findOne({ student_id: studentId }).lean(),
-      BatchRelatedDetails.findOne({ student_id: studentId }).lean(),
-      FamilyDetails.findOne({ student_id: studentId }).lean(),
-      EducationalDetails.findOne({ student_id: studentId }).lean()
-    ]);
+    const [basicDetails, batchDetails, familyDetails, educationalDetails] =
+      await Promise.all([
+        BasicDetails.findOne({ student_id: studentId }).lean(),
+        BatchRelatedDetails.findOne({ student_id: studentId }).lean(),
+        FamilyDetails.findOne({ student_id: studentId }).lean(),
+        EducationalDetails.findOne({ student_id: studentId }).lean(),
+      ]);
 
     // Combine all data into a single response object
     const response = {
@@ -68,13 +67,13 @@ router.get('/:id', async (req, res) => {
       basicDetails: basicDetails || {},
       batchDetails: batchDetails || {},
       familyDetails: familyDetails || {},
-      educationalDetails: educationalDetails || {}
+      educationalDetails: educationalDetails || {},
     };
 
     res.json(response);
   } catch (error) {
-    console.error('Error fetching student details:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error("Error fetching student details:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -251,55 +250,133 @@ router.post("/verifyNumber", async (req, res) => {
   }
 });
 
-// router.post("/filter/Student", async (req, res) => {
-//   try {
-//     const { data } = req.body;
+router.post("/filter",  async (req, res) => {
+  const { filterBy, sortOrder, ...params } = req.body;
+  const sortDirection = sortOrder === "asc" ? 1 : -1;
 
-//     const allStudents = await Students.find({
-//       name: { $regex: data, $options: "i" },
-//     });
+  console.log("Check filter is working or not ", filterBy, params, sortOrder);
 
-//     const studentIds = allStudents.map((student) => student._id);
+  try {
+    let students;
 
-//     const batchDetails = await BatchRelatedDetails.find({
-//       student_id: { $in: studentIds },
-//     });
+    switch (filterBy) {
+      case "class":
+        // Find students by class with proper population
+        const allStudentsByClass = await BatchRelatedDetails.find({
+          classForAdmission: params.class,
+        }).sort({ createdAt: sortDirection });
 
-//     console.log("batchDetails", batchDetails);
+        students = await Promise.all(
+          allStudentsByClass.map(async (studentByClass) => {
+            const student = await Students.findOne({
+              _id: studentByClass.student_id,
+            }).sort({ createdAt: sortDirection });
 
-//     const totalData = {...allStudents, ...batchDetails};
+            if (!student) return null;
 
-//     console.log("TotalData", totalData);
+            return {
+              StudentsId: student.StudentsId,
+              studentName: student.studentName,
+              classForAdmission: studentByClass?.classForAdmission,
+              program: studentByClass?.program,
+              createdAt: student.createdAt,
+              student_id: student._id,
+              paymentId: student.paymentId,
+            };
+          })
+        );
+        break;
 
-//    return  res.status(200).json(totalData);
+      case "id":
+        // Find student by ID and join with batch details
+        students = await Students.find({
+          StudentsId: params.studentId,
+        }).sort({ createdAt: sortDirection });
 
-//     // const result = allStudents.map((student) => {
-//     //   const studentBatch = batchDetails.find(
-//     //     (b) => b.student_id.toString() === student._id.toString()
-//     //   );
-//     //   const batch = batchInfo.find(
-//     //     (b) => b._id.toString() === studentBatch?.batch_id.toString()
-//     //   );
+        students = await Promise.all(
+          students.map(async (student) => {
+            const batchDetails = await BatchRelatedDetails.findOne({
+              student_id: student._id,
+            });
 
-//     //   return {
-//     //     ...student.toObject(),
-//     //     batch: batch ? batch.toObject() : null,
-//     //   };
-//     // });
+            return {
+              StudentsId: student.StudentsId,
+              studentName: student.studentName,
+              classForAdmission: batchDetails?.classForAdmission,
+              program: batchDetails?.program,
+              createdAt: student.createdAt,
+              student_id: student._id,
+              paymentId: student.paymentId,
+            };
+          })
+        );
+        break;
 
-//     console.log(result);
+      case "name":
+        // Find students by name and join with batch details
+        students = await Students.find({
+          studentName: { $regex: params.name, $options: "i" },
+        }).sort({ createdAt: sortDirection });
 
-//     console.log("batchRelatedDetails", batchDetails);
-//     console.log("batchRelatedDetails", StudentsId);
+        students = await Promise.all(
+          students.map(async (student) => {
+            const batchDetails = await BatchRelatedDetails.findOne({
+              student_id: student._id,
+            });
 
-//     console.log("allFilterData", allFilterData);
+            return {
+              StudentsId: student.StudentsId,
+              studentName: student.studentName,
+              classForAdmission: batchDetails?.classForAdmission,
+              program: batchDetails?.program,
+              createdAt: student.createdAt,
+              student_id: student._id,
+              paymentId: student.paymentId,
+            };
+          })
+        );
+        break;
 
-//     res.status(200).json(allFilterData);
-//   } catch (error) {
-//     console.error("Error filtering students:", error);
-//     res.status(500).json({ message: "Server error" });
-//   }
-// });
+      case "all":
+      default:
+        // Get all students with their batch details
+        students = await Students.find({})
+          .sort({ createdAt: sortDirection })
+          .lean();
+
+        students = await Promise.all(
+          students.map(async (student) => {
+            const batchDetails = await BatchRelatedDetails.findOne({
+              student_id: student._id,
+            });
+
+            return {
+              StudentsId: student.StudentsId,
+              studentName: student.studentName,
+              classForAdmission: batchDetails?.classForAdmission,
+              program: batchDetails?.program,
+              createdAt: student.createdAt,
+              student_id: student._id,
+              paymentId: student.paymentId,
+            };
+          })
+        );
+        break;
+    }
+
+    // Filter out any null entries and sort the final array
+    students = students
+      .filter((student) => student)
+      .sort((a, b) => {
+        return sortDirection * (new Date(b.createdAt) - new Date(a.createdAt));
+      });
+
+    res.json(students);
+  } catch (error) {
+    console.error("Error in filter route:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
 
 router.post("/filter/Student", async (req, res) => {
   try {
@@ -413,11 +490,7 @@ router.post("/filterByClass", async (req, res) => {
   try {
     const { filterByClassName } = req.body;
 
-
-
-console.log("FilterByClassName Api is runnig")
-
-
+    console.log("FilterByClassName Api is runnig");
 
     // Get batch details matching the class
 

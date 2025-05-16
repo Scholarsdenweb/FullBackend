@@ -126,18 +126,19 @@ router.post("/filter/enquiryNumber", async (req, res) => {
     console.log("Inputvalue", data);
     let afterFilterStudents;
 
-    if (email === "jatin@scholarsden.in") {
+    // if (email === "jatin@scholarsden.in") {
       afterFilterStudents = await User.find({
-        enquiryNumber: { $regex: "^" + data, $options: "i" },
+        enquiryNumber: { $regex: `^${data}`, $options: "i" },
       });
+
+      console.log("enquiryNumber filter data", afterFilterStudents);
       return res.status(200).json(afterFilterStudents);
-    }
+    // }
 
-    afterFilterStudents = await User.find({
-      enquiryNumber: { $regex: "^" + data, $options: "i" },
-    });
+    // afterFilterStudents = await User.find({
+    //   enquiryNumber: { $regex: "^" + data, $options: "i" },
+    // });
 
-    res.status(200).json(afterFilterStudents);
   } catch (error) {
     console.error("Error filtering students:", error);
     res.status(500).json({ message: "Server error" });
@@ -450,7 +451,7 @@ router.post("/deleteUserByNumber", async (req, res) => {
 
 router.post("/changeProgram", async (req, res) => {
   const changeProgram = await User.updateMany(
-    { program: "NEET(UG)", courseOfIntrested : "XI"  },
+    { program: "NEET(UG)", courseOfIntrested: "XI" },
     // { program: "Medical (XI -XII)" , courseOfIntrested : "XII Passed" },
     // { $set: { program: "JEE(Main & Adv)" } }
     { $set: { courseOfIntrested: "XI Medical" } }
@@ -461,11 +462,45 @@ router.post("/changeProgram", async (req, res) => {
   return res.status(200).json({ data: changeProgram });
 });
 
-
-router.post("/fetchAllData", async (req, res)=>{
+router.post("/fetchAllData", async (req, res) => {
   const allData = await User.find();
 
-  res.status(200).json({"Data": allData});
-})
+  res.status(200).json({ Data: allData });
+});
+
+router.post("/fetchDataByDateRange", async (req, res) => {
+  try {
+    const { startingDate, lastDate } = req.body;
+
+    console.log("startingDate, lastDate", startingDate, lastDate);
+
+    if (!startingDate || !lastDate) {
+      return res
+        .status(400)
+        .json({ error: "Both startingDate and lastDate are required." });
+    }
+
+    const fromDate = new Date(startingDate).toISOString();
+    console.log("FromDate", fromDate);
+    const toDate = new Date(lastDate);
+    console.log("toDate", toDate);
+    toDate.setHours(23, 59, 59, 999);
+    const toDateISO = toDate.toISOString();
+    console.log("toDateISO", toDateISO);
+
+    const allData = await User.find({
+      createdAt: {
+        $gte: fromDate,
+        $lte: toDateISO,
+      },
+    });
+
+    console.log("allData", allData);
+    return res.status(200).json({ data: allData });
+  } catch (error) {
+    console.error("Error fetching data by date range:", error);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
 
 module.exports = router;

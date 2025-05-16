@@ -65,7 +65,7 @@ const allowedAdmins = ["9719706242", "7037550621", "9068833360"];
 
 // Example backend route
 router.post("/filter", async (req, res) => {
-  const { filterBy, sortOrder = 'asc', ...params } = req.body;
+  const { filterBy, sortOrder, ...params } = req.body;
   const sortDirection = sortOrder === 'asc' ? 1 : -1;
 
   console.log("Check filter is working or not ", filterBy, params, sortOrder);

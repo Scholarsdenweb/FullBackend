@@ -831,4 +831,71 @@ router.get("/download-excel", async (req, res) => {
   }
 });
 
+
+router.post("/fetchDataByDateRange", async (req, res) => {
+  try {
+    const { startingDate, lastDate } = req.body;
+
+    console.log("startingDate, lastDate", startingDate, lastDate);
+
+    if (!startingDate || !lastDate) {
+      return res
+        .status(400)
+        .json({ error: "Both startingDate and lastDate are required." });
+    }
+
+    const fromDate = new Date(startingDate).toISOString();
+    console.log("FromDate", fromDate);
+    const toDate = new Date(lastDate);
+    console.log("toDate", toDate);
+    toDate.setHours(23, 59, 59, 999);
+    const toDateISO = toDate.toISOString();
+    console.log("toDateISO", toDateISO);
+
+    const allStudents = await Students.find({
+      createdAt: {
+        $gte: fromDate,
+        $lte: toDateISO,
+      },
+    });
+
+
+    //   const fullData = await Promise.all(
+    //   allStudents.map(async (student) => {
+    //     const [basicDetails, batchDetails, educationalDetails, familyDetails] =
+    //       await Promise.all([
+    //         BasicDetails.findOne({ student_id: student._id }).select(
+    //           "-__v -_id -student_id -created_at"
+    //         ),
+    //         BatchRelatedDetails.findOne({ student_id: student._id }).select(
+    //           "-__v -_id -student_id"
+    //         ),
+    //         EducationalDetails.findOne({ student_id: student._id }).select(
+    //           "-__v -_id -student_id"
+    //         ),
+    //         FamilyDetails.findOne({ student_id: student._id }).select(
+    //           "-__v -_id -student_id"
+    //         ),
+    //       ]);
+
+    //     return {
+    //       student,
+    //       basicDetails,
+    //       batchDetails,
+    //       educationalDetails,
+    //       familyDetails,
+    //     };
+    //   })
+    // );
+
+    
+
+    console.log("allData", allStudents);
+    return res.status(200).json({ data: allStudents });
+  } catch (error) {
+    console.error("Error fetching data by date range:", error);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
+
 module.exports = router;

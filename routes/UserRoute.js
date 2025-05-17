@@ -451,10 +451,11 @@ router.post("/deleteUserByNumber", async (req, res) => {
 
 router.post("/changeProgram", async (req, res) => {
   const changeProgram = await User.updateMany(
-    { program: "NEET(UG)", courseOfIntrested: "XI" },
+    { courseOfIntrested: "11th Engineering" },
+    // { program: "NEET(UG)"},
     // { program: "Medical (XI -XII)" , courseOfIntrested : "XII Passed" },
     // { $set: { program: "JEE(Main & Adv)" } }
-    { $set: { courseOfIntrested: "XI Medical" } }
+    { $set: { courseOfIntrested: "XI Engineering" } }
   );
 
   console.log(`${changeProgram.modifiedCount} documents updated.`);

@@ -32,7 +32,7 @@ const BatchRelatedDetails = require("../models/form/BatchRelatedDetails");
 const EducationalDetails = require("../models/form/EducationalDetails");
 const FamilyDetails = require("../models/form/FamilyDetails");
 
-const allowedAdmins = ["7037550621", "9068833360"];
+const allowedAdmins = ["9719706242", "9068833360"];
 
 router.get(
   "/",

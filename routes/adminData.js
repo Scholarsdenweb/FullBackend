@@ -26,7 +26,7 @@ const EducationalDetails = require("../models/form/EducationalDetails");
 
 // const 
 
-const allowedAdmins = [ "7037550621", "9068833360"];
+const allowedAdmins = [ "9719706242", "9068833360", "7037550621"];
 
 // POST /students/filter
 // router.post("/filter", async (req, res) => {

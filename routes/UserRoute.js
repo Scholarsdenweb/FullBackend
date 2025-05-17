@@ -161,7 +161,7 @@ router.post("/filter/filterByClass", async (req, res) => {
 
     afterFilterStudents = await User.find({
       courseOfIntrested: filterByClassName,
-      enquiryTakenBy: email,
+      // enquiryTakenBy: email,
     });
 
     res.status(200).json(afterFilterStudents);

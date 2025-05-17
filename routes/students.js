@@ -271,6 +271,10 @@ router.post("/filter",  async (req, res) => {
             const student = await Students.findOne({
               _id: studentByClass.student_id,
             }).sort({ createdAt: sortDirection });
+            const basicDetails = await Students.findOne({
+              _id: studentByClass.student._id,
+            }).sort({ createdAt: sortDirection });
+            
 
             if (!student) return null;
 
@@ -282,6 +286,7 @@ router.post("/filter",  async (req, res) => {
               createdAt: student.createdAt,
               student_id: student._id,
               paymentId: student.paymentId,
+              examDate : basicDetails.examDate
             };
           })
         );
@@ -298,6 +303,10 @@ router.post("/filter",  async (req, res) => {
             const batchDetails = await BatchRelatedDetails.findOne({
               student_id: student._id,
             });
+ const basicDetails = await Students.findOne({
+              _id: student.student._id,
+            }).sort({ createdAt: sortDirection });
+            
 
             return {
               StudentsId: student.StudentsId,
@@ -307,6 +316,7 @@ router.post("/filter",  async (req, res) => {
               createdAt: student.createdAt,
               student_id: student._id,
               paymentId: student.paymentId,
+              examDate: basicDetails.examDate
             };
           })
         );

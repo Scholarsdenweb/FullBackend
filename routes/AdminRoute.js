@@ -7,8 +7,6 @@ const router = express.Router();
 const url = "https://obd-api.myoperator.co/obd-api-v1";
 const apiKey = "oomfKA3I2K6TCJYistHyb7sDf0l0F6c8AZro5DJh"; // Replace with actual key
 
-
-
 // myoperator call feature
 router.post("/trigger-obd", async (req, res) => {
   const { phone } = req.body;
@@ -72,7 +70,6 @@ router.post("/getEnquiryData", async (req, res) => {
         .limit(limit);
     }
 
-    console.log("data from getEnquiryData", data);
 
     // Check if there is no data or if this is the last page
     if (data.length === 0) {
@@ -110,128 +107,184 @@ router.post("/getEnquiryData", async (req, res) => {
   }
 });
 
+// router.post("/filter", async (req, res) => {
+//   const { filterBy, sortOrder, ...params } = req.body;
+//   const sortDirection = sortOrder === "asc" ? 1 : -1;
+
+//   console.log("Check filter is working or not ", filterBy, params, sortOrder);
+
+//   try {
+//     let enquiryDetails;
+
+//     switch (filterBy) {
+//       case "class":
+//         // Find students by class with proper population
+//         const allStudentsByClass = await User.find({
+//           courseOfIntrested: params.class,
+//         }).sort({ createdAt: sortDirection });
+
+//         enquiryDetails = await Promise.all(
+//           allStudentsByClass.map(async (enquiryByClass) => {
+//             if (!student) return null;
+
+//             return {
+//               enquiryNumber: enquiryByClass.enquiryNumber,
+//               studentName: enquiryByClass.studentName,
+//               fatherName: enquiryByClass.fatherName,
+//               fatherContactNumber: enquiryByClass?.fatherContactNumber,
+//               program: enquiryByClass?.program,
+//               courseOfIntrested: enquiryByClass?.courseOfIntrested,
+//               createdAt: enquiryByClass.createdAt,
+//             };
+//           })
+//         );
+//         break;
+
+//       case "id":
+//         // Find student by ID and join with batch details
+//         enquiryDetails = await Students.find({
+//           enquiryNumber: params.enquiryNumber,
+//           admissionForClass : params.admissionForClass
+//         }).sort({ createdAt: sortDirection });
+
+//         enquiryDetails = await Promise.all(
+//           enquiryDetails.map(async (enquiryById) => {
+//             return {
+//               enquiryNumber: enquiryById?.enquiryNumber,
+//               studentName: enquiryById?.studentName,
+//               fatherName: enquiryById?.fatherName,
+//               fatherContactNumber: enquiryById?.fatherContactNumber,
+//               program: enquiryById?.program,
+//               courseOfIntrested: enquiryById?.courseOfIntrested,
+//               createdAt: enquiryById?.createdAt,
+//             };
+//           })
+//         );
+//         break;
+
+//       case "name":
+//         // Find students by name and join with batch details
+//         enquiryDetails = await User.find({
+//           studentName: { $regex: params.name, $options: "i" },
+//         }).sort({ createdAt: sortDirection });
+
+//         enquiryDetails = await Promise.all(
+//           enquiryDetails.map(async (enquiryByName) => {
+//             return {
+//               enquiryNumber: enquiryByName.enquiryNumber,
+//               studentName: enquiryByName.studentName,
+//               fatherName: enquiryByName.fatherName,
+//               fatherContactNumber: enquiryByName?.fatherContactNumber,
+//               program: enquiryByName?.program,
+//               courseOfIntrested: enquiryByName?.courseOfIntrested,
+//               createdAt: enquiryByName.createdAt,
+//             };
+//           })
+//         );
+//         break;
+
+//       case "all":
+//       default:
+//         // Get all students with their batch details
+//         enquiryDetails = await User.find({})
+//           .sort({ createdAt: sortDirection })
+//           .lean();
+
+//         enquiryDetails = await Promise.all(
+//           enquiryDetails.map(async (allEnquiry) => {
+//             return {
+//               enquiryNumber: allEnquiry.enquiryNumber,
+//               studentName: allEnquiry.studentName,
+//               fatherName: allEnquiry.fatherName,
+//               fatherContactNumber: allEnquiry?.fatherContactNumber,
+//               program: allEnquiry?.program,
+//               courseOfIntrested: allEnquiry?.courseOfIntrested,
+//               createdAt: allEnquiry.createdAt,
+//             };
+//           })
+//         );
+//         break;
+//     }
+
+//     // Filter out any null entries and sort the final array
+//     enquiryDetails = enquiryDetails
+//       .filter((enquiryDetail) => enquiryDetail)
+//       .sort((a, b) => {
+//         return sortDirection * (new Date(b.createdAt) - new Date(a.createdAt));
+//       });
+
+//     res.json(enquiryDetails);
+//   } catch (error) {
+//     console.error("Error in filter route:", error);
+//     res.status(500).json({ error: error.message });
+//   }
+// });
+
 router.post("/filter", async (req, res) => {
-  const { filterBy, sortOrder, ...params } = req.body;
+  const { sortOrder = "desc", ...params } = req.body;
   const sortDirection = sortOrder === "asc" ? 1 : -1;
 
-  console.log("Check filter is working or not ", filterBy, params, sortOrder);
-
   try {
-    let enquiryDetails;
+    let query = {};
 
-    switch (filterBy) {
-      case "class":
-        // Find students by class with proper population
-        const allStudentsByClass = await User.find({
-          courseOfIntrested: params.class,
-        }).sort({ createdAt: sortDirection });
+    console.log("Filter data params", params);
 
-        enquiryDetails = await Promise.all(
-          allStudentsByClass.map(async (enquiryByClass) => {
-            if (!student) return null;
-
-            return {
-              enquiryNumber: enquiryByClass.enquiryNumber,
-              studentName: enquiryByClass.studentName,
-              fatherName: enquiryByClass.fatherName,
-              fatherContactNumber: enquiryByClass?.fatherContactNumber,
-              program: enquiryByClass?.program,
-              courseOfIntrested: enquiryByClass?.courseOfIntrested,
-              createdAt: enquiryByClass.createdAt,
-            };
-          })
-        );
-        break;
-
-      case "id":
-        // Find student by ID and join with batch details
-        enquiryDetails = await Students.find({
-          enquiryNumber: params.enquiryNumber,
-        }).sort({ createdAt: sortDirection });
-
-        enquiryDetails = await Promise.all(
-          enquiryDetails.map(async (enquiryById) => {
-            return {
-              enquiryNumber: enquiryById?.enquiryNumber,
-              studentName: enquiryById?.studentName,
-              fatherName: enquiryById?.fatherName,
-              fatherContactNumber: enquiryById?.fatherContactNumber,
-              program: enquiryById?.program,
-              courseOfIntrested: enquiryById?.courseOfIntrested,
-              createdAt: enquiryById?.createdAt,
-            };
-          })
-        );
-        break;
-
-      case "name":
-        // Find students by name and join with batch details
-        enquiryDetails = await User.find({
-          studentName: { $regex: params.name, $options: "i" },
-        }).sort({ createdAt: sortDirection });
-
-        enquiryDetails = await Promise.all(
-          enquiryDetails.map(async (enquiryByName) => {
-            return {
-              enquiryNumber: enquiryByName.enquiryNumber,
-              studentName: enquiryByName.studentName,
-              fatherName: enquiryByName.fatherName,
-              fatherContactNumber: enquiryByName?.fatherContactNumber,
-              program: enquiryByName?.program,
-              courseOfIntrested: enquiryByName?.courseOfIntrested,
-              createdAt: enquiryByName.createdAt,
-            };
-          })
-        );
-        break;
-
-      case "all":
-      default:
-        // Get all students with their batch details
-        enquiryDetails = await User.find({})
-          .sort({ createdAt: sortDirection })
-          .lean();
-
-        enquiryDetails = await Promise.all(
-          enquiryDetails.map(async (allEnquiry) => {
-       
-
-            return {
-              enquiryNumber: allEnquiry.enquiryNumber,
-              studentName: allEnquiry.studentName,
-              fatherName: allEnquiry.fatherName,
-              fatherContactNumber: allEnquiry?.fatherContactNumber,
-              program: allEnquiry?.program,
-              courseOfIntrested: allEnquiry?.courseOfIntrested,
-              createdAt: allEnquiry.createdAt,
-            };
-          })
-        );
-        break;
+    // 🔍 Handle class filter
+    if (params.class) {
+      query.courseOfIntrested = params.class;
     }
 
-    // Filter out any null entries and sort the final array
-    enquiryDetails = enquiryDetails
-      .filter((enquiryDetail) => enquiryDetail)
-      .sort((a, b) => {
-        return sortDirection * (new Date(b.createdAt) - new Date(a.createdAt));
-      });
+    // 🔍 Handle name filter (case-insensitive partial match)
+    if (params.name) {
+      query.studentName = { $regex: params.name, $options: "i" };
+    }
 
-    res.json(enquiryDetails);
+    // 🔍 Handle ID/enquiryNumber filter
+    if (params.enquiryNumber) {
+      query.enquiryNumber = { $regex: params.enquiryNumber, $options: "i" };
+    }
+
+    // 🔍 Handle date range filter
+    if (params.startingDate && params.lastDate) {
+      const fromDate = new Date(params.startingDate).toISOString();
+      const toDate = new Date(params.lastDate);
+
+      toDate.setHours(23, 59, 59, 999);
+      const toDateISO = toDate.toISOString();
+
+      query.createdAt = {
+        $gte: fromDate,
+        $lte: toDateISO,
+      };
+    }
+
+    console.log("QUERY form filter", query);
+
+    // 👇 Decide which collection to use (you can improve this logic further)
+    // const useStudentsCollection = !!params.enquiryNumber;
+    // const Model = useStudentsCollection ? Students : User;
+
+    const results = await User.find(query).sort({ createdAt: sortDirection });
+    const formatted = results.map(formatStudent);
+
+    res.json(formatted);
   } catch (error) {
     console.error("Error in filter route:", error);
     res.status(500).json({ error: error.message });
   }
 });
 
-
-
-
-
-
-
-
-
-
+// Format student
+function formatStudent(student) {
+  return {
+    enquiryNumber: student.enquiryNumber,
+    studentName: student.studentName,
+    fatherName: student.fatherName,
+    fatherContactNumber: student.fatherContactNumber,
+    program: student.program,
+    courseOfIntrested: student.courseOfIntrested,
+    createdAt: student.createdAt,
+  };
+}
 
 module.exports = router;

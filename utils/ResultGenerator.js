@@ -210,6 +210,21 @@ const generateReportCardPDF = async (data, pdfFilePath) => {
     ];
 
 
+    function capitalizeFirstLetters(sentence) {
+  return sentence
+    .split(' ')
+    .map(word => {
+      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+    })
+    .join(' ');
+}
+
+// Example usage:
+const input = "hello world, this is a test.";
+const output = capitalizeFirstLetters(input);
+console.log(output);  // "Hello World, This Is A Test."
+
+
 
 
     const subjectShortForms = {
@@ -723,10 +738,10 @@ gap: 10px;
                 ${data.studentLastName.toUpperCase()}
               </p>
               <p><b>Registration No:</b> ${data.Registration}</p>
-              <p><b>Father's Name:</b> ${data.Father}</p>
+              <p><b>Father's Name:</b> ${capitalizeFirstLetters(data.Father)}</p>
               <p><b>Class:</b> ${data.Class}</p>
               <p>
-                <b>Scholarship:</b> ${scholarship}% (Valid till 1st May '25)
+                <b>Scholarship:</b> ${scholarship}% (Valid till 22nd May '25)
               </p>
               <p><b>Rank:</b> ${data.Rank}</p>
               <p><b>Percentage: </b>${percentage}%</p>

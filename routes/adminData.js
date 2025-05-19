@@ -123,7 +123,6 @@ router.post("/getData", adminCheck(allowedAdmins), async (req, res) => {
     console.log("educationalDetails", educationalDetails);
     console.log("batchDetails", batchDetails);
 
-    console.log("data from getEnquiryData", data);
 
     // Check if there is no data or if this is the last page
     if (data.length === 0) {
@@ -194,7 +193,7 @@ router.post("/getAllData", adminCheck(allowedAdmins), async (req, res) => {
   console.log("educationalDetails", educationalDetails);
   console.log("batchDetails", batchDetails);
 
-  console.log("data from getEnquiryData", data);
+
 
   // Check if there is no data or if this is the last page
   if (data.length === 0) {

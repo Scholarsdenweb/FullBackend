@@ -250,7 +250,7 @@ router.post("/verifyNumber", async (req, res) => {
   }
 });
 
-router.post("/filter",  async (req, res) => {
+router.post("/filter", async (req, res) => {
   const { filterBy, sortOrder, ...params } = req.body;
   const sortDirection = sortOrder === "asc" ? 1 : -1;
 
@@ -274,7 +274,6 @@ router.post("/filter",  async (req, res) => {
             const basicDetails = await Students.findOne({
               _id: studentByClass.student._id,
             }).sort({ createdAt: sortDirection });
-            
 
             if (!student) return null;
 
@@ -286,7 +285,7 @@ router.post("/filter",  async (req, res) => {
               createdAt: student.createdAt,
               student_id: student._id,
               paymentId: student.paymentId,
-              examDate : basicDetails.examDate
+              examDate: basicDetails.examDate,
             };
           })
         );
@@ -303,10 +302,9 @@ router.post("/filter",  async (req, res) => {
             const batchDetails = await BatchRelatedDetails.findOne({
               student_id: student._id,
             });
- const basicDetails = await Students.findOne({
+            const basicDetails = await Students.findOne({
               _id: student.student._id,
             }).sort({ createdAt: sortDirection });
-            
 
             return {
               StudentsId: student.StudentsId,
@@ -316,7 +314,7 @@ router.post("/filter",  async (req, res) => {
               createdAt: student.createdAt,
               student_id: student._id,
               paymentId: student.paymentId,
-              examDate: basicDetails.examDate
+              examDate: basicDetails.examDate,
             };
           })
         );
@@ -333,6 +331,62 @@ router.post("/filter",  async (req, res) => {
             const batchDetails = await BatchRelatedDetails.findOne({
               student_id: student._id,
             });
+
+            return {
+              StudentsId: student.StudentsId,
+              studentName: student.studentName,
+              classForAdmission: batchDetails?.classForAdmission,
+              program: batchDetails?.program,
+              createdAt: student.createdAt,
+              student_id: student._id,
+              paymentId: student.paymentId,
+            };
+          })
+        );
+        break;
+      case "multiple":
+        let matchQuery = {};
+
+        // Build dynamic query
+        if (params.studentId) {
+          matchQuery.StudentsId = params.studentId;
+        }
+
+        if (params.name) {
+          matchQuery.studentName = { $regex: params.name, $options: "i" };
+        }
+
+        if (params.startingDate && params.lastDate) {
+           const fromDate = new Date(params.startingDate).toISOString();
+      const toDate = new Date(params.lastDate);
+
+      toDate.setHours(23, 59, 59, 999);
+      const toDateISO = toDate.toISOString();
+          matchQuery.createdAt = {
+            $gte: new Date(fromDate),
+            $lte: new Date(toDateISO),
+          };
+        }
+console.log("params.data", params);
+        // Fetch students first
+        students = await Students.find(matchQuery)
+          .sort({ createdAt: sortDirection })
+          .lean();
+
+        // Filter class from BatchRelatedDetails
+        students = await Promise.all(
+          students.map(async (student) => {
+            const batchDetails = await BatchRelatedDetails.findOne({
+              student_id: student._id,
+            });
+
+            // If class is set and doesn't match, skip
+            if (
+              params.class &&
+              batchDetails?.classForAdmission !== params.class
+            ) {
+              return null;
+            }
 
             return {
               StudentsId: student.StudentsId,
@@ -841,7 +895,6 @@ router.get("/download-excel", async (req, res) => {
   }
 });
 
-
 router.post("/fetchDataByDateRange", async (req, res) => {
   try {
     const { startingDate, lastDate } = req.body;
@@ -868,7 +921,6 @@ router.post("/fetchDataByDateRange", async (req, res) => {
         $lte: toDateISO,
       },
     });
-
 
     //   const fullData = await Promise.all(
     //   allStudents.map(async (student) => {
@@ -897,8 +949,6 @@ router.post("/fetchDataByDateRange", async (req, res) => {
     //     };
     //   })
     // );
-
-    
 
     console.log("allData", allStudents);
     return res.status(200).json({ data: allStudents });

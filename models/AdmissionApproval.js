@@ -20,6 +20,14 @@ const DocumentsStatusSchema = new mongoose.Schema({
   passbookPhoto: DetailStatusSchema,
   studentAadhar: DetailStatusSchema,
   parentAadhar: DetailStatusSchema,
+  status: {
+    type: Boolean,
+    required: true,
+  },
+  message: {
+    type: String,
+    required: true,
+  },
 });
 
 const AdmissionApprovalSchema = new mongoose.Schema(

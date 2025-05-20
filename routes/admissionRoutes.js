@@ -336,6 +336,8 @@ router.patch(
         acknowledgementNumberData = acknowledgementNumber;
 
         console.log("acknowledgementNumber", acknowledgementNumber)
+      }else{
+        acknowledgementNumberData = findAdmission.acknowledgementNumber;
       }
 
       console.log("acknowledgementNumberData,,,,,,,,,,,,,,,,,,,", acknowledgementNumberData);
@@ -384,6 +386,7 @@ router.patch(
         if (findAdmissionApproval.status === "rejected") {
           findAdmissionApproval.status = "pending";
           await findAdmissionApproval.save();
+          return ;
         }
       } else {
         const addAdmissionApproval = new AdmissionApproval({
@@ -413,6 +416,8 @@ router.patch(
               status: false,
               message: "Parent Aadhar info not verified",
             },
+            status: false,
+            message: "Document info not verified"
           },
           signatureDetails: {
             status: false,
@@ -434,9 +439,9 @@ router.patch(
         console.log("admissionApproval from the backend", addAdmissionApproval);
 
 
-        res.status(200).send({ user, addAdmissionApproval });
+        res.status(200).json({ user, addAdmissionApproval });
       }
-      res.status(200).send({"Message" : "Data"});
+      res.status(200).json({"Message" : "Data"});
 
       // Save to database
     } catch (error) {

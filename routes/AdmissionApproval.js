@@ -11,12 +11,14 @@ const router = express.Router();
 
 router.post("/addAdmissionApproval", async (req, res) => {
   const { acknowledgementNumber } = req.body;
+
+  console.log("req.body from add AdmissionApproval", req.body);
   try {
     let addAdmissionApproval = await AdmissionApproval.findOne({
       acknowledgementNumber,
     });
     if (addAdmissionApproval)
-      return res.status(400).json({ message: "Admin already exists" });
+      return res.status(400).json({ message: "AdmissionApproval request already exists" });
 
     console.log(
       "AdmissionApproval from addAdmissionApproval",
@@ -26,7 +28,7 @@ router.post("/addAdmissionApproval", async (req, res) => {
     addAdmissionApproval = new AdmissionApproval({
       acknowledgementNumber,
       status: "pending",
-      message,
+      message : "Admission Approval is pending",
     });
 
     await addAdmissionApproval.save();
@@ -35,34 +37,58 @@ router.post("/addAdmissionApproval", async (req, res) => {
       .status(201)
       .json({ message: "Admission approval request submitted successfully." });
   } catch (err) {
+    console.log("Eror form add approval", err);
     res.status(500).json({ message: "Server error" });
   }
 });
 
+router.post(
+  "/getAdmissionApprovalByAcknowledgementNumber",
+  async (req, res) => {
+    console.log(
+      "acknowledgementNumber from getAdmissionApprovalByAcknowledgementNumber",
+      req.body
+    );
 
+    const { acknowledgementNumber } = req.body;
 
-router.post("/getAdmissionApprovalByAcknowledgementNumber", async (req, res)=>{
-  console.log("acknowledgementNumber from getAdmissionApprovalByAcknowledgementNumber", req.body.acknowledgementNumber);
+    const findAdmissionApproval = await AdmissionApproval.find({
+      acknowledgementNumber,
+    });
+    if (!findAdmissionApproval) {
+      return res.status(402).json({ message: "Admission Approval not found" });
+    }
 
-  const {acknowledgementNumber} = req.body;
-
-
-  const findAdmissionApproval = await AdmissionApproval.find({  acknowledgementNumber});
-  if(!findAdmissionApproval){
-    return res.status(402).json({message: "Admission Approval not found"});
+    return res
+      .status(200)
+      .json({ message: "Admission Approval", data: findAdmissionApproval });
   }
-
-
-  return res.status(200).json({message : "Admission Approval", data: findAdmissionApproval})
-
-
-})
+);
 
 router.post("/editAdmissionApproval", async (req, res) => {
-
-
   console.log("EditAdmissionApproval req.body", req.body);
-  const { acknowledgementNumber, status, message, studentDetails,parentDetails,documentsDetails,signatureDetails,bankDetails } = req.body;
+  const {
+    acknowledgementNumber,
+    status,
+    message,
+    studentDetails,
+    parentDetails,
+    documentsDetails,
+    signatureDetails,
+    bankDetails,
+  } = req.body;
+
+  console.log(
+    "acknowledgementNumber, status, message, studentDetails,parentDetails,documentsDetails,signatureDetails,bankDetails",
+    acknowledgementNumber,
+    status,
+    message,
+    studentDetails,
+    parentDetails,
+    documentsDetails,
+    signatureDetails,
+    bankDetails
+  );
   try {
     // Check if AdmissionApproval already exists
     let findAdmissionApproval = await AdmissionApproval.findOne({
@@ -73,8 +99,16 @@ router.post("/editAdmissionApproval", async (req, res) => {
 
     const updateAdmissionApproval = await AdmissionApproval.findOneAndUpdate(
       { acknowledgementNumber },
-      
-      { status, message,studentDetails, parentDetails, documentsDetails, signatureDetails, bankDetails },
+
+      {
+        status,
+        message,
+        studentDetails,
+        parentDetails,
+        documentsDetails,
+        signatureDetails,
+        bankDetails,
+      },
       { new: true }
     );
     await updateAdmissionApproval.save();

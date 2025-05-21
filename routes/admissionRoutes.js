@@ -143,6 +143,30 @@ router.post("/createAdmission", async (req, res) => {
   }
 });
 
+
+
+
+router.post("/createNewAdmission", async (req, res) =>{
+  try{
+
+    const {fatherContactNumber} = req.body;
+      const newAdmission = new Admission({
+      parentsContactNumber: fatherContactNumber,
+    });
+
+    const token = jwt.sign(
+      { _id: newAdmission._id, parentsContactNumber: fatherContactNumber },
+      process.env.JWT_SECRET
+    );
+
+    await newAdmission.save();
+    res.status(201).json({ token, newAdmission });
+  } catch (err) {
+    console.error("Admission Error:", err); // Log actual error
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+})
+
 router.post(
   "/editAdmissionDetails",
   verifyTokenForExistingAdmission(),
@@ -439,9 +463,9 @@ router.patch(
         console.log("admissionApproval from the backend", addAdmissionApproval);
 
 
-        res.status(200).json({ user, addAdmissionApproval });
+        return res.status(200).json({ user, addAdmissionApproval });
       }
-      res.status(200).json({"Message" : "Data"});
+      return res.status(200).json({"Message" : "Data"});
 
       // Save to database
     } catch (error) {

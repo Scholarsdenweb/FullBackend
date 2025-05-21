@@ -113,6 +113,34 @@ router.post("/editAdmissionApproval", async (req, res) => {
     );
     await updateAdmissionApproval.save();
 
+// Send SMS
+    // if(status === "approved"){
+    //         const options = {
+    //       method: "POST",
+    //       url: "https://www.fast2sms.com/dev/bulkV2",
+    //       headers: {
+    //         authorization: `${process.env.FAST2SMS_API_KEY}`,
+    //         "Content-Type": "application/x-www-form-urlencoded",
+    //       },
+    //       data: {
+    //         route: "dlt",
+    //         sender_id: "SCHDEN",
+    // // chenge for send messssage
+    //         // message: "182187",
+    //         variables_values: `${studentDetails.studentName}| ${studentDetails.StudentsId}`,
+    //         flash: 0,
+    //         numbers: `${studentDetails.contactNumber}`,
+    //       },
+    //     };
+
+    //     // Make the API request to Fast2SMS
+    //     const response = await axios.post(options.url, options.data, {
+    //       headers: options.headers,
+    //     });
+
+    // console.log("response", response);
+    // }
+
     console.log("Check message is added or not", updateAdmissionApproval);
 
     return res.status(201).json({

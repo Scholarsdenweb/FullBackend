@@ -54,6 +54,11 @@ router.post(
         parentsContactNumber,
       });
 
+      console.log(
+        "findEsistingAdmission from getStudentByPhone",
+        findExistingAdmission
+      );
+
       return res.status(200).json({
         data: findExistingAdmission,
         message: "Student Already Exist",
@@ -84,8 +89,6 @@ router.post("/createAdmission", async (req, res) => {
   try {
     const { fatherContactNumber } = req.body;
 
-
-
     // const studentAvailableInEnquiry = await User.find({
     //   fatherContactNumber,
     // });
@@ -113,7 +116,6 @@ router.post("/createAdmission", async (req, res) => {
     });
 
     if (findAllAdmisssion.length > 0) {
-
       const token = jwt.sign(
         { parentsContactNumber: fatherContactNumber },
         process.env.JWT_SECRET
@@ -126,12 +128,19 @@ router.post("/createAdmission", async (req, res) => {
       });
     }
 
+    const { acknowledgementNumber } =
+      await Admission.allocatedAcknowledgement();
     const newAdmission = new Admission({
       parentsContactNumber: fatherContactNumber,
+      acknowledgementNumber,
     });
 
     const token = jwt.sign(
-      { _id: newAdmission._id, parentsContactNumber: fatherContactNumber },
+      {
+        _id: newAdmission._id,
+        parentsContactNumber: fatherContactNumber,
+        acknowledgementNumber,
+      },
       process.env.JWT_SECRET
     );
 
@@ -143,41 +152,44 @@ router.post("/createAdmission", async (req, res) => {
   }
 });
 
+router.post(
+  "/createNewAdmission",
+  verifyTokenForAdmission(),
+  async (req, res) => {
+    try {
+      const { parentsContactNumber } = req.user;
 
-
-
-router.post("/createNewAdmission", async (req, res) =>{
-  try{
-
-    const {fatherContactNumber} = req.body;
+      console.log("req,user", req.user);
+      console.log("parentsContactNumber", parentsContactNumber);
+      const { acknowledgementNumber } =
+        await Admission.allocatedAcknowledgement();
       const newAdmission = new Admission({
-      parentsContactNumber: fatherContactNumber,
-    });
+        parentsContactNumber,
+        acknowledgementNumber,
+      });
 
-    const token = jwt.sign(
-      { _id: newAdmission._id, parentsContactNumber: fatherContactNumber },
-      process.env.JWT_SECRET
-    );
+      const token = jwt.sign(
+        { _id: newAdmission._id, parentsContactNumber, acknowledgementNumber },
+        process.env.JWT_SECRET
+      );
 
-    await newAdmission.save();
-    res.status(201).json({ token, newAdmission });
-  } catch (err) {
-    console.error("Admission Error:", err); // Log actual error
-    res.status(500).json({ message: "Server error", error: err.message });
+      await newAdmission.save();
+      res.status(201).json({ token, newAdmission });
+    } catch (err) {
+      console.error("Admission Error:", err); // Log actual error
+      res.status(500).json({ message: "Server error", error: err.message });
+    }
   }
-})
+);
 
 router.post(
   "/editAdmissionDetails",
   verifyTokenForExistingAdmission(),
   async (req, res) => {
     try {
-
       const { acknowledgementNumber } = req.body;
 
       const findAdmission = await Admission.findOne({ acknowledgementNumber });
-
-
 
       if (findAdmission) {
         const token = jwt.sign(
@@ -192,8 +204,6 @@ router.post(
           token,
         });
       } else {
-       
-
         return res.status(200).json({ message: "Admission Form not found" });
       }
     } catch (error) {
@@ -204,8 +214,6 @@ router.post(
 );
 
 router.patch("/putFormData", verifyTokenForAdmission(), async (req, res) => {
-
-
   try {
     const {
       fatherName,
@@ -232,8 +240,6 @@ router.patch("/putFormData", verifyTokenForAdmission(), async (req, res) => {
     } = req.body;
     const { _id, parentsContactNumber } = req.user;
 
-
-
     const document = {
       cancelledCheque,
       studentPhoto,
@@ -244,10 +250,8 @@ router.patch("/putFormData", verifyTokenForAdmission(), async (req, res) => {
 
     const findUser = await Admission.find({ parentsContactNumber });
 
-  
-
     const user = await Admission.findOneAndUpdate(
-      { parentsContactNumber: Number(parentsContactNumber) },
+      { _id: _id },
       {
         fatherName,
         fatherAadharId,
@@ -274,9 +278,8 @@ router.patch("/putFormData", verifyTokenForAdmission(), async (req, res) => {
       },
       { new: true }
     );
- 
-
-    res.status(200).send({ user });
+    console.log("user from putFormData", user);
+    return res.status(200).json({ user });
   } catch (error) {
     console.error("Error in signup:", error);
     res.status(500).send("Internal Server Error");
@@ -287,8 +290,6 @@ router.patch(
   "/submitSiblingsDetails",
   verifyTokenForAdmission(),
   async (req, res) => {
-
-
     try {
       const {
         noOfBrother,
@@ -298,8 +299,6 @@ router.patch(
         signatures,
       } = req.body;
       const { _id } = req.user;
-
-   
 
       // Validation
       if (!signatures.student || !signatures.parent) {
@@ -344,14 +343,14 @@ router.patch(
       } = req.body;
       const { _id } = req.user;
 
-
       const findAdmission = await Admission.findById({ _id });
-
-
 
       let acknowledgementNumberData = "";
 
-      console.log("findAdmission from acknowledgement", findAdmission.acknowledgementNumber);
+      console.log(
+        "findAdmission from acknowledgement",
+        findAdmission.acknowledgementNumber
+      );
 
       if (!findAdmission.acknowledgementNumber) {
         const { acknowledgementNumber } =
@@ -359,12 +358,15 @@ router.patch(
 
         acknowledgementNumberData = acknowledgementNumber;
 
-        console.log("acknowledgementNumber", acknowledgementNumber)
-      }else{
+        console.log("acknowledgementNumber", acknowledgementNumber);
+      } else {
         acknowledgementNumberData = findAdmission.acknowledgementNumber;
       }
 
-      console.log("acknowledgementNumberData,,,,,,,,,,,,,,,,,,,", acknowledgementNumberData);
+      console.log(
+        "acknowledgementNumberData,,,,,,,,,,,,,,,,,,,",
+        acknowledgementNumberData
+      );
       // const { admissionRollNumber, enrollmentNumber } =
       //   await Admission.allocateStudentsId(studentClass, program);
       // console.log(
@@ -410,7 +412,7 @@ router.patch(
         if (findAdmissionApproval.status === "rejected") {
           findAdmissionApproval.status = "pending";
           await findAdmissionApproval.save();
-          return ;
+          return;
         }
       } else {
         const addAdmissionApproval = new AdmissionApproval({
@@ -441,7 +443,7 @@ router.patch(
               message: "Parent Aadhar info not verified",
             },
             status: false,
-            message: "Document info not verified"
+            message: "Document info not verified",
           },
           signatureDetails: {
             status: false,
@@ -462,10 +464,9 @@ router.patch(
 
         console.log("admissionApproval from the backend", addAdmissionApproval);
 
-
         return res.status(200).json({ user, addAdmissionApproval });
       }
-      return res.status(200).json({"Message" : "Data"});
+      return res.status(200).json({ Message: "Data" });
 
       // Save to database
     } catch (error) {
@@ -503,13 +504,11 @@ router.get("/", verifyTokenForAdmission(), async (req, res) => {
 // Get a specific Admission
 router.get("/getUserbyToken", verifyTokenForAdmission(), async (req, res) => {
   try {
-
-    const { _id, parentsContactNumber } = req.user;
-    const admission = await Admission.find({ parentsContactNumber });
+    const { _id, parentsContactNumber, acknowledgementNumber } = req.user;
+    const admission = await Admission.find({ acknowledgementNumber });
 
     if (!admission)
       return res.status(404).json({ message: "Admission not found" });
-
 
     res.json(admission);
   } catch (err) {
@@ -534,7 +533,6 @@ router.put("/:id", verifyTokenForAdmission(), async (req, res) => {
       motherOccupations,
     } = req.body;
     const { _id } = req.user;
-
 
     const user = await Admission.findOneAndUpdate(
       { _id },
@@ -636,11 +634,8 @@ router.post("/sendVerification", async (req, res) => {
         .json({ success: false, message: "Mobile number is required." });
     }
 
- 
-
     // Generate a random 4-digit OTP
     const otp = Math.floor(1000 + Math.random() * 9000);
-
 
     const options = {
       method: "POST",
@@ -663,8 +658,6 @@ router.post("/sendVerification", async (req, res) => {
     const response = await axios.post(options.url, options.data, {
       headers: options.headers,
     });
-
-
 
     // Store the OTP in the database
     const existingOtp = await OtpStore.findOne({ mobileNumber });

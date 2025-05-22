@@ -166,17 +166,20 @@ const verifyTokenForAdmission = () => {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       console.log("Decoded Token:", decoded);
 
-      const { _id, parentsContactNumber } = decoded;
+      const { _id, parentsContactNumber, acknowledgementNumber } = decoded;
+
+
+      console.log("acknowledgementNumber from verifyToken", acknowledgementNumber);
 
       // Use the correct User model to fetch the user
 
-      const user = await AdmissionUser.findOne({parentsContactNumber}); // Ensure User is your actual model
+      const user = await AdmissionUser.findOne({acknowledgementNumber}); // Ensure User is your actual model
       console.log("User from verifyToken form admission:", user);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
 
-      req.user = user; // Attach the user to the request object
+      req.user = { _id, parentsContactNumber, acknowledgementNumber }; // Attach the user to the request object
 
       // Call the next middleware
       next();

@@ -170,6 +170,7 @@ const verifyTokenForAdmission = () => {
 
 
       console.log("acknowledgementNumber from verifyToken", acknowledgementNumber);
+      console.log("acknowledgementNumber from verifyToken parentsContactNumber", parentsContactNumber);
 
       // Use the correct User model to fetch the user
 
@@ -209,7 +210,7 @@ const verifyTokenForExistingAdmission = ()=>{
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       console.log("Decoded Token:", decoded);
 
-      const { _id, parentsContactNumber } = decoded;
+      const { _id, parentsContactNumber, acknowledgementNumber } = decoded;
 
       // Use the correct User model to fetch the user
 
@@ -220,7 +221,7 @@ const verifyTokenForExistingAdmission = ()=>{
       //   return res.status(404).json({ message: "User not found" });
       // }
 
-      req.user = { parentsContactNumber, _id }; // Attach the user to the request object
+      req.user = { parentsContactNumber, _id, acknowledgementNumber }; // Attach the user to the request object
 
       // Call the next middleware
       next();

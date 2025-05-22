@@ -154,7 +154,7 @@ router.post("/createAdmission", async (req, res) => {
 
 router.post(
   "/createNewAdmission",
-  verifyTokenForAdmission(),
+  verifyTokenForExistingAdmission(),
   async (req, res) => {
     try {
       const { parentsContactNumber } = req.user;
@@ -190,12 +190,16 @@ router.post(
       const { acknowledgementNumber } = req.body;
 
       const findAdmission = await Admission.findOne({ acknowledgementNumber });
-
+      console.log(
+        "acknowledgementNumber from editAdmissionDetails",
+        acknowledgementNumber
+      );
       if (findAdmission) {
         const token = jwt.sign(
           {
             _id: findAdmission._id,
             parentsContactNumber: findAdmission.fatherContactNumber,
+            acknowledgementNumber,
           },
           process.env.JWT_SECRET
         );
@@ -345,28 +349,6 @@ router.patch(
 
       const findAdmission = await Admission.findById({ _id });
 
-      let acknowledgementNumberData = "";
-
-      console.log(
-        "findAdmission from acknowledgement",
-        findAdmission.acknowledgementNumber
-      );
-
-      if (!findAdmission.acknowledgementNumber) {
-        const { acknowledgementNumber } =
-          await Admission.allocatedAcknowledgement();
-
-        acknowledgementNumberData = acknowledgementNumber;
-
-        console.log("acknowledgementNumber", acknowledgementNumber);
-      } else {
-        acknowledgementNumberData = findAdmission.acknowledgementNumber;
-      }
-
-      console.log(
-        "acknowledgementNumberData,,,,,,,,,,,,,,,,,,,",
-        acknowledgementNumberData
-      );
       // const { admissionRollNumber, enrollmentNumber } =
       //   await Admission.allocateStudentsId(studentClass, program);
       // console.log(
@@ -391,8 +373,7 @@ router.patch(
           relationWithStudent,
           documents,
           signatures,
-          acknowledgementNumber:
-            acknowledgementNumberData || findAdmission.acknowledgementNumber,
+          acknowledgementNumber: findAdmission.acknowledgementNumber,
           // admissionRollNo: admissionRollNumber,
           // enrollmentNumber: enrollmentNumber,
         },
@@ -402,8 +383,7 @@ router.patch(
       console.log("uSERdATA FORM SUBMIT ", user.parentsContactNumber);
 
       const findAdmissionApproval = await AdmissionApproval.findOne({
-        acknowledgementNumber:
-          acknowledgementNumberData || findAdmission.acknowledgementNumber,
+        acknowledgementNumber: findAdmission.acknowledgementNumber,
       });
 
       console.log("findAdmissionApproval", findAdmissionApproval);
@@ -412,11 +392,11 @@ router.patch(
         if (findAdmissionApproval.status === "rejected") {
           findAdmissionApproval.status = "pending";
           await findAdmissionApproval.save();
-          return;
+          return res.status(200).json({message : "Admission approval request has been successfully initiated"});
         }
       } else {
         const addAdmissionApproval = new AdmissionApproval({
-          acknowledgementNumber: acknowledgementNumberData,
+          acknowledgementNumber:  findAdmission.acknowledgementNumber,
           studentDetails: {
             status: false,
             message: "Student info not verified",
@@ -458,6 +438,7 @@ router.patch(
             message: "Parent ID info not verified",
           },
           status: "pending",
+          message: "Approval Pending",
         });
 
         await addAdmissionApproval.save();
@@ -504,6 +485,7 @@ router.get("/", verifyTokenForAdmission(), async (req, res) => {
 // Get a specific Admission
 router.get("/getUserbyToken", verifyTokenForAdmission(), async (req, res) => {
   try {
+    console.log("req.user form getUserbyToken", req.user);
     const { _id, parentsContactNumber, acknowledgementNumber } = req.user;
     const admission = await Admission.find({ acknowledgementNumber });
 

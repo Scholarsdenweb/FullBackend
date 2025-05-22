@@ -4,6 +4,7 @@ const cors = require("cors");
 
 const adminRoutes = require("./routes/adminRoutes");
 const admissionRoutes = require("./routes/admissionRoutes");
+// require("./utils/sdatReminderCron");
 
 // const authRoutes = require('./routes/authRoutes');
 const userRoute = require("./routes/UserRoute");

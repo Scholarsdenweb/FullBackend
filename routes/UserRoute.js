@@ -3,6 +3,8 @@ const User = require("../models/UserModel");
 const OtpStore = require("../models/OtpStore");
 const axios = require("axios");
 
+const sendSDATReminder = require("../utils/sendSDATReminder");
+
 const router = express.Router();
 require("dotenv").config();
 
@@ -80,7 +82,7 @@ router.get("/getUserbyToken", verifyToken(), async (req, res) => {
   } catch (error) {
     res.status(500).send("Internal Server Error");
   }
-});
+}); 
 
 router.get("/getTokenNo", async (req, res) => {
   try {
@@ -219,12 +221,21 @@ router.patch("/putFormData", verifyToken(), async (req, res) => {
     );
     console.log("user", user);
 
-    res.status(200).send({ user });
+
+// if(enquiryTakenBy){
+  
+// }
+
+    return res.status(200).send({ user });
   } catch (error) {
     console.error("Error in signup:", error.message);
     res.status(500).send("Internal Server Error");
   }
 });
+
+
+ 
+
 
 // router.post("/sendVerification", async (req, res) => {
 //   try {

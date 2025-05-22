@@ -18,7 +18,9 @@ router.post("/addAdmissionApproval", async (req, res) => {
       acknowledgementNumber,
     });
     if (addAdmissionApproval)
-      return res.status(400).json({ message: "AdmissionApproval request already exists" });
+      return res
+        .status(400)
+        .json({ message: "AdmissionApproval request already exists" });
 
     console.log(
       "AdmissionApproval from addAdmissionApproval",
@@ -28,7 +30,7 @@ router.post("/addAdmissionApproval", async (req, res) => {
     addAdmissionApproval = new AdmissionApproval({
       acknowledgementNumber,
       status: "pending",
-      message : "Admission Approval is pending",
+      message: "Admission Approval is pending",
     });
 
     await addAdmissionApproval.save();
@@ -48,6 +50,10 @@ router.post(
     console.log(
       "acknowledgementNumber from getAdmissionApprovalByAcknowledgementNumber",
       req.body
+    );
+    console.log(
+      "acknowledgementNumber from getAdmissionApprovalByAcknowledgementNumber",
+      req.user
     );
 
     const { acknowledgementNumber } = req.body;
@@ -113,7 +119,7 @@ router.post("/editAdmissionApproval", async (req, res) => {
     );
     await updateAdmissionApproval.save();
 
-// Send SMS
+    // Send SMS
     // if(status === "approved"){
     //         const options = {
     //       method: "POST",
@@ -142,6 +148,35 @@ router.post("/editAdmissionApproval", async (req, res) => {
     // }
 
     console.log("Check message is added or not", updateAdmissionApproval);
+    if (status === "approved") {
+      const findAdmission = await Admission.findOne({ acknowledgementNumber });
+
+      console.log("findAdmission for approval", findAdmission);
+
+      const options = {
+        method: "POST",
+        url: "https://www.fast2sms.com/dev/bulkV2",
+        headers: {
+          authorization: `${process.env.FAST2SMS_API_KEY}`,
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        data: {
+          route: "dlt",
+          sender_id: "SCHDEN",
+          message: "182187",
+          variables_values: `${acknowledgementNumber}|`,
+          flash: 0,
+          numbers: `${findAdmission?.parentsContactNumber}`,
+        },
+      };
+      let otpStoreData;
+      // Make the API request to Fast2SMS
+      const response = await axios.post(options.url, options.data, {
+        headers: options.headers,
+      });
+
+      console.log("response of sms ", response.data);
+    }
 
     return res.status(201).json({
       updateAdmissionApproval,

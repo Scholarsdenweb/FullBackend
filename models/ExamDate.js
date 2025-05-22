@@ -17,6 +17,9 @@ const ExamDateSchema = new mongoose.Schema({
     type: String,
     required: [true, "Exam Name is required"], // Make it required
   },
+  scholarshipValidation: {
+    type: String,
+  },
 });
 
 const ExamDate = mongoose.model("ExamDate", ExamDateSchema);

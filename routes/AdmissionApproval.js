@@ -6,6 +6,7 @@ const { verifyTokenForAdmission } = require("../middleware/authentication");
 const axios = require("axios");
 const AdmissionApproval = require("../models/AdmissionApproval");
 const Admission = require("../models/Admission");
+const { admissionApprovalTemplate } = require("../utils/smsTemplates");
 
 const router = express.Router();
 
@@ -120,62 +121,57 @@ router.post("/editAdmissionApproval", async (req, res) => {
     await updateAdmissionApproval.save();
 
     // Send SMS
-    // if(status === "approved"){
-    //         const options = {
-    //       method: "POST",
-    //       url: "https://www.fast2sms.com/dev/bulkV2",
-    //       headers: {
-    //         authorization: `${process.env.FAST2SMS_API_KEY}`,
-    //         "Content-Type": "application/x-www-form-urlencoded",
-    //       },
-    //       data: {
-    //         route: "dlt",
-    //         sender_id: "SCHDEN",
-    // // chenge for send messssage
-    //         // message: "182187",
-    //         variables_values: `${studentDetails.studentName}| ${studentDetails.StudentsId}`,
-    //         flash: 0,
-    //         numbers: `${studentDetails.contactNumber}`,
-    //       },
-    //     };
-
-    //     // Make the API request to Fast2SMS
-    //     const response = await axios.post(options.url, options.data, {
-    //       headers: options.headers,
-    //     });
-
-    // console.log("response", response);
-    // }
-
     console.log("Check message is added or not", updateAdmissionApproval);
     if (status === "approved") {
       const findAdmission = await Admission.findOne({ acknowledgementNumber });
 
+      const studentClass = findAdmission.studentClass;
+      const program = findAdmission.program;
+
+      const { admissionRollNumber } = await Admission.allocateStudentsId(
+        studentClass,
+        program
+      );
+
+      console.log("admissionRollNumber ", admissionRollNumber);
+      console.log("findAdmission ", findAdmission);
+      console.log("findAdmission ", findAdmission.admissionRollNo);
+
+      findAdmission.admissionRollNo = admissionRollNumber;
+      await findAdmission.save();
+
+      console.log(
+        "admissionRollNumber on admission approval",
+        admissionRollNumber
+      );
+
       console.log("findAdmission for approval", findAdmission);
 
-      const options = {
-        method: "POST",
-        url: "https://www.fast2sms.com/dev/bulkV2",
-        headers: {
-          authorization: `${process.env.FAST2SMS_API_KEY}`,
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        data: {
-          route: "dlt",
-          sender_id: "SCHDEN",
-          message: "182187",
-          variables_values: `${acknowledgementNumber}|`,
-          flash: 0,
-          numbers: `${findAdmission?.parentsContactNumber}`,
-        },
-      };
-      let otpStoreData;
-      // Make the API request to Fast2SMS
-      const response = await axios.post(options.url, options.data, {
-        headers: options.headers,
-      });
+      admissionApprovalTemplate(findAdmission, acknowledgementNumber);
 
-      console.log("response of sms ", response.data);
+      // const options = {
+      //   method: "POST",
+      //   url: "https://www.fast2sms.com/dev/bulkV2",
+      //   headers: {
+      //     authorization: `${process.env.FAST2SMS_API_KEY}`,
+      //     "Content-Type": "application/x-www-form-urlencoded",
+      //   },
+      //   data: {
+      //     route: "dlt",
+      //     sender_id: "SCHDEN",
+      //     message: "182187",
+      //     variables_values: `${acknowledgementNumber}|`,
+      //     flash: 0,
+      //     numbers: `${findAdmission?.parentsContactNumber}`,
+      //   },
+      // };
+      // let otpStoreData;
+      // // Make the API request to Fast2SMS
+      // const response = await axios.post(options.url, options.data, {
+      //   headers: options.headers,
+      // });
+
+      // console.log("response of sms ", response.data);
     }
 
     return res.status(201).json({
@@ -188,49 +184,107 @@ router.post("/editAdmissionApproval", async (req, res) => {
   }
 });
 
+// router.get("/completedApproval", async (req, res) => {
+//   try {
+//     const { page, limit } = req.body;
+
+//     const allCompletedApproval = await AdmissionApproval.find({
+//       status: "approved",
+//     });
+
+//     res.status(200).json({
+//       data: allCompletedApproval,
+//       message: "Approved admissions retrieved",
+//     });
+//   } catch (e) {
+//     res.status(500).json({ message: "Server error" });
+//   }
+// });
+
 router.get("/completedApproval", async (req, res) => {
   try {
-    const allCompletedApproval = await AdmissionApproval.find({
+    const page = parseInt(req.query.page) || 1; // Default to page 1
+    const limit = 3;
+    const skip = (page - 1) * limit;
+
+    const total = await AdmissionApproval.countDocuments({
       status: "approved",
     });
+    const approvals = await AdmissionApproval.find({ status: "approved" })
+      .skip(skip)
+      .limit(limit)
+      .sort({ createdAt: -1 }); // Optional: newest first
 
     res.status(200).json({
-      data: allCompletedApproval,
+      data: approvals,
+      currentPage: page,
+      totalPages: Math.ceil(total / limit),
+      totalResults: total,
       message: "Approved admissions retrieved",
     });
   } catch (e) {
+    console.error(e);
     res.status(500).json({ message: "Server error" });
   }
 });
+
 router.get("/pendingApproval", async (req, res) => {
   console.log("pending Approval function is working");
   try {
-    const allCompletedApproval = await AdmissionApproval.find({
+    const page = parseInt(req.query.page) || 1; // Default to page 1
+    const limit = 3;
+    const skip = (page - 1) * limit;
+
+
+     const total = await AdmissionApproval.countDocuments({
       status: "pending",
     });
+    const allPendingApproval = await AdmissionApproval.find({
+      status: "pending",
+    })
+      .skip(skip)
+      .limit(limit)
+      .sort({ createdAt: -1 });
 
-    if (!allCompletedApproval) {
+    if (!allPendingApproval) {
       return res
         .status(400)
         .json({ message: "Pending Approval not available" });
     }
 
-    res.status(200).json({
-      data: allCompletedApproval,
-      message: "Pending admissions retrieved",
+      res.status(200).json({
+      data: allPendingApproval,
+      currentPage: page,
+      totalPages: Math.ceil(total / limit),
+      totalResults: total,
+      message: "Approved admissions retrieved",
     });
   } catch (e) {
+
     res.status(500).json({ message: "Server error" });
   }
 });
 router.get("/rejectedApproval", async (req, res) => {
   try {
-    const allCompletedApproval = await AdmissionApproval.find({
+    const page = parseInt(req.query.page) || 1; // Default to page 1
+    const limit = 3;
+    const skip = (page - 1) * limit;
+
+    const total = await AdmissionApproval.countDocuments({
       status: "rejected",
     });
 
+    const allRejectedApproval = await AdmissionApproval.find({
+      status: "rejected",
+    })
+      .skip(skip)
+      .limit(limit)
+      .sort({ createdAt: -1 });
     res.status(200).json({
-      data: allCompletedApproval,
+      data: allRejectedApproval,
+      currentPage: page,
+      totalPages: Math.ceil(total / limit),
+      totalResults: total,
       message: "Rejected admissions retrieved",
     });
   } catch (e) {

@@ -19,6 +19,7 @@ const OtpStore = require("../models/OtpStore.js");
 const User = require("../models/UserModel.js");
 const Students = require("../models/Student.js");
 const AdmissionApproval = require("../models/AdmissionApproval.js");
+const { otpVerification } = require("../utils/smsTemplates.js");
 
 // Multer Storage Configuration
 const storage = multer.diskStorage({
@@ -392,11 +393,14 @@ router.patch(
         if (findAdmissionApproval.status === "rejected") {
           findAdmissionApproval.status = "pending";
           await findAdmissionApproval.save();
-          return res.status(200).json({message : "Admission approval request has been successfully initiated"});
+          return res.status(200).json({
+            message:
+              "Admission approval request has been successfully initiated",
+          });
         }
       } else {
         const addAdmissionApproval = new AdmissionApproval({
-          acknowledgementNumber:  findAdmission.acknowledgementNumber,
+          acknowledgementNumber: findAdmission.acknowledgementNumber,
           studentDetails: {
             status: false,
             message: "Student info not verified",
@@ -456,6 +460,20 @@ router.patch(
     }
   }
 );
+
+router.post("/filter-ackNumber", async () => {
+  try {
+    const { filterByAckNumber } = req.body;
+    const findByAckNumber = await AdmissionApproval.find({
+      acknowledgementNumber: filterByAckNumber,
+    });
+
+    res.status(200).json({ findByAckNumber });
+  } catch (error) {
+    console.log("error ", error);
+    res.status(500).json({ message: "Server Error" });
+  }
+});
 
 // Upload Student Photo
 router.post("/upload-photo", upload.single("photo"), async (req, res) => {
@@ -619,27 +637,31 @@ router.post("/sendVerification", async (req, res) => {
     // Generate a random 4-digit OTP
     const otp = Math.floor(1000 + Math.random() * 9000);
 
-    const options = {
-      method: "POST",
-      url: "https://www.fast2sms.com/dev/bulkV2",
-      headers: {
-        authorization: `${process.env.FAST2SMS_API_KEY}`,
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      data: {
-        route: "dlt",
-        sender_id: "SCHDEN",
-        message: "182187",
-        variables_values: `${otp}|`,
-        flash: 0,
-        numbers: `${mobileNumber}`,
-      },
-    };
+    const response = await otpVerification(otp, mobileNumber);
+
+    // const options = {
+    //   method: "POST",
+    //   url: "https://www.fast2sms.com/dev/bulkV2",
+    //   headers: {
+    //     authorization: `${process.env.FAST2SMS_API_KEY}`,
+    //     "Content-Type": "application/x-www-form-urlencoded",
+    //   },
+    //   data: {
+    //     route: "dlt",
+    //     sender_id: "SCHDEN",
+    //     message: "182187",
+    //     variables_values: `${otp}|`,
+    //     flash: 0,
+    //     numbers: `${mobileNumber}`,
+    //   },
+    // };
+    // let otpStoreData;
+    // // Make the API request to Fast2SMS
+    // const response = await axios.post(options.url, options.data, {
+    //   headers: options.headers,
+    // });
+
     let otpStoreData;
-    // Make the API request to Fast2SMS
-    const response = await axios.post(options.url, options.data, {
-      headers: options.headers,
-    });
 
     // Store the OTP in the database
     const existingOtp = await OtpStore.findOne({ mobileNumber });

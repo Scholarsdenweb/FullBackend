@@ -12,8 +12,8 @@ const admissionRollNo = async (studentClass, program) => {
       classCode = studentClass;
     } else {
       const programCodes = {
-        "engineering": { XI: 11, XII: 12, "XII Pass": 13 },
-        "medical": { XI: 14, XII: 15, "XII Pass": 16 },
+        "JEE(Main & Adv)": { "XI Engineering": 11, "XII Engineering": 12, "XII Engineering Passed": 13 },
+        "NEET(UG)": { "XI Medical": 14, "XII Medical": 15, "XII Medical Passed": 16 },
       };
 
 
@@ -36,7 +36,7 @@ const admissionRollNo = async (studentClass, program) => {
         " programCodes[program.toLowerCase()]?.[studentClass",
         programCodes[program.toLowerCase()]?.[studentClass]
       );
-      classCode = programCodes[program.toLowerCase()]?.[studentClass] || convertToNumber(studentClass);
+      classCode = programCodes[program]?.[studentClass] || convertToNumber(studentClass);
     }
 
     const classStrength = await ClassStrength.findOneAndUpdate(

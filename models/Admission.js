@@ -111,8 +111,8 @@ AdmissionSchema.statics.allocateStudentsId = async function (
   program
 ) {
   const admissionRollNumber = await admissionRollNo(studentClass, program);
-  const enrollmentNumber = await enrollmentNumberGenerator();
-  return { admissionRollNumber, enrollmentNumber };
+  // const enrollmentNumber = await enrollmentNumberGenerator();
+  return { admissionRollNumber };
 };
 
 AdmissionSchema.statics.allocatedAcknowledgement = async () => {

@@ -142,7 +142,7 @@ router.post("/createNewStudent", takenPhoneByToken(), createNewStudent);
 router.post("/sendVerification", async (req, res) => {
   try {
     const { mobileNumber } = req.body;
-    console.log("req.body from sendVerification", req.body);
+
 
     if (!mobileNumber) {
       return res
@@ -150,37 +150,38 @@ router.post("/sendVerification", async (req, res) => {
         .json({ success: false, message: "Mobile number is required." });
     }
 
-    console.log(mobileNumber);
-    console.log(process.env.FAST2SMS_API_KEY);
+
 
     // Generate a random 4-digit OTP
     const otp = Math.floor(1000 + Math.random() * 9000);
 
-    console.log("otp code ", otp);
 
-    const options = {
-      method: "POST",
-      url: "https://www.fast2sms.com/dev/bulkV2",
-      headers: {
-        authorization: `${process.env.FAST2SMS_API_KEY}`,
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      data: {
-        route: "dlt",
-        sender_id: "SCHDEN",
-        message: "182187",
-        variables_values: `${otp}|`,
-        flash: 0,
-        numbers: `${mobileNumber}`,
-      },
-    };
-    let otpStoreData;
-    // Make the API request to Fast2SMS
-    const response = await axios.post(options.url, options.data, {
-      headers: options.headers,
-    });
+    // const options = {
+    //   method: "POST",
+    //   url: "https://www.fast2sms.com/dev/bulkV2",
+    //   headers: {
+    //     authorization: `${process.env.FAST2SMS_API_KEY}`,
+    //     "Content-Type": "application/x-www-form-urlencoded",
+    //   },
+    //   data: {
+    //     route: "dlt",
+    //     sender_id: "SCHDEN",
+    //     message: "182187",
+    //     variables_values: `${otp}|`,
+    //     flash: 0,
+    //     numbers: `${mobileNumber}`,
+    //   },
+    // };
+   
+    // // Make the API request to Fast2SMS
+    // const response = await axios.post(options.url, options.data, {
+    //   headers: options.headers,
+    // });
 
-    console.log(response.data);
+    // console.log(response.data);
+
+ let otpStoreData;
+    const response = await otpVerification(otp, mobileNumber)
 
     // Store the OTP in the database
     const existingOtp = await OtpStore.findOne({ mobileNumber });

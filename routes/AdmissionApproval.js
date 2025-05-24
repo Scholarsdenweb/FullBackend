@@ -52,18 +52,15 @@ router.post(
       "acknowledgementNumber from getAdmissionApprovalByAcknowledgementNumber",
       req.body
     );
-    console.log(
-      "acknowledgementNumber from getAdmissionApprovalByAcknowledgementNumber",
-      req.user
-    );
+
 
     const { acknowledgementNumber } = req.body;
 
-    const findAdmissionApproval = await AdmissionApproval.find({
+    const findAdmissionApproval = await AdmissionApproval.findOne({
       acknowledgementNumber,
     });
     if (!findAdmissionApproval) {
-      return res.status(402).json({ message: "Admission Approval not found" });
+      return res.status(400).json({ message: "Admission Approval not found" });
     }
 
     return res
@@ -122,6 +119,7 @@ router.post("/editAdmissionApproval", async (req, res) => {
 
     // Send SMS
     console.log("Check message is added or not", updateAdmissionApproval);
+    console.log("Check message is added or not", status);
     if (status === "approved") {
       const findAdmission = await Admission.findOne({ acknowledgementNumber });
 

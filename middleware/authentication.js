@@ -49,7 +49,7 @@ const verifyTokenForRegistration = (allowedModels) => {
   return async (req, res, next) => {
     const token = req.headers.authorization?.split(" ")[1];
     console.log("req form verifyToekn ", req.headers);
-    console.log("Token form verifyTokenFirRegistration", token);
+    console.log("Token form ", token);
     if (!token) {
       return res.status(401).json({ message: "No token provided" });
     }
@@ -73,6 +73,7 @@ const verifyTokenForRegistration = (allowedModels) => {
       else UserModel = Employee;
       // else return res.status(403).json({ message: "User type not supported" });
       const user = await UserModel.findById(_id);
+      console.log("user from varifyTokenForRegistration", user);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }

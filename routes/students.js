@@ -40,42 +40,10 @@ router.get(
   checkRole(["hr"]),
   getStudents
 );
+router.get("/getAllStudentByPhone", takenPhoneByToken(), getAllStudentByPhone);
+
 
 // GET /students/:id - Get complete student details
-router.get("/:id", async (req, res) => {
-  try {
-    const studentId = req.params.id;
-
-    // First, find the main student record
-    const student = await Students.findById(studentId).lean();
-    if (!student) {
-      return res.status(404).json({ error: "Student not found" });
-    }
-
-    // Fetch all related data in parallel
-    const [basicDetails, batchDetails, familyDetails, educationalDetails] =
-      await Promise.all([
-        BasicDetails.findOne({ student_id: studentId }).lean(),
-        BatchRelatedDetails.findOne({ student_id: studentId }).lean(),
-        FamilyDetails.findOne({ student_id: studentId }).lean(),
-        EducationalDetails.findOne({ student_id: studentId }).lean(),
-      ]);
-
-    // Combine all data into a single response object
-    const response = {
-      ...student,
-      basicDetails: basicDetails || {},
-      batchDetails: batchDetails || {},
-      familyDetails: familyDetails || {},
-      educationalDetails: educationalDetails || {},
-    };
-
-    res.json(response);
-  } catch (error) {
-    console.error("Error fetching student details:", error);
-    res.status(500).json({ error: "Internal server error" });
-  }
-});
 
 router.post(
   "/addStudent",
@@ -124,7 +92,6 @@ router.get(
   resultDetails
 );
 
-router.get("/getAllStudentByPhone", takenPhoneByToken(), getAllStudentByPhone);
 
 router.post(
   "/fetchExistingUserFormEnquiryDetails",
@@ -654,6 +621,7 @@ router.post("/fetchAllData", async (req, res) => {
 });
 
 const ExcelJS = require("exceljs");
+const { otpVerification } = require("../utils/smsTemplates");
 
 // router.get("/exportUserData", async (req, res) => {
 //   try {
@@ -958,5 +926,48 @@ router.post("/fetchDataByDateRange", async (req, res) => {
     return res.status(500).json({ error: "Server error" });
   }
 });
+
+
+
+router.get("/:id", async (req, res) => {
+  try {
+    const studentId = req.params.id;
+
+    console.log("studentIdf from id ", req.params.id);
+
+    // First, find the main student record
+    const student = await Students.findById(studentId).lean();
+    if (!student) {
+      return res.status(404).json({ error: "Student not found" });
+    }
+
+    // Fetch all related data in parallel
+    const [basicDetails, batchDetails, familyDetails, educationalDetails] =
+      await Promise.all([
+        BasicDetails.findOne({ student_id: studentId }).lean(),
+        BatchRelatedDetails.findOne({ student_id: studentId }).lean(),
+        FamilyDetails.findOne({ student_id: studentId }).lean(),
+        EducationalDetails.findOne({ student_id: studentId }).lean(),
+      ]);
+
+    // Combine all data into a single response object
+    const response = {
+      ...student,
+      basicDetails: basicDetails || {},
+      batchDetails: batchDetails || {},
+      familyDetails: familyDetails || {},
+      educationalDetails: educationalDetails || {},
+    };
+
+    res.json(response);
+  } catch (error) {
+    console.error("Error fetching student details:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+
+
+
 
 module.exports = router;

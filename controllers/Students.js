@@ -39,7 +39,10 @@ const getStudents = async (req, res) => {
 
 const getStudentsById = async (req, res) => {
   try {
-    const student = await Students.findOne({ _id: req.user.id }).select(
+
+
+    console.log("req.user from getStudentById", req.user)
+    const student = await Students.findOne({ _id: req.user._id }).select(
       "-password -__v -created_at -updated_at -resetToken -resetTokenExpiry"
     );
     console.log("student", student);

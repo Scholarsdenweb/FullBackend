@@ -6,6 +6,8 @@ const Students = require("../models/Student");
 const BatchRelatedDetails = require("../models/form/BatchRelatedDetails");
 const BasicDetails = require("../models/form/BasicDetails");
 const FamilyDetails = require("../models/form/FamilyDetails");
+const { default: axios } = require("axios");
+const { console } = require("inspector/promises");
 
 require("dotenv").config();
 
@@ -133,6 +135,7 @@ const generateAdmitCard = async (req, res) => {
       examTime: "12:00 PM",
       profilePicture: student.profilePicture,
 
+      paymentId: student.paymentId,
       studentId: student.StudentsId,
       FatherName: familyDetails.FatherName,
       CenterName: "Bulding 1",
@@ -140,31 +143,14 @@ const generateAdmitCard = async (req, res) => {
     };
     // Generate admit card
     const admitCard = await processHTMLAndGenerateAdmitCards(data);
+    const response = await SMSForRegisteredStudent(
+      student.name,
+      data.examDate,
+      student.StudentsId,
+      data.paymentId
+    );
 
-    //     const options = {
-    //       method: "POST",
-    //       url: "https://www.fast2sms.com/dev/bulkV2",
-    //       headers: {
-    //         authorization: `${process.env.FAST2SMS_API_KEY}`,
-    //         "Content-Type": "application/x-www-form-urlencoded",
-    //       },
-    //       data: {
-    //         route: "dlt",
-    //         sender_id: "SCHDEN",
-    // // chenge for send messssage
-    //         // message: "182187",
-    //         variables_values: `${student.studentName}| ${student.StudentsId}`,
-    //         flash: 0,
-    //         numbers: `${student.contactNumber}`,
-    //       },
-    //     };
-
-    //     // Make the API request to Fast2SMS
-    //     const response = await axios.post(options.url, options.data, {
-    //       headers: options.headers,
-    //     });
-
-    // console.log("response", response);
+    console.log("response from sdat process completed", response);
 
     console.log("Admit card generated:", admitCard);
     student.admitCard = admitCard;
@@ -280,29 +266,6 @@ const getAllPaymentDetails = async (req, res) => {
     res.status(400).json({ error: error });
   }
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 module.exports = {
   checkout,

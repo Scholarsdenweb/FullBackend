@@ -53,7 +53,6 @@ router.post(
       req.body
     );
 
-
     const { acknowledgementNumber } = req.body;
 
     const findAdmissionApproval = await AdmissionApproval.findOne({
@@ -68,6 +67,46 @@ router.post(
       .json({ message: "Admission Approval", data: findAdmissionApproval });
   }
 );
+
+router.post("/filterAdmissionApproval", async (req, res) => {
+  try {
+    const { status, acknowledgementNumber } = req.body;
+    const page = parseInt(req.query.page) || 1; // Default to page 1
+    const limit = 3;
+    const skip = (page - 1) * limit;
+
+    let filter = {};
+
+    if (status) {
+      filter.status = status.toLowerCase(); // match enum correctly
+    }
+
+    if (acknowledgementNumber?.trim()) {
+      filter.acknowledgementNumber = {
+        $regex: `.*${acknowledgementNumber}.*`,
+        $options: "i",
+      };
+    }
+    const total = await AdmissionApproval.countDocuments(filter);
+    const approvals = await AdmissionApproval.find(filter)
+      .skip(skip)
+      .limit(limit)
+      .sort({ createdAt: -1 });
+
+    console.log("approvals from filetre", approvals);
+
+    res.status(200).json({
+      data: approvals,
+      currentPage: page,
+      totalPages: Math.ceil(total / limit),
+      totalResults: total,
+      message: "Filtered Approved admissions retrieved",
+    });
+  } catch (err) {
+    console.error("Error during filter:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
 
 router.post("/editAdmissionApproval", async (req, res) => {
   console.log("EditAdmissionApproval req.body", req.body);
@@ -233,8 +272,7 @@ router.get("/pendingApproval", async (req, res) => {
     const limit = 3;
     const skip = (page - 1) * limit;
 
-
-     const total = await AdmissionApproval.countDocuments({
+    const total = await AdmissionApproval.countDocuments({
       status: "pending",
     });
     const allPendingApproval = await AdmissionApproval.find({
@@ -250,7 +288,7 @@ router.get("/pendingApproval", async (req, res) => {
         .json({ message: "Pending Approval not available" });
     }
 
-      res.status(200).json({
+    res.status(200).json({
       data: allPendingApproval,
       currentPage: page,
       totalPages: Math.ceil(total / limit),
@@ -258,7 +296,6 @@ router.get("/pendingApproval", async (req, res) => {
       message: "Approved admissions retrieved",
     });
   } catch (e) {
-
     res.status(500).json({ message: "Server error" });
   }
 });

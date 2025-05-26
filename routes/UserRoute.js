@@ -12,6 +12,7 @@ const JWT_SECRET = process.env.JWT_SECRET;
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const { verifyToken } = require("../middleware/authentication");
+const { enquirySubmitionTemplate } = require("../utils/smsTemplates");
 
 router.post("/", async (req, res) => {
   try {
@@ -82,7 +83,7 @@ router.get("/getUserbyToken", verifyToken(), async (req, res) => {
   } catch (error) {
     res.status(500).send("Internal Server Error");
   }
-}); 
+});
 
 router.get("/getTokenNo", async (req, res) => {
   try {
@@ -129,18 +130,17 @@ router.post("/filter/enquiryNumber", async (req, res) => {
     let afterFilterStudents;
 
     // if (email === "jatin@scholarsden.in") {
-      afterFilterStudents = await User.find({
-        enquiryNumber: { $regex: `^${data}`, $options: "i" },
-      });
+    afterFilterStudents = await User.find({
+      enquiryNumber: { $regex: `^${data}`, $options: "i" },
+    });
 
-      console.log("enquiryNumber filter data", afterFilterStudents);
-      return res.status(200).json(afterFilterStudents);
+    console.log("enquiryNumber filter data", afterFilterStudents);
+    return res.status(200).json(afterFilterStudents);
     // }
 
     // afterFilterStudents = await User.find({
     //   enquiryNumber: { $regex: "^" + data, $options: "i" },
     // });
-
   } catch (error) {
     console.error("Error filtering students:", error);
     res.status(500).json({ message: "Server error" });
@@ -219,12 +219,12 @@ router.patch("/putFormData", verifyToken(), async (req, res) => {
       },
       { new: true }
     );
+
     console.log("user", user);
 
+    // if(enquiryTakenBy){
 
-// if(enquiryTakenBy){
-  
-// }
+    // }
 
     return res.status(200).send({ user });
   } catch (error) {
@@ -233,9 +233,20 @@ router.patch("/putFormData", verifyToken(), async (req, res) => {
   }
 });
 
+router.post("/formSubmit", async (req, res) => {
+  try {
+    const { phoneNumber } = req.body;
 
- 
+    console.log("phoneNumber from formSubmit", phoneNumber);
+    const response = await enquirySubmitionTemplate(phoneNumber);
 
+    console.log("response", response);
+
+    return res.status(200).json({ message: "Enquiry Submitted" });
+  } catch (error) {
+    return res.status(500).json({ message: "Server Error" });
+  }
+});
 
 // router.post("/sendVerification", async (req, res) => {
 //   try {

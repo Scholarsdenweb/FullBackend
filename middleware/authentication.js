@@ -45,6 +45,36 @@ require("dotenv").config();
 //   };
 // };
 
+
+
+
+
+const adminAuth = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ message: "Authorization token missing or malformed" });
+  }
+
+  const token = authHeader.split(" ")[1];
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.admin = { id: decoded.id }; // You can add more info if encoded
+    next();
+  } catch (err) {
+    return res.status(401).json({ message: "Invalid or expired token" });
+  }
+};
+
+
+ 
+
+
+
+
+
+
 const verifyTokenForRegistration = (allowedModels) => {
   return async (req, res, next) => {
     const token = req.headers.authorization?.split(" ")[1];
@@ -311,5 +341,6 @@ module.exports = {
   verifyTokenForRegistration,
   verifyTokenForAdmission,
   takenPhoneByToken,
-  verifyTokenForExistingAdmission
+  verifyTokenForExistingAdmission,
+  adminAuth
 };

@@ -2,7 +2,7 @@ const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const Admin = require("../models/Admin");
-const { verifyTokenForAdmission } = require("../middleware/authentication");
+const { verifyTokenForAdmission, adminAuth } = require("../middleware/authentication");
 const axios = require("axios");
 const AdmissionApproval = require("../models/AdmissionApproval");
 const Admission = require("../models/Admission");
@@ -10,7 +10,7 @@ const { admissionApprovalTemplate } = require("../utils/smsTemplates");
 
 const router = express.Router();
 
-router.post("/addAdmissionApproval", async (req, res) => {
+router.post("/addAdmissionApproval", adminAuth , async (req, res) => {
   const { acknowledgementNumber } = req.body;
 
   console.log("req.body from add AdmissionApproval", req.body);
@@ -238,7 +238,7 @@ router.post("/editAdmissionApproval", async (req, res) => {
 //   }
 // });
 
-router.get("/completedApproval", async (req, res) => {
+router.get("/completedApproval", adminAuth, async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1; // Default to page 1
     const limit = 3;
@@ -299,7 +299,7 @@ router.get("/pendingApproval", async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
-router.get("/rejectedApproval", async (req, res) => {
+router.get("/rejectedApproval", adminAuth, async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1; // Default to page 1
     const limit = 3;

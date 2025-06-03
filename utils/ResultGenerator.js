@@ -220,9 +220,9 @@ const generateReportCardPDF = async (data, pdfFilePath) => {
 }
 
 // Example usage:
-const input = "hello world, this is a test.";
-const output = capitalizeFirstLetters(input);
-console.log(output);  // "Hello World, This Is A Test."
+// const input = "hello world, this is a test.";
+// const output = capitalizeFirstLetters(input);
+// console.log(output);  // "Hello World, This Is A Test."
 
 
 
@@ -741,7 +741,7 @@ gap: 10px;
               <p><b>Father's Name:</b> ${capitalizeFirstLetters(data.Father)}</p>
               <p><b>Class:</b> ${data.Class}</p>
               <p>
-                <b>Scholarship:</b> ${scholarship}% (Valid till 22nd May '25)
+                <b>Scholarship:</b> ${scholarship}% (Valid till 3rd June '25)
               </p>
               <p><b>Rank:</b> ${data.Rank}</p>
               <p><b>Percentage: </b>${percentage}%</p>

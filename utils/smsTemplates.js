@@ -85,7 +85,8 @@ export const SMSForRegisteredStudent = async (
   studentName,
   examDate,
   StudentsId,
-  paymentId
+  paymentId,
+  contactNumber
 ) => {
   const options = {
     method: "POST",
@@ -101,7 +102,7 @@ export const SMSForRegisteredStudent = async (
       message: "186352",
       variables_values: `${studentName}| ${examDate} | ${StudentsId} | ${paymentId}`,
       flash: 0,
-      numbers: `${student.contactNumber}`,
+      numbers: `${contactNumber}`,
     },
   };
 

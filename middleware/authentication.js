@@ -78,21 +78,16 @@ const adminAuth = (req, res, next) => {
 const verifyTokenForRegistration = (allowedModels) => {
   return async (req, res, next) => {
     const token = req.headers.authorization?.split(" ")[1];
-    console.log("req form verifyToekn ", req.headers);
-    console.log("Token form ", token);
     if (!token) {
       return res.status(401).json({ message: "No token provided" });
     }
 
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      console.log("Decoded Token:", decoded);
 
       const { _id, role } = decoded;
 
-      console.log("role", role);
-      console.log("role", allowedModels);
-
+  
       if (!allowedModels.includes(role)) {
         return res.status(403).json({ message: "Invalid user type" });
       }
@@ -103,11 +98,9 @@ const verifyTokenForRegistration = (allowedModels) => {
       else UserModel = Employee;
       // else return res.status(403).json({ message: "User type not supported" });
       const user = await UserModel.findById(_id);
-      console.log("user from varifyTokenForRegistration", user);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
-      console.log(`Authenticated ${role}:`, user);
       req.user = user;
       next();
     } catch (error) {
@@ -119,20 +112,16 @@ const verifyTokenForRegistration = (allowedModels) => {
 const takenPhoneByToken = () => {
   return async (req, res, next) => {
     const token = req.headers.authorization?.split(" ")[1];
-    console.log("req form verifyToekn ", req.headers);
-    console.log("Token form verifyTokenFirRegistration", token);
     if (!token) {
       return res.status(401).json({ message: "No token provided" });
     }
 
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      console.log("Decoded Token:", decoded);
 
       const { contactNumber, role } = decoded;
 
-      console.log("role", role);
-      console.log("contactNumber", contactNumber);
+
 
       const user = { role, contactNumber };
 
@@ -148,7 +137,6 @@ const takenPhoneByToken = () => {
 const verifyToken = () => {
   return async (req, res, next) => {
     try {
-      console.log("req.headers.authorization:", req.headers.authorization);
 
       // Extract the token from the Authorization header
       const token = req.headers.authorization?.split(" ")[1];
@@ -158,19 +146,16 @@ const verifyToken = () => {
 
       // Verify the token
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      console.log("Decoded Token:", decoded);
 
       const { _id } = decoded;
 
       // Use the correct User model to fetch the user
       const user = await User.findById(_id); // Ensure User is your actual model
 
-      console.log("User", user);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
 
-      console.log("User from verifyToken:", user);
       req.user = user; // Attach the user to the request object
 
       // Call the next middleware
@@ -195,18 +180,13 @@ const verifyTokenForAdmission = () => {
 
       // Verify the token
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      console.log("Decoded Token:", decoded);
 
       const { _id, parentsContactNumber, acknowledgementNumber } = decoded;
 
 
-      console.log("acknowledgementNumber from verifyToken", acknowledgementNumber);
-      console.log("acknowledgementNumber from verifyToken parentsContactNumber", parentsContactNumber);
-
       // Use the correct User model to fetch the user
 
       const user = await AdmissionUser.findOne({acknowledgementNumber}); // Ensure User is your actual model
-      console.log("User from verifyToken form admission:", user);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
@@ -229,7 +209,6 @@ const verifyTokenForExistingAdmission = ()=>{
 
   return async (req, res, next) => {
     try {
-      console.log("req.headers.authorization:", req.headers.authorization);
 
       // Extract the token from the Authorization header
       const token = req.headers.authorization?.split(" ")[1];
@@ -239,13 +218,11 @@ const verifyTokenForExistingAdmission = ()=>{
 
       // Verify the token
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      console.log("Decoded Token:", decoded);
 
       const { _id, parentsContactNumber, acknowledgementNumber } = decoded;
 
       // Use the correct User model to fetch the user
 
-      console.log("fatherContactNumber form admission", parentsContactNumber);
       // const user = await AdmissionUser.find({parentsContactNumber: fatherContactNumber}); // Ensure User is your actual model
       // console.log("User from verifyToken form admission:", user);
       // if (!user) {
@@ -309,7 +286,6 @@ const verifyTokenForExistingAdmission = ()=>{
 const checkRole = (allowedRoles) => {
   return (req, res, next) => {
     const userRole = req.user?.role;
-    console.log("User Role:", userRole);
 
     if (!userRole || !allowedRoles.includes(userRole)) {
       return res
@@ -325,7 +301,6 @@ const adminCheck = (allowedAdmin) => {
   return (req, res, next) => {
     const contactNumber = req.body.contactNumber;
 
-    console.log("contactNumber ", contactNumber);
     const isAllowedAdmin = allowedAdmin.includes(contactNumber);
     if (!isAllowedAdmin) {
       return res.status(403).json({ message: "Access denied." });

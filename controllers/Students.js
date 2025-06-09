@@ -41,11 +41,9 @@ const getStudentsById = async (req, res) => {
   try {
 
 
-    console.log("req.user from getStudentById", req.user)
     const student = await Students.findOne({ _id: req.user._id }).select(
       "-password -__v -created_at -updated_at -resetToken -resetTokenExpiry"
     );
-    console.log("student", student);
     if (student.length === 0) {
       res.status(400).json({ message: "No students found" });
     }
@@ -124,7 +122,7 @@ const addStudents = async (req, res) => {
 const editStudent = async (req, res) => {
   const student_id = req.user.id;
 
-  console.log("req.body from editStudent update", req.body);
+  // console.log("req.body from editStudent update", req.body);
 
   const { studentName, email, role, password, payment_id, profilePicture } =
     req.body;

@@ -42,7 +42,6 @@ const User = require('../models/Admission');
 const verifyToken = () => {
   return async (req, res, next) => {
     try {
-      console.log("req.headers.authorization:", req.headers.authorization);
 
       // Extract the token from the Authorization header
       const token = req.headers.authorization?.split(' ')[1];
@@ -52,7 +51,6 @@ const verifyToken = () => {
 
       // Verify the token
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      console.log("Decoded Token:", decoded);
 
       const { _id } = decoded;
 
@@ -62,7 +60,6 @@ const verifyToken = () => {
         return res.status(404).json({ message: "User not found" });
       }
 
-      console.log("User from verifyToken:", user);
       req.user = user; // Attach the user to the request object
 
       // Call the next middleware
@@ -83,7 +80,6 @@ const verifyToken = () => {
 const checkRole = (allowedRoles) => {
   return (req, res, next) => {
     const userRole = req.user?.role;
-    console.log("User Role:", userRole);
 
     if (!userRole || !allowedRoles.includes(userRole)) {
       return res.status(403).json({ message: "Access denied. Insufficient role" });

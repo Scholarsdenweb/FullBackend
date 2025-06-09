@@ -6,8 +6,9 @@ const Students = require("../models/Student");
 const BatchRelatedDetails = require("../models/form/BatchRelatedDetails");
 const BasicDetails = require("../models/form/BasicDetails");
 const FamilyDetails = require("../models/form/FamilyDetails");
-const { default: axios } = require("axios");
-const { console } = require("inspector/promises");
+
+
+const {SMSForRegisteredStudent} = require("../utils/smsTemplates")
 
 require("dotenv").config();
 
@@ -78,11 +79,14 @@ const paymentVerification = async (req, res) => {
     console.error("Error in payment verification:", error);
     return res
       .status(500)
-      .json({ success: false, message: "Internal Server Error" });
+      .json({ success: false, message: "Internal Server Error", error });
   }
 };
 
 const generateAdmitCard = async (req, res) => {
+
+console.log("GenerateAdmit card function working");
+
   try {
     console.log("Generate Admit Card");
     const student = await Students.findById(req.user._id);
@@ -144,10 +148,11 @@ const generateAdmitCard = async (req, res) => {
     // Generate admit card
     const admitCard = await processHTMLAndGenerateAdmitCards(data);
     const response = await SMSForRegisteredStudent(
-      student.name,
+      student.studentName,
       data.examDate,
       student.StudentsId,
-      data.paymentId
+      data.paymentId,
+      student.contactNumber
     );
 
     console.log("response from sdat process completed", response);
@@ -166,10 +171,10 @@ const generateAdmitCard = async (req, res) => {
       updatedStudent,
     });
   } catch (error) {
-    console.error("Error in payment verification:", error);
+    console.log("Error in payment verification:", error);
     return res
       .status(500)
-      .json({ success: false, message: "Internal Server Error" });
+      .json({ success: false, message: "Internal Server Error", errorData: error });
   }
 };
 

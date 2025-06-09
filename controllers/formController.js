@@ -8,7 +8,6 @@ const Students = require("../models/Student");
 const getForm = async (Model, req, res) => {
   try {
     const form = await Model.find({ student_id: req.user.id }).select("-__v -student_id -created_at -updated_at -_id ");
-    console.log("form", form);
     if (!form) return res.status(404).json({ message: "Form not found" });
     return res.status(200).json(form);
   } catch (error) {

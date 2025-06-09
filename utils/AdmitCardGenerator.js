@@ -75,6 +75,7 @@ const isFileValid = async (filePath) => {
 // </div>
 
 const generateAdmitCardPDF = async (data, filePath) => {
+  console.log("generateAdmitCardPDF", data, filePath);
   let browser = null;
   try {
     if (process.env.NODE_ENV === "production") {
@@ -95,8 +96,8 @@ const generateAdmitCardPDF = async (data, filePath) => {
     }
 
     const page = await browser.newPage();
-    const logoPath =  path.resolve(__dirname, "SDATLogo.png");
-    const logoBase64 =  fs.readFileSync(logoPath, { encoding: "base64" });
+    const logoPath = path.resolve(__dirname, "SDATLogo.png");
+    const logoBase64 = fs.readFileSync(logoPath, { encoding: "base64" });
     const logoDataUrl = `data:image/png;base64,${logoBase64}`;
     //  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@100;300;400;700&display=swap" rel="stylesheet">
 
@@ -336,7 +337,6 @@ const processHTMLAndGenerateAdmitCards = async (student) => {
     console.log("Data from StudentData ", data);
 
     const fileValidData = await isFileValid(pdfFilePath);
-    
 
     console.log("Check fileValidData from generateAdmitCardPDF", fileValidData);
 
@@ -357,9 +357,8 @@ const processHTMLAndGenerateAdmitCards = async (student) => {
       `Error processing admit card for Roll Number: ${student.studentId}`,
       error
     );
-    resizeBy
-      .status(500)
-      .json({ message: "Error processing admit card", error });
+    return error;
+    // res.status(500).json({ message: "Error processing admit card", error });
   } finally {
     if (fs.existsSync(pdfFilePath)) fs.unlinkSync(pdfFilePath);
   }

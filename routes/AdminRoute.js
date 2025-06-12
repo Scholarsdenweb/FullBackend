@@ -41,7 +41,6 @@ router.post("/trigger-obd", async (req, res) => {
       return res.status(400).json(data);
     }
 
-    console.log("Data response", data);
     res.json(data);
   } catch (err) {
     console.error("Server error:", err);
@@ -53,11 +52,8 @@ router.post("/getEnquiryData", async (req, res) => {
   try {
     const { email, page = 1 } = req.body;
 
-    console.log("req.data", req.body);
     const limit = 1; // Always fetch 1 user per page
     const skip = (page - 1) * limit;
-
-    console.log("email form request", email);
 
     let data;
 
@@ -69,7 +65,6 @@ router.post("/getEnquiryData", async (req, res) => {
         .skip(skip)
         .limit(limit);
     }
-
 
     // Check if there is no data or if this is the last page
     if (data.length === 0) {
@@ -93,7 +88,6 @@ router.post("/getEnquiryData", async (req, res) => {
 
     const isLastPage = nextPageData.length === 0; // If nextPageData is empty, it's the last page
 
-    console.log("totalStudents", totalStudents);
     const totalPages = Math.ceil(totalStudents / limit);
     res.status(200).json({
       data,
@@ -227,8 +221,6 @@ router.post("/filter", async (req, res) => {
   try {
     let query = {};
 
-    console.log("Filter data params", params);
-
     // 🔍 Handle class filter
     if (params.class) {
       query.courseOfIntrested = params.class;
@@ -258,8 +250,6 @@ router.post("/filter", async (req, res) => {
       };
     }
 
-    console.log("QUERY form filter", query);
-
     // 👇 Decide which collection to use (you can improve this logic further)
     // const useStudentsCollection = !!params.enquiryNumber;
     // const Model = useStudentsCollection ? Students : User;
@@ -276,6 +266,8 @@ router.post("/filter", async (req, res) => {
 
 // Format student
 function formatStudent(student) {
+  console.log("student data from formatStudent", student);
+
   return {
     enquiryNumber: student.enquiryNumber,
     studentName: student.studentName,
@@ -284,6 +276,15 @@ function formatStudent(student) {
     program: student.program,
     courseOfIntrested: student.courseOfIntrested,
     createdAt: student.createdAt,
+    updatedAt: student.updatedAt,
+    enquiryTakenBy: student.enquiryTakenBy,
+    fatherOccupations: student.fatherOccupations,
+    remarks: student.remarks,
+    city: student.city,
+    state: student.state,
+    schoolName: student.schoolName,
+    studentContactNumber: student.studentContactNumber,
+    howToKnow: student.howToKnow,
   };
 }
 

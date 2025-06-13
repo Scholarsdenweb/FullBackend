@@ -289,7 +289,7 @@ const uploadToCloudinary = async (filePath, rollNumber, studentName) => {
       public_id: publicId,
       folder: "SDAT270425AdmitCard", // Set custom public ID for the file
     });
-    return result.url;
+    return result.secure_url;
   } catch (error) {
     console.error("Error uploading to Cloudinary:", error);
     throw error;

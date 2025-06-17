@@ -38,7 +38,7 @@ const checkout = async (req, res) => {
 const paymentVerification = async (req, res) => {
   try {
     // console.log("req.body of paymentVerification", req);
-    const { razorpay_payment_id, razorpay_order_id, razorpay_signature } =
+    const { razorpay_payment_id, razorpay_order_id, razorpay_signature, studentId } =
       req.body;
 
     const sign = razorpay_order_id + "|" + razorpay_payment_id;
@@ -47,7 +47,7 @@ const paymentVerification = async (req, res) => {
     console.log("rezorpay_signature", razorpay_signature);
     console.log("razorpay_payment_id", razorpay_payment_id);
     console.log("razorpay_order_id", razorpay_order_id);
-    console.log("sign", sign);
+    console.log("sign", studentId);
 
     // Uncomment if Razorpay signature verification is required
     const expectedSign = crypto
@@ -60,6 +60,7 @@ const paymentVerification = async (req, res) => {
         razorpay_order_id,
         razorpay_payment_id,
         razorpay_signature,
+        studentId,
         payment_date: new Date(),
       });
 

@@ -1,6 +1,6 @@
-import axios from "axios";
+const axios = require("axios");
 
-export const admissionApprovalTemplate = async (
+const admissionApprovalTemplate = async (
   findAdmission,
   acknowledgementNumber
 ) => {
@@ -28,7 +28,7 @@ export const admissionApprovalTemplate = async (
 
   console.log("response of sms ", response.data);
 };
-export const enquirySubmitionTemplate = async (phoneNumber) => {
+const enquirySubmitionTemplate = async (phoneNumber) => {
   const options = {
     method: "POST",
     url: "https://www.fast2sms.com/dev/bulkV2",
@@ -55,7 +55,7 @@ export const enquirySubmitionTemplate = async (phoneNumber) => {
   return response;
 };
 
-export const otpVerification = async (otp, mobileNumber) => {
+const otpVerification = async (otp, mobileNumber) => {
   console.log("otp from otpverification", otp, mobileNumber);
   const options = {
     method: "POST",
@@ -81,7 +81,7 @@ export const otpVerification = async (otp, mobileNumber) => {
 
   return response;
 };
-export const SMSForRegisteredStudent = async (
+const SMSForRegisteredStudent = async (
   studentName,
   examDate,
   StudentsId,
@@ -112,4 +112,15 @@ export const SMSForRegisteredStudent = async (
   });
 
   return response;
+};
+
+
+
+
+module.exports = {
+  admissionApprovalTemplate,
+  enquirySubmitionTemplate,
+  otpVerification,
+  SMSForRegisteredStudent,
+  // other functions here
 };

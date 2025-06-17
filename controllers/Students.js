@@ -39,8 +39,6 @@ const getStudents = async (req, res) => {
 
 const getStudentsById = async (req, res) => {
   try {
-
-
     const student = await Students.findOne({ _id: req.user._id }).select(
       "-password -__v -created_at -updated_at -resetToken -resetTokenExpiry"
     );
@@ -316,11 +314,13 @@ const continueWithExistingStudent = async (req, res) => {
     student_id: newStudent._id,
   });
   await newBasicDetails.save();
-  const newBatchDetails = new BatchRelatedDetails({
-    student_id: newStudent._id,
-    classForAdmission: courseOfIntrested,
-    program: program,
-  });
+  let newBatchDetails;
+  courseOfIntrested &&
+    (newBatchDetails = new BatchRelatedDetails({
+      student_id: newStudent._id,
+      classForAdmission: courseOfIntrested,
+      program: program,
+    }));
   await newBatchDetails.save();
   const newEducationalDetails = new EducationalDetails({
     student_id: newStudent._id,

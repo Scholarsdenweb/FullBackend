@@ -11,6 +11,7 @@ const userRoute = require("./routes/UserRoute");
 
 const adminRoute = require("./routes/AdminRoute");
 const fileUpload = require("express-fileupload");
+const admissionAdminRoute = require("./routes/admissionAdminRoute");
 
 const mongoose = require("mongoose");
 const port = process.env.PORT || 5004;
@@ -69,6 +70,7 @@ app.use("/api/user", userRoute);
 
 // app.use("/api/user", userRoute);
 app.use("/api/admin", adminRoute);
+app.use("/api/admission-admin", admissionAdminRoute);
 // app.use('/forms', formRoutes);
 
 app.listen(port, () => {

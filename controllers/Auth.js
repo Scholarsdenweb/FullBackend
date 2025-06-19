@@ -84,6 +84,9 @@ const studentSignup = async (req, res) => {
   }
 };
 
+
+
+
 const employeeSignup = async (req, res) => {
   const { name, email, role, password } = req.body;
   const employee = await Employee.findOne({ email: email });

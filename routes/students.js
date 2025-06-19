@@ -73,8 +73,8 @@ router.patch(
 );
 router.delete(
   "/deleteStudent/:student_id",
-  verifyTokenForRegistration("hr"),
-  checkRole(["hr"]),
+  // verifyTokenForRegistration("hr"),
+  // checkRole(["hr"]),
   deleteStudent
 );
 

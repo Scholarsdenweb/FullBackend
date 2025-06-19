@@ -178,9 +178,10 @@ const deleteStudent = async (req, res) => {
 
   const session = await mongoose.startSession();
   session.startTransaction();
+  const _id = student_id
 
   try {
-    const deletedStudent = await Students.findByIdAndDelete(student_id, {
+    const deletedStudent = await Students.findByIdAndDelete(_id, {
       session,
     });
     if (!deletedStudent) {

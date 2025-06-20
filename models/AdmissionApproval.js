@@ -37,16 +37,22 @@ const AdmissionApprovalSchema = new mongoose.Schema(
       required: true,
       unique: true,
     },
+
+
+    assignedCounsellor: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Admin",
+    },
     studentDetails: DetailStatusSchema,
     parentDetails: DetailStatusSchema,
     documentsDetails: DocumentsStatusSchema,
     signatureDetails: DetailStatusSchema,
     bankDetails: DetailStatusSchema,
-
+  
     // Optional global status
     status: {
       type: String,
-      enum: ["pending", "approved", "rejected"],
+      enum: ["pending", "approved", "rejected", "amountPaid", "successfully"],
       default: "pending",
     },
     message: {

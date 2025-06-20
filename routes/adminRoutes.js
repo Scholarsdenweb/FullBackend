@@ -45,9 +45,7 @@ router.post("/login", async (req, res) => {
   const { email, password } = req.body.adminDetails;
   console.log("req.body", req.body);
   try {
-
-    console.log("email password", email , password);
-
+    console.log("email password", email, password);
 
     const admin = await Admin.findOne({ email });
     if (!admin) return res.status(404).json({ message: "Admin not found" });
@@ -73,7 +71,7 @@ router.post("/login", async (req, res) => {
 });
 
 // Get Admin Details (Protected Route)
-router.get("/me", verifyTokenForAdmission() , async (req, res) => {
+router.get("/me", verifyTokenForAdmission(), async (req, res) => {
   try {
     const admin = await Admin.findById(req.admin.id).select("-password");
     res.json(admin);
@@ -81,5 +79,16 @@ router.get("/me", verifyTokenForAdmission() , async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
+
+router.get("/allConsoller", async (req, res) => {
+  try {
+    const allConsoller = await Admin.find({ role: "consellor" });
+    console.log("allConsoller", allConsoller);
+    return res.status(200).json({ data: allConsoller });
+  } catch (error) {
+    res.status(500).json({ message: "Server Error" });
+  }
+});
+
 
 module.exports = router;

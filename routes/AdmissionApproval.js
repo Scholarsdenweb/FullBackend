@@ -2,7 +2,10 @@ const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const Admin = require("../models/Admin");
-const { verifyTokenForAdmission, adminAuth } = require("../middleware/authentication");
+const {
+  verifyTokenForAdmission,
+  admissionAdmin,
+} = require("../middleware/authentication");
 const axios = require("axios");
 const AdmissionApproval = require("../models/AdmissionApproval");
 const Admission = require("../models/Admission");
@@ -10,7 +13,7 @@ const { admissionApprovalTemplate } = require("../utils/smsTemplates");
 
 const router = express.Router();
 
-router.post("/addAdmissionApproval", adminAuth , async (req, res) => {
+router.post("/addAdmissionApproval", admissionAdmin, async (req, res) => {
   const { acknowledgementNumber } = req.body;
 
   console.log("req.body from add AdmissionApproval", req.body);
@@ -74,11 +77,12 @@ router.post("/filterAdmissionApproval", async (req, res) => {
     const page = parseInt(req.query.page) || 1; // Default to page 1
     const limit = 3;
     const skip = (page - 1) * limit;
-
+    console.log("req.body", req.body);
+    console.log("req.query", req.query);
     let filter = {};
 
     if (status) {
-      filter.status = status.toLowerCase(); // match enum correctly
+      filter.status = status; // match enum correctly
     }
 
     if (acknowledgementNumber?.trim()) {
@@ -88,6 +92,7 @@ router.post("/filterAdmissionApproval", async (req, res) => {
       };
     }
     const total = await AdmissionApproval.countDocuments(filter);
+    console.log("total", total);
     const approvals = await AdmissionApproval.find(filter)
       .skip(skip)
       .limit(limit)
@@ -238,7 +243,7 @@ router.post("/editAdmissionApproval", async (req, res) => {
 //   }
 // });
 
-router.get("/completedApproval", adminAuth, async (req, res) => {
+router.get("/completedApproval", admissionAdmin, async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1; // Default to page 1
     const limit = 3;
@@ -299,7 +304,7 @@ router.get("/pendingApproval", async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
-router.get("/rejectedApproval", adminAuth, async (req, res) => {
+router.get("/rejectedApproval", admissionAdmin, async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1; // Default to page 1
     const limit = 3;
@@ -321,6 +326,36 @@ router.get("/rejectedApproval", adminAuth, async (req, res) => {
       totalPages: Math.ceil(total / limit),
       totalResults: total,
       message: "Rejected admissions retrieved",
+    });
+  } catch (e) {
+    res.status(500).json({ message: "Server error" });
+  }
+});
+router.get("/paid", admissionAdmin, async (req, res) => {
+  try {
+    console.log("page in paid ", req.query);
+    const page = parseInt(req.query.page) || 1;
+    const limit = 3;
+    const skip = (page - 1) * limit;
+
+    const total = await AdmissionApproval.countDocuments({
+      status: "amountPaid",
+    });
+
+    const admissionFeePaid = await AdmissionApproval.find({
+      status: "amountPaid",
+    })
+      .skip(skip)
+      .limit(limit)
+      .sort({ createdAt: -1 });
+
+    console.log("admissionFeePaid from paid", admissionFeePaid);
+    res.status(200).json({
+      data: admissionFeePaid,
+      currentPage: page,
+      totalPages: Math.ceil(total / limit),
+      totalResults: total,
+      message: "admissionFeePaid admissions retrieved",
     });
   } catch (e) {
     res.status(500).json({ message: "Server error" });

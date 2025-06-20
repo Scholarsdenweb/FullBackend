@@ -3,6 +3,7 @@ const Employee = require("../models/Employee");
 const Student = require("../models/Student");
 const User = require("../models/UserModel");
 const AdmissionUser = require("../models/Admission");
+const Admin = require("../models/Admin");
 
 require("dotenv").config();
 
@@ -45,35 +46,29 @@ require("dotenv").config();
 //   };
 // };
 
-
-
-
-
-const adminAuth = (req, res, next) => {
+const admissionAdmin = async (req, res, next) => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ message: "Authorization token missing or malformed" });
+    return res
+      .status(401)
+      .json({ message: "Authorization token missing or malformed" });
   }
 
   const token = authHeader.split(" ")[1];
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.admin = { id: decoded.id }; // You can add more info if encoded
+    console.log("decoded", decoded);
+
+    const adminExist = await Admin.findById(decoded._id);
+    console.log("adminExist", adminExist);
+    req.admin = adminExist; // You can add more info if encoded
     next();
   } catch (err) {
     return res.status(401).json({ message: "Invalid or expired token" });
   }
 };
-
-
- 
-
-
-
-
-
 
 const verifyTokenForRegistration = (allowedModels) => {
   return async (req, res, next) => {
@@ -87,7 +82,6 @@ const verifyTokenForRegistration = (allowedModels) => {
 
       const { _id, role } = decoded;
 
-  
       if (!allowedModels.includes(role)) {
         return res.status(403).json({ message: "Invalid user type" });
       }
@@ -121,8 +115,6 @@ const takenPhoneByToken = () => {
 
       const { contactNumber, role } = decoded;
 
-
-
       const user = { role, contactNumber };
 
       req.user = user;
@@ -137,7 +129,6 @@ const takenPhoneByToken = () => {
 const verifyToken = () => {
   return async (req, res, next) => {
     try {
-
       // Extract the token from the Authorization header
       const token = req.headers.authorization?.split(" ")[1];
       if (!token) {
@@ -183,10 +174,9 @@ const verifyTokenForAdmission = () => {
 
       const { _id, parentsContactNumber, acknowledgementNumber } = decoded;
 
-
       // Use the correct User model to fetch the user
 
-      const user = await AdmissionUser.findOne({acknowledgementNumber}); // Ensure User is your actual model
+      const user = await AdmissionUser.findOne({ acknowledgementNumber }); // Ensure User is your actual model
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
@@ -202,14 +192,9 @@ const verifyTokenForAdmission = () => {
   };
 };
 
-
-
-
-const verifyTokenForExistingAdmission = ()=>{
-
+const verifyTokenForExistingAdmission = () => {
   return async (req, res, next) => {
     try {
-
       // Extract the token from the Authorization header
       const token = req.headers.authorization?.split(" ")[1];
       if (!token) {
@@ -238,13 +223,7 @@ const verifyTokenForExistingAdmission = ()=>{
       return res.status(401).json({ message: "Invalid or expired token" });
     }
   };
-
-
-
-
-
-
-}
+};
 
 // const verifyTokenForAdmission = () => {
 //   return async (req, res, next) => {
@@ -317,5 +296,5 @@ module.exports = {
   verifyTokenForAdmission,
   takenPhoneByToken,
   verifyTokenForExistingAdmission,
-  adminAuth
+  admissionAdmin,
 };

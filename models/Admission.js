@@ -31,6 +31,15 @@ const AdmissionSchema = new mongoose.Schema(
         acknowledgementNumber: { $exists: true, $ne: null },
       },
     },
+    receiptId: {
+      type: String,
+    },
+    amountPaid: {
+      type: Number,
+    },
+      batch: {
+      type: String,
+    },
     bloodGroup: { type: String },
     // aadharID: { type: String, unique: true },
     aadharID: { type: String },

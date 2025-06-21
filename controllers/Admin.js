@@ -16,8 +16,8 @@ const addAdmin = async (req, res) => {
     const createAdmin = new Admin({
       contactNumber,
       role,
-      name ,
-      email
+      name,
+      email,
     });
     const result = await createAdmin.save();
     return res.status(200).json({ result });
@@ -59,9 +59,11 @@ const adminLogin = async (req, res) => {
 
 const getAdminDetails = async (req, res) => {
   try {
-    console.log("req.user", res.admin);
-    const { contactNumber, role } = req.admin;
-    return res.status(200).json({ data: { contactNumber, role } });
+    console.log("req.admin from getAdminDetails ", req.admin);
+    const { contactNumber, role, _id, name, email } = req.admin;
+    return res
+      .status(200)
+      .json({ data: { contactNumber, role, _id, name, email } });
   } catch (error) {
     console.log("error", error);
     res.status(500).json({ error: "Server error" });
@@ -78,8 +80,7 @@ const getAllAdmin = async (req, res) => {
   }
 };
 
-
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const addReceiptId = async (req, res) => {
   const session = await mongoose.startSession();
@@ -87,7 +88,12 @@ const addReceiptId = async (req, res) => {
   try {
     session.startTransaction();
 
-    const { receiptId, amountPaid, acknowledgementNumber, session: academicSession } = req.body;
+    const {
+      receiptId,
+      amountPaid,
+      acknowledgementNumber,
+      session: academicSession,
+    } = req.body;
 
     const updateAdmission = await Admission.findOneAndUpdate(
       { acknowledgementNumber },
@@ -115,20 +121,20 @@ const addReceiptId = async (req, res) => {
     return res.status(200).json({
       message: "Admission Updated Successfully",
     });
-
   } catch (error) {
     await session.abortTransaction();
     session.endSession();
     console.error("Transaction Error:", error);
-    return res.status(500).json({ message: "Server Error", error: error.message });
+    return res
+      .status(500)
+      .json({ message: "Server Error", error: error.message });
   }
 };
-
 
 module.exports = {
   addAdmin,
   adminLogin,
   getAdminDetails,
   addReceiptId,
-  getAllAdmin
+  getAllAdmin,
 };

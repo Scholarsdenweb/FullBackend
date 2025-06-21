@@ -361,6 +361,69 @@ router.get("/paid", admissionAdmin, async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
+router.post("/consellor-assign", admissionAdmin, async (req, res) => {
+  try {
+    console.log("page in paid ", req.query);
+    console.log("req.admin", req.admin);
+    const { consellorAssign, acknowledgementNumber } = req.body;
+
+    const page = parseInt(req.query.page) || 1;
+    const limit = 3;
+    const skip = (page - 1) * limit;
+
+    const assignedCounsellor = await AdmissionApproval.findOneAndUpdate(
+      { acknowledgementNumber },
+      {
+        $set: { assignedCounsellor: consellorAssign },
+      },
+      { new: true }
+    );
+
+    console.log("admissionFeePaid from paid", assignedCounsellor);
+
+    console.log("assignedCounsellor", assignedCounsellor);
+
+    res.status(200).json({
+      data: assignedCounsellor,
+      message: "Assigned Consellor ",
+    });
+  } catch (error) {
+    console.log("error from consellor-assign ", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+router.get("/approvalByAssignedConsellor", admissionAdmin, async (req, res) => {
+  try {
+    console.log("req.admin", req.admin);
+    const { _id } = req.admin;
+    const page = parseInt(req.query.page) || 1; // Default to page 1
+    const limit = 3;
+    const skip = (page - 1) * limit;
+
+    const total = await AdmissionApproval.countDocuments({
+      assignedCounsellor: _id,
+    });
+
+    const allApprovals = await AdmissionApproval.find({
+      assignedCounsellor: _id,
+    })
+      .skip(skip)
+      .limit(limit)
+      .sort({ createdAt: -1 });
+    console.log("allApprovals", allApprovals);
+    res.status(200).json({
+      data: allApprovals,
+      currentPage: page,
+      totalPages: Math.ceil(total / limit),
+      totalResults: total,
+      message: "Assign Admission Approvals",
+    });
+  } catch (error) {
+    console.log("error for approvalByAssignedConsellor ", error)
+    return res.status(500).json({ message: "Server Error" });
+  }
+});
 
 router.get("/details/:ackNumber", async (req, res) => {
   const { ackNumber } = req.params;

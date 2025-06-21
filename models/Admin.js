@@ -13,7 +13,7 @@ const AdminSchema = new mongoose.Schema({
     role : {
         type: String,
         required : true,
-        enum: ["admin", "manager", "consellor"]
+        enum: ["super_admin","admin", "manager", "consellor"]
     },
     email : {
         type : String,

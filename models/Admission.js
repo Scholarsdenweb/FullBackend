@@ -42,7 +42,7 @@ const AdmissionSchema = new mongoose.Schema(
     },
     bloodGroup: { type: String },
     // aadharID: { type: String, unique: true },
-    aadharID: { type: String },
+    aadhaarID: { type: String },
     studentContactNumber: { type: String },
     parentsContactNumber: { type: String },
     studentClass: { type: String },
@@ -54,12 +54,12 @@ const AdmissionSchema = new mongoose.Schema(
     termsAndCondition: { type: String },
 
     fatherName: { type: String },
-    fatherAadharId: { type: String },
+    fatherAadhaarId: { type: String },
     fatherDob: { type: String },
     fatherBloodGroup: { type: String },
     fatherOccupations: { type: String },
     motherName: { type: String },
-    motherAadharId: { type: String },
+    motherAadhaarId: { type: String },
     motherDob: { type: String },
     motherBloodGroup: { type: String },
     motherOccupations: { type: String },
@@ -105,8 +105,8 @@ const AdmissionSchema = new mongoose.Schema(
 
     cancelledCheque: { type: String },
     passbookPhoto: { type: String },
-    studentAadhar: { type: String },
-    parentAadhar: { type: String },
+    studentAadhaar: { type: String },
+    parentAadhaar: { type: String },
 
     studentPhoto: {
       type: String,

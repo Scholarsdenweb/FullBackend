@@ -18,8 +18,8 @@ const DocumentsStatusSchema = new mongoose.Schema({
   studentPhoto: DetailStatusSchema,
   cancelledCheque: DetailStatusSchema,
   passbookPhoto: DetailStatusSchema,
-  studentAadhar: DetailStatusSchema,
-  parentAadhar: DetailStatusSchema,
+  studentAadhaar: DetailStatusSchema,
+  parentAadhaar: DetailStatusSchema,
   status: {
     type: Boolean,
     required: true,

@@ -81,6 +81,7 @@ const getAllAdmin = async (req, res) => {
 };
 
 const mongoose = require("mongoose");
+const { admissionApprovalTemplate } = require("../utils/smsTemplates");
 
 const addReceiptId = async (req, res) => {
   const session = await mongoose.startSession();
@@ -113,6 +114,35 @@ const addReceiptId = async (req, res) => {
 
     if (!updateAdmissionApproval) {
       throw new Error("AdmissionApproval not found");
+    }
+      if (updateAdmissionApproval.status === "amountPaid") {
+      const findAdmission = await Admission.findOne({ acknowledgementNumber });
+
+      const studentClass = findAdmission.studentClass;
+      const program = findAdmission.program;
+
+      const { admissionRollNumber } = await Admission.allocateStudentsId(
+        studentClass,
+        program
+      );
+
+      console.log("admissionRollNumber ", admissionRollNumber);
+      console.log("findAdmission ", findAdmission);
+      console.log("findAdmission ", findAdmission.admissionRollNo);
+
+      findAdmission.admissionRollNo = admissionRollNumber;
+      await findAdmission.save();
+
+      console.log(
+        "admissionRollNumber on admission approval",
+        admissionRollNumber
+      );
+
+      console.log("findAdmission for approval", findAdmission);
+
+      admissionApprovalTemplate(findAdmission);
+
+     
     }
 
     await session.commitTransaction();

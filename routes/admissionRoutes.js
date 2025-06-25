@@ -19,7 +19,10 @@ const OtpStore = require("../models/OtpStore.js");
 const User = require("../models/UserModel.js");
 const Students = require("../models/Student.js");
 const AdmissionApproval = require("../models/AdmissionApproval.js");
-const { otpVerification } = require("../utils/smsTemplates.js");
+const {
+  otpVerification,
+  admissionApprovalTemplate,
+} = require("../utils/smsTemplates.js");
 
 // Multer Storage Configuration
 const storage = multer.diskStorage({
@@ -222,34 +225,36 @@ router.patch("/putFormData", verifyTokenForAdmission(), async (req, res) => {
   try {
     const {
       fatherName,
-      fatherAadharId,
+      fatherAadhaarID,
       fatherDob,
       fatherBloodGroup,
       fatherOccupations,
       motherName,
-      motherAadharId,
+      motherAadhaarID,
       motherDob,
       motherBloodGroup,
       motherOccupations,
       studentName,
-      aadharID,
+      aadhaarID,
       gender,
       studentClass,
       program,
       category,
       studentPhoto,
       cancelledCheque,
-      studentAadhar,
-      parentAadhar,
+      studentAadhaar,
+      parentAadhaar,
       passbookPhoto,
     } = req.body;
+
+    console.log("req.body from putFormData", req.body);
     const { _id, parentsContactNumber } = req.user;
 
     const document = {
       cancelledCheque,
       studentPhoto,
-      studentAadhar,
-      parentAadhar,
+      studentAadhaar,
+      parentAadhaar,
       passbookPhoto,
     };
 
@@ -259,17 +264,17 @@ router.patch("/putFormData", verifyTokenForAdmission(), async (req, res) => {
       { _id: _id },
       {
         fatherName,
-        fatherAadharId,
+        fatherAadhaarID,
         fatherDob,
         fatherBloodGroup,
         fatherOccupations,
         motherName,
-        motherAadharId,
+        motherAadhaarID,
         motherDob,
         motherBloodGroup,
         motherOccupations,
         studentName,
-        aadharID,
+        aadhaarID,
         gender,
         studentClass,
         program,
@@ -277,8 +282,8 @@ router.patch("/putFormData", verifyTokenForAdmission(), async (req, res) => {
         studentPhoto,
         cancelledCheque,
         studentPhoto,
-        studentAadhar,
-        parentAadhar,
+        studentAadhaar,
+        parentAadhaar,
         passbookPhoto,
       },
       { new: true }
@@ -381,7 +386,7 @@ router.patch(
         { new: true }
       );
 
-      console.log("uSERdATA FORM SUBMIT ", user.parentsContactNumber);
+      console.log("uSERdATA FORM SUBMIT findAdmissionApproval", user);
 
       const findAdmissionApproval = await AdmissionApproval.findOne({
         acknowledgementNumber: findAdmission.acknowledgementNumber,
@@ -418,13 +423,13 @@ router.patch(
               status: false,
               message: "Passbook Photo info not verified",
             },
-            studentAadhar: {
+            studentAadhaar: {
               status: false,
-              message: "Student Aadhar info not verified",
+              message: "Student Aadhaar info not verified",
             },
-            parentAadhar: {
+            parentAadhaar: {
               status: false,
-              message: "Parent Aadhar info not verified",
+              message: "Parent Aadhaar info not verified",
             },
             status: false,
             message: "Document info not verified",
@@ -448,9 +453,15 @@ router.patch(
         await addAdmissionApproval.save();
 
         console.log("admissionApproval from the backend", addAdmissionApproval);
+        const smsResponse = await admissionApprovalTemplate(
+          findAdmission,
+          findAdmission.acknowledgementNumber
+        );
 
+        console.log("smsResponse", smsResponse);
         return res.status(200).json({ user, addAdmissionApproval });
       }
+
       return res.status(200).json({ Message: "Data" });
 
       // Save to database
@@ -522,12 +533,12 @@ router.put("/:id", verifyTokenForAdmission(), async (req, res) => {
   try {
     const {
       fatherName,
-      fatherAadharId,
+      fatherAadhaarID,
       fatherDob,
       fatherBloodGroup,
       fatherOccupations,
       motherName,
-      motherAadharId,
+      motherAadhaarID,
       motherDob,
       motherBloodGroup,
       motherOccupations,
@@ -538,12 +549,12 @@ router.put("/:id", verifyTokenForAdmission(), async (req, res) => {
       { _id },
       {
         fatherName,
-        fatherAadharId,
+        fatherAadhaarID,
         fatherDob,
         fatherBloodGroup,
         fatherOccupations,
         motherName,
-        motherAadharId,
+        motherAadhaarID,
         motherDob,
         motherBloodGroup,
         motherOccupations,

@@ -15,7 +15,7 @@ const admissionApprovalTemplate = async (
       route: "dlt",
       sender_id: "SCHDEN",
       message: "182187",
-      variables_values: `${acknowledgementNumber}|`,
+      variables_values: `${findAdmission.acknowledgementNumber}|`,
       flash: 0,
       numbers: `${findAdmission?.parentsContactNumber}`,
     },

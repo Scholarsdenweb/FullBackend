@@ -2,6 +2,7 @@ const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const Admin = require("../models/Admin");
+const mongoose = require("mongoose");
 const {
   verifyTokenForAdmission,
   admissionAdmin,
@@ -62,7 +63,7 @@ router.post(
       acknowledgementNumber,
     });
     if (!findAdmissionApproval) {
-      return res.status(400).json({ message: "Admission Approval not found" });
+      return res.status(404).json({ message: "Admission Approval not found" });
     }
 
     return res
@@ -114,40 +115,31 @@ router.post("/filterAdmissionApproval", async (req, res) => {
 });
 
 router.post("/editAdmissionApproval", async (req, res) => {
-  console.log("EditAdmissionApproval req.body", req.body);
-  const {
-    acknowledgementNumber,
-    status,
-    message,
-    studentDetails,
-    parentDetails,
-    documentsDetails,
-    signatureDetails,
-    bankDetails,
-  } = req.body;
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
-  console.log(
-    "acknowledgementNumber, status, message, studentDetails,parentDetails,documentsDetails,signatureDetails,bankDetails",
-    acknowledgementNumber,
-    status,
-    message,
-    studentDetails,
-    parentDetails,
-    documentsDetails,
-    signatureDetails,
-    bankDetails
-  );
   try {
-    // Check if AdmissionApproval already exists
-    let findAdmissionApproval = await AdmissionApproval.findOne({
+    const {
       acknowledgementNumber,
-    });
-    if (!findAdmissionApproval)
-      return res.status(400).json({ message: "AdmissionApproval not exists" });
+      status,
+      message,
+      studentDetails,
+      parentDetails,
+      documentsDetails,
+      signatureDetails,
+      bankDetails,
+    } = req.body;
 
-    const updateAdmissionApproval = await AdmissionApproval.findOneAndUpdate(
+    if (!acknowledgementNumber || !status) {
+      return res
+        .status(400)
+        .json({ message: "acknowledgementNumber and status are required" });
+    }
+
+    console.log("EditAdmissionApproval req.body", req.body);
+
+    const updatedApproval = await AdmissionApproval.findOneAndUpdate(
       { acknowledgementNumber },
-
       {
         status,
         message,
@@ -157,91 +149,35 @@ router.post("/editAdmissionApproval", async (req, res) => {
         signatureDetails,
         bankDetails,
       },
-      { new: true }
+      { new: true, session }
     );
-    await updateAdmissionApproval.save();
 
-    // Send SMS
-    console.log("Check message is added or not", updateAdmissionApproval);
-    console.log("Check message is added or not", status);
-    if (status === "approved") {
-      const findAdmission = await Admission.findOne({ acknowledgementNumber });
-
-      const studentClass = findAdmission.studentClass;
-      const program = findAdmission.program;
-
-      const { admissionRollNumber } = await Admission.allocateStudentsId(
-        studentClass,
-        program
-      );
-
-      console.log("admissionRollNumber ", admissionRollNumber);
-      console.log("findAdmission ", findAdmission);
-      console.log("findAdmission ", findAdmission.admissionRollNo);
-
-      findAdmission.admissionRollNo = admissionRollNumber;
-      await findAdmission.save();
-
-      console.log(
-        "admissionRollNumber on admission approval",
-        admissionRollNumber
-      );
-
-      console.log("findAdmission for approval", findAdmission);
-
-      admissionApprovalTemplate(findAdmission, acknowledgementNumber);
-
-      // const options = {
-      //   method: "POST",
-      //   url: "https://www.fast2sms.com/dev/bulkV2",
-      //   headers: {
-      //     authorization: `${process.env.FAST2SMS_API_KEY}`,
-      //     "Content-Type": "application/x-www-form-urlencoded",
-      //   },
-      //   data: {
-      //     route: "dlt",
-      //     sender_id: "SCHDEN",
-      //     message: "182187",
-      //     variables_values: `${acknowledgementNumber}|`,
-      //     flash: 0,
-      //     numbers: `${findAdmission?.parentsContactNumber}`,
-      //   },
-      // };
-      // let otpStoreData;
-      // // Make the API request to Fast2SMS
-      // const response = await axios.post(options.url, options.data, {
-      //   headers: options.headers,
-      // });
-
-      // console.log("response of sms ", response.data);
+    if (!updatedApproval) {
+      throw new Error("AdmissionApproval does not exist or failed to update");
     }
 
-    return res.status(201).json({
-      updateAdmissionApproval,
-      message: "Update Admission Approval registered successfully",
+    const findAdmissionDetails = await Admission.findOne({
+      acknowledgementNumber,
+    }).session(session);
+
+    // Example: Send SMS or notification
+    const response = await admissionApprovalTemplate(findAdmissionDetails);
+    console.log("response", response);
+
+    await session.commitTransaction();
+
+    res.status(201).json({
+      message: "Admission Approval updated successfully",
+      updateAdmissionApproval: updatedApproval,
     });
   } catch (err) {
-    console.log("ERROR FRO EDITaDMISSIONaPPROVAL", err);
-    res.status(500).json({ message: "Server error" });
+    await session.abortTransaction();
+    console.error("ERROR FROM /editAdmissionApproval:", err);
+    res.status(500).json({ message: err.message || "Server error" });
+  } finally {
+    session.endSession();
   }
 });
-
-// router.get("/completedApproval", async (req, res) => {
-//   try {
-//     const { page, limit } = req.body;
-
-//     const allCompletedApproval = await AdmissionApproval.find({
-//       status: "approved",
-//     });
-
-//     res.status(200).json({
-//       data: allCompletedApproval,
-//       message: "Approved admissions retrieved",
-//     });
-//   } catch (e) {
-//     res.status(500).json({ message: "Server error" });
-//   }
-// });
 
 router.get("/completedApproval", admissionAdmin, async (req, res) => {
   try {
@@ -420,7 +356,7 @@ router.get("/approvalByAssignedConsellor", admissionAdmin, async (req, res) => {
       message: "Assign Admission Approvals",
     });
   } catch (error) {
-    console.log("error for approvalByAssignedConsellor ", error)
+    console.log("error for approvalByAssignedConsellor ", error);
     return res.status(500).json({ message: "Server Error" });
   }
 });

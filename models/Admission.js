@@ -54,12 +54,12 @@ const AdmissionSchema = new mongoose.Schema(
     termsAndCondition: { type: String },
 
     fatherName: { type: String },
-    fatherAadhaarId: { type: String },
+    fatherAadhaarID: { type: String },
     fatherDob: { type: String },
     fatherBloodGroup: { type: String },
     fatherOccupations: { type: String },
     motherName: { type: String },
-    motherAadhaarId: { type: String },
+    motherAadhaarID: { type: String },
     motherDob: { type: String },
     motherBloodGroup: { type: String },
     motherOccupations: { type: String },
@@ -131,5 +131,8 @@ AdmissionSchema.statics.allocatedAcknowledgement = async () => {
 
   return { acknowledgementNumber };
 };
+
+
+                                                                                                                                                   
 
 module.exports = mongoose.model("Admission", AdmissionSchema);

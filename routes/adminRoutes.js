@@ -82,9 +82,9 @@ router.get("/me", verifyTokenForAdmission(), async (req, res) => {
 
 router.get("/allConsoller", async (req, res) => {
   try {
-    const allConsoller = await Admin.find({ role: "consellor" });
-    console.log("allConsoller", allConsoller);
-    return res.status(200).json({ data: allConsoller });
+    const allCounsoller = await Admin.find({ role: "counsellor" });
+    console.log("allConsoller", allCounsoller);
+    return res.status(200).json({ data: allCounsoller });
   } catch (error) {
     res.status(500).json({ message: "Server Error" });
   }

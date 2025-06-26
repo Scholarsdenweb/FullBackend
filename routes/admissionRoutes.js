@@ -453,12 +453,19 @@ router.patch(
         await addAdmissionApproval.save();
 
         console.log("admissionApproval from the backend", addAdmissionApproval);
-        const smsResponse = await admissionApprovalTemplate(
-          findAdmission,
-          findAdmission.acknowledgementNumber
-        );
 
-        console.log("smsResponse", smsResponse);
+
+
+        // Sms for after admission form submission
+        // const smsResponse = await admissionApprovalTemplate(
+        //   findAdmission,
+        //   findAdmission.acknowledgementNumber
+        // );
+
+        // console.log("smsResponse", smsResponse);
+
+
+        
         return res.status(200).json({ user, addAdmissionApproval });
       }
 

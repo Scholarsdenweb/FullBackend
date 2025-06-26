@@ -156,13 +156,13 @@ router.post("/editAdmissionApproval", async (req, res) => {
       throw new Error("AdmissionApproval does not exist or failed to update");
     }
 
-    const findAdmissionDetails = await Admission.findOne({
-      acknowledgementNumber,
-    }).session(session);
+    // const findAdmissionDetails = await Admission.findOne({
+    //   acknowledgementNumber,
+    // }).session(session);
 
-    // Example: Send SMS or notification
-    const response = await admissionApprovalTemplate(findAdmissionDetails);
-    console.log("response", response);
+    // // Example: Send SMS or notification
+    // const response = await admissionApprovalTemplate(findAdmissionDetails);
+    // console.log("response", response);
 
     await session.commitTransaction();
 

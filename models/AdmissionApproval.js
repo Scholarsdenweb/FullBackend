@@ -38,7 +38,6 @@ const AdmissionApprovalSchema = new mongoose.Schema(
       unique: true,
     },
 
-
     assignedCounsellor: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Admin",
@@ -48,11 +47,11 @@ const AdmissionApprovalSchema = new mongoose.Schema(
     documentsDetails: DocumentsStatusSchema,
     signatureDetails: DetailStatusSchema,
     bankDetails: DetailStatusSchema,
-  
+
     // Optional global status
     status: {
       type: String,
-      enum: ["pending", "approved", "rejected", "amountPaid", "successfully"],
+      enum: ["pending", "approved", "not approved", "successful"],
       default: "pending",
     },
     message: {

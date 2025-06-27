@@ -1,6 +1,7 @@
 // routes/admissionRoutes.js
 const express = require("express");
 const Admission = require("../models/Admission");
+
 const ClassStrength = require("../models/ClassStrength.js");
 const TotalStudents = require("../models/TotalStudents.js");
 
@@ -47,6 +48,33 @@ const upload = multer({
   },
 });
 
+// router.post(
+//   "/getStudentByPhone",
+//   verifyTokenForExistingAdmission(),
+//   async (req, res) => {
+//     const { parentsContactNumber } = req.user;
+
+//     try {
+//       const findExistingAdmission = await Admission.find({
+//         parentsContactNumber,
+//       });
+
+//       console.log(
+//         "findEsistingAdmission from getStudentByPhone",
+//         findExistingAdmission
+//       );
+
+//       return res.status(200).json({
+//         data: findExistingAdmission,
+//         message: "Student Already Exist",
+//       });
+//     } catch (error) {
+//       console.log("error ", error);
+//       return res.status(500).json({ message: "Server Error" });
+//     }
+//   }
+// );
+
 router.post(
   "/getStudentByPhone",
   verifyTokenForExistingAdmission(),
@@ -54,21 +82,44 @@ router.post(
     const { parentsContactNumber } = req.user;
 
     try {
-      const findExistingAdmission = await Admission.find({
-        parentsContactNumber,
-      });
+      // Step 1: Find students by parent contact
+      const admissions = await Admission.find({ parentsContactNumber });
 
-      console.log(
-        "findEsistingAdmission from getStudentByPhone",
-        findExistingAdmission
+      // Step 2: Get all acknowledgement numbers
+      const acknowledgementNumbers = admissions.map(
+        (ad) => ad.acknowledgementNumber
       );
 
+      // Step 3: Find related approvals
+      const approvals = await AdmissionApproval.find({
+        acknowledgementNumber: { $in: acknowledgementNumbers },
+      });
+
+      console.log("approvals from getStudentByPhone", approvals);
+
+      // Step 4: Create a map for faster lookup
+      const approvalMap = {};
+      approvals.forEach((approval) => {
+        approvalMap[approval.acknowledgementNumber] = approval;
+      });
+
+      // Step 5: Attach approval to each student
+      const resultWithApprovals = admissions.map((admission) => ({
+        ...admission.toObject(),
+        approvalStatus:
+          approvalMap[admission.acknowledgementNumber]?.status || "pending",
+        approvalMessage:
+          approvalMap[admission.acknowledgementNumber]?.message ||
+          "Not yet reviewed",
+        approvalDetails: approvalMap[admission.acknowledgementNumber] || null,
+      }));
+
       return res.status(200).json({
-        data: findExistingAdmission,
-        message: "Student Already Exist",
+        data: resultWithApprovals,
+        message: "Students fetched with approval status.",
       });
     } catch (error) {
-      console.log("error ", error);
+      console.error("Error in getStudentByPhone:", error);
       return res.status(500).json({ message: "Server Error" });
     }
   }
@@ -454,8 +505,6 @@ router.patch(
 
         console.log("admissionApproval from the backend", addAdmissionApproval);
 
-
-
         // Sms for after admission form submission
         // const smsResponse = await admissionApprovalTemplate(
         //   findAdmission,
@@ -464,8 +513,6 @@ router.patch(
 
         // console.log("smsResponse", smsResponse);
 
-
-        
         return res.status(200).json({ user, addAdmissionApproval });
       }
 

@@ -88,35 +88,28 @@ const addReceiptId = async (req, res) => {
 
   try {
     session.startTransaction();
+    console.log("req.body form addRecipt", req.body);
 
-    const {
-      receiptId,
-      amountPaid,
-      acknowledgementNumber,
-      session: academicSession,
-    } = req.body;
+    const { receiptId, amountPaid, acknowledgementNumber } = req.body;
 
     const updateAdmission = await Admission.findOneAndUpdate(
       { acknowledgementNumber },
-      { $set: { receiptId, amountPaid, session: academicSession } },
-      { new: true, session } // <-- attach session
+      { $set: { receiptId, amountPaid } },
+      { new: true, session }
     );
 
-    if (!updateAdmission) {
-      throw new Error("Admission not found");
-    }
+    if (!updateAdmission) throw new Error("Admission not found");
 
     const updateAdmissionApproval = await AdmissionApproval.findOneAndUpdate(
       { acknowledgementNumber },
-      { $set: { status: "amountPaid" } },
-      { new: true, session } // <-- attach session
+      { $set: { status: "successful" } },
+      { new: true, session }
     );
 
-    if (!updateAdmissionApproval) {
-      throw new Error("AdmissionApproval not found");
-    }
-      if (updateAdmissionApproval.status === "amountPaid") {
-      const findAdmission = await Admission.findOne({ acknowledgementNumber });
+    if (!updateAdmissionApproval) throw new Error("AdmissionApproval not found");
+
+    if (updateAdmissionApproval.status === "successful") {
+      const findAdmission = await Admission.findOne({ acknowledgementNumber }).session(session);
 
       const studentClass = findAdmission.studentClass;
       const program = findAdmission.program;
@@ -124,42 +117,36 @@ const addReceiptId = async (req, res) => {
       const { admissionRollNumber } = await Admission.allocateStudentsId(
         studentClass,
         program
-      );
-
-      console.log("admissionRollNumber ", admissionRollNumber);
-      console.log("findAdmission ", findAdmission);
-      console.log("findAdmission ", findAdmission.admissionRollNo);
+      ); 
 
       findAdmission.admissionRollNo = admissionRollNumber;
-      await findAdmission.save();
+      await findAdmission.save({ session });
 
-      console.log(
-        "admissionRollNumber on admission approval",
-        admissionRollNumber
-      );
-
-      console.log("findAdmission for approval", findAdmission);
-
-      admissionApprovalTemplate(findAdmission);
-
-     
+ 
     }
 
     await session.commitTransaction();
-    session.endSession();
+
+    // const updatedAdmission = await Admission.findOne({ acknowledgementNumber });
+    // admissionApprovalTemplate(updatedAdmission);
 
     return res.status(200).json({
       message: "Admission Updated Successfully",
     });
   } catch (error) {
+    console.error("Transaction Error:", {
+      message: error.message,
+      stack: error.stack,
+      errorLabels: error.errorLabels,
+      code: error.code,
+    });
     await session.abortTransaction();
+    return res.status(500).json({ message: "Server Error", error: error.message });
+  } finally {
     session.endSession();
-    console.error("Transaction Error:", error);
-    return res
-      .status(500)
-      .json({ message: "Server Error", error: error.message });
   }
 };
+
 
 module.exports = {
   addAdmin,

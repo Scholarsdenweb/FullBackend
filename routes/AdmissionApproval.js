@@ -116,7 +116,6 @@ router.post("/filterAdmissionApproval", async (req, res) => {
 
 router.post("/editAdmissionApproval", async (req, res) => {
   const session = await mongoose.startSession();
-  session.startTransaction();
 
   try {
     const {
@@ -131,53 +130,53 @@ router.post("/editAdmissionApproval", async (req, res) => {
     } = req.body;
 
     if (!acknowledgementNumber || !status) {
-      return res
-        .status(400)
-        .json({ message: "acknowledgementNumber and status are required" });
+      return res.status(400).json({
+        message: "acknowledgementNumber and status are required",
+      });
     }
 
     console.log("EditAdmissionApproval req.body", req.body);
 
-    const updatedApproval = await AdmissionApproval.findOneAndUpdate(
-      { acknowledgementNumber },
-      {
-        status,
-        message,
-        studentDetails,
-        parentDetails,
-        documentsDetails,
-        signatureDetails,
-        bankDetails,
-      },
-      { new: true, session }
-    );
+    await session.withTransaction(async () => {
+      const existingApproval = await AdmissionApproval.findOne(
+        { acknowledgementNumber },
+        null,
+        { session }
+      );
 
-    if (!updatedApproval) {
-      throw new Error("AdmissionApproval does not exist or failed to update");
-    }
+      if (!existingApproval) {
+        throw new Error("AdmissionApproval does not exist");
+      }
 
-    // const findAdmissionDetails = await Admission.findOne({
-    //   acknowledgementNumber,
-    // }).session(session);
+      existingApproval.status = status;
+      existingApproval.message = message;
+      existingApproval.studentDetails = studentDetails;
+      existingApproval.parentDetails = parentDetails;
+      existingApproval.documentsDetails = documentsDetails;
+      existingApproval.signatureDetails = signatureDetails;
+      existingApproval.bankDetails = bankDetails;
 
-    // // Example: Send SMS or notification
-    // const response = await admissionApprovalTemplate(findAdmissionDetails);
-    // console.log("response", response);
+      await existingApproval.save({ session });
 
-    await session.commitTransaction();
-
-    res.status(201).json({
-      message: "Admission Approval updated successfully",
-      updateAdmissionApproval: updatedApproval,
+      res.status(201).json({
+        message: "Admission Approval updated successfully",
+        updateAdmissionApproval: existingApproval,
+      });
     });
   } catch (err) {
-    await session.abortTransaction();
-    console.error("ERROR FROM /editAdmissionApproval:", err);
+    console.error("ERROR FROM /editAdmissionApproval:", {
+      message: err.message,
+      stack: err.stack,
+      errorLabels: err.errorLabels,
+      code: err.code,
+    });
+
     res.status(500).json({ message: err.message || "Server error" });
   } finally {
     session.endSession();
   }
 });
+
 
 router.get("/completedApproval", admissionAdmin, async (req, res) => {
   try {
@@ -267,6 +266,33 @@ router.get("/rejectedApproval", admissionAdmin, async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
+router.get("/notApproved", admissionAdmin, async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1; // Default to page 1
+    const limit = 3;
+    const skip = (page - 1) * limit;
+
+    const total = await AdmissionApproval.countDocuments({
+      status: "not approved",
+    });
+
+    const allNotApproved = await AdmissionApproval.find({
+      status: "not approved",
+    })
+      .skip(skip)
+      .limit(limit)
+      .sort({ createdAt: -1 });
+    res.status(200).json({
+      data: allNotApproved,
+      currentPage: page,
+      totalPages: Math.ceil(total / limit),
+      totalResults: total,
+      message: "All Not Approved admissions retrieved",
+    });
+  } catch (e) {
+    res.status(500).json({ message: "Server error" });
+  }
+});
 router.get("/paid", admissionAdmin, async (req, res) => {
   try {
     console.log("page in paid ", req.query);
@@ -275,11 +301,11 @@ router.get("/paid", admissionAdmin, async (req, res) => {
     const skip = (page - 1) * limit;
 
     const total = await AdmissionApproval.countDocuments({
-      status: "amountPaid",
+      status: "successful",
     });
 
     const admissionFeePaid = await AdmissionApproval.find({
-      status: "amountPaid",
+      status: "successful",
     })
       .skip(skip)
       .limit(limit)

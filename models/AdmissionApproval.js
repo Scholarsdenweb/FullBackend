@@ -16,8 +16,8 @@ const DetailStatusSchema = new mongoose.Schema(
 
 const DocumentsStatusSchema = new mongoose.Schema({
   studentPhoto: DetailStatusSchema,
-  cancelledCheque: DetailStatusSchema,
-  passbookPhoto: DetailStatusSchema,
+  // cancelledCheque: DetailStatusSchema,
+  // passbookPhoto: DetailStatusSchema,
   studentAadhaar: DetailStatusSchema,
   parentAadhaar: DetailStatusSchema,
   status: {

@@ -292,21 +292,21 @@ router.patch("/putFormData", verifyTokenForAdmission(), async (req, res) => {
       program,
       category,
       studentPhoto,
-      cancelledCheque,
+      // cancelledCheque,
+      // passbookPhoto,
       studentAadhaar,
       parentAadhaar,
-      passbookPhoto,
     } = req.body;
 
     console.log("req.body from putFormData", req.body);
     const { _id, parentsContactNumber } = req.user;
 
     const document = {
-      cancelledCheque,
+      // cancelledCheque,
+      // passbookPhoto,
       studentPhoto,
       studentAadhaar,
       parentAadhaar,
-      passbookPhoto,
     };
 
     const findUser = await Admission.find({ parentsContactNumber });
@@ -331,11 +331,11 @@ router.patch("/putFormData", verifyTokenForAdmission(), async (req, res) => {
         program,
         category,
         studentPhoto,
-        cancelledCheque,
+        // cancelledCheque,
+        // passbookPhoto,
         studentPhoto,
         studentAadhaar,
         parentAadhaar,
-        passbookPhoto,
       },
       { new: true }
     );
@@ -391,17 +391,7 @@ router.patch(
   verifyTokenForAdmission(),
   async (req, res) => {
     try {
-      const {
-        accountHolder,
-        bankName,
-        studentClass,
-        program,
-        accountNumber,
-        ifscCode,
-        relationWithStudent,
-        documents,
-        signatures,
-      } = req.body;
+     
       const { _id } = req.user;
 
       const findAdmission = await Admission.findById({ _id });
@@ -420,24 +410,23 @@ router.patch(
       //     return res.status(400).json({ message: "All signatures are required" });
       // }
 
-      const user = await Admission.findOneAndUpdate(
-        { _id },
-        {
-          accountHolder,
-          bankName,
-          accountNumber,
-          ifscCode,
-          relationWithStudent,
-          documents,
-          signatures,
-          acknowledgementNumber: findAdmission.acknowledgementNumber,
-          // admissionRollNo: admissionRollNumber,
-          // enrollmentNumber: enrollmentNumber,
-        },
-        { new: true }
-      );
+      // const user = await Admission.findOneAndUpdate(
+      //   { _id },
+      //   {
+      //     accountHolder,
+      //     bankName,
+      //     accountNumber,
+      //     ifscCode,
+      //     relationWithStudent,
+      //     documents,
+      //     signatures,
+      //     acknowledgementNumber: findAdmission.acknowledgementNumber,
+      //     // admissionRollNo: admissionRollNumber,
+      //     // enrollmentNumber: enrollmentNumber,
+      //   },
+      //   { new: true }
+      // );
 
-      console.log("uSERdATA FORM SUBMIT findAdmissionApproval", user);
 
       const findAdmissionApproval = await AdmissionApproval.findOne({
         acknowledgementNumber: findAdmission.acknowledgementNumber,
@@ -466,14 +455,14 @@ router.patch(
               status: false,
               message: "Student Photo info not verified",
             },
-            cancelledCheque: {
-              status: false,
-              message: "Cancelled Cheque info not verified",
-            },
-            passbookPhoto: {
-              status: false,
-              message: "Passbook Photo info not verified",
-            },
+            // cancelledCheque: {
+            //   status: false,
+            //   message: "Cancelled Cheque info not verified",
+            // },
+            // passbookPhoto: {
+            //   status: false,
+            //   message: "Passbook Photo info not verified",
+            // },
             studentAadhaar: {
               status: false,
               message: "Student Aadhaar info not verified",
@@ -513,7 +502,7 @@ router.patch(
 
         // console.log("smsResponse", smsResponse);
 
-        return res.status(200).json({ user, addAdmissionApproval });
+        return res.status(200).json({  addAdmissionApproval });
       }
 
       return res.status(200).json({ Message: "Data" });

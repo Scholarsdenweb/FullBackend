@@ -287,6 +287,10 @@ router.patch("/putFormData", verifyTokenForAdmission(), async (req, res) => {
       motherOccupations,
       studentName,
       aadhaarID,
+      email,
+      existingStudent,
+      schoolName,
+      bloodGroup,
       gender,
       studentClass,
       program,
@@ -325,6 +329,10 @@ router.patch("/putFormData", verifyTokenForAdmission(), async (req, res) => {
         motherBloodGroup,
         motherOccupations,
         studentName,
+        email,
+        existingStudent,
+        schoolName,
+        bloodGroup,
         aadhaarID,
         gender,
         studentClass,
@@ -343,7 +351,7 @@ router.patch("/putFormData", verifyTokenForAdmission(), async (req, res) => {
     return res.status(200).json({ user });
   } catch (error) {
     console.error("Error in signup:", error);
-    res.status(500).send("Internal Server Error");
+    return res.status(500).send("Internal Server Error");
   }
 });
 
@@ -391,7 +399,6 @@ router.patch(
   verifyTokenForAdmission(),
   async (req, res) => {
     try {
-     
       const { _id } = req.user;
 
       const findAdmission = await Admission.findById({ _id });
@@ -426,7 +433,6 @@ router.patch(
       //   },
       //   { new: true }
       // );
-
 
       const findAdmissionApproval = await AdmissionApproval.findOne({
         acknowledgementNumber: findAdmission.acknowledgementNumber,
@@ -502,7 +508,7 @@ router.patch(
 
         // console.log("smsResponse", smsResponse);
 
-        return res.status(200).json({  addAdmissionApproval });
+        return res.status(200).json({ addAdmissionApproval });
       }
 
       return res.status(200).json({ Message: "Data" });
@@ -514,6 +520,58 @@ router.patch(
     }
   }
 );
+
+
+
+
+
+router.patch(
+  "/submitAddressForm",
+  verifyTokenForAdmission(),
+  async (req, res) => {
+    try {
+      const { _id } = req.user;
+      const {
+        address = {},
+    
+      } = req.body;
+
+      const findAdmission = await Admission.findById(_id);
+      if (!findAdmission) {
+        return res.status(404).json({ message: "Admission not found" });
+      }
+
+      // Update the Admission with new values
+      findAdmission.address = {
+        ...findAdmission.address,
+        line1: address.line1 || "",
+        city: address.city || "",
+        status: address.status || "",
+      };
+  
+
+      await findAdmission.save();
+
+      // Check or create AdmissionApproval
+
+  
+      return res.status(200).json({
+        message: "Address and student details updated successfully",
+      });
+
+    } catch (error) {
+      console.error("Error in submitBankRefundForm:", error);
+      return res.status(500).json({ message: "Server error!" });
+    }
+  }
+);
+
+
+
+
+
+
+
 
 router.post("/filter-ackNumber", async () => {
   try {

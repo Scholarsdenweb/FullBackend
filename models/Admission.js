@@ -37,16 +37,28 @@ const AdmissionSchema = new mongoose.Schema(
     amountPaid: {
       type: Number,
     },
-      batch: {
+    batch: {
       type: String,
     },
-    bloodGroup: { type: String },
+
     // aadharID: { type: String, unique: true },
     aadhaarID: { type: String },
     studentContactNumber: { type: String },
     parentsContactNumber: { type: String },
     studentClass: { type: String },
     program: { type: String },
+
+    email: { type: String },
+    bloodGroup: { type: String },
+    address: {
+      line1: { type: String },
+      city: { type: String },
+      status: { type: String },
+    },
+    existingStudent: {
+      type: String,
+    },
+    schoolName: { type: String },
 
     dob: { type: Date },
     gender: { type: String },
@@ -68,14 +80,8 @@ const AdmissionSchema = new mongoose.Schema(
       mother: { type: String },
     },
     parentEmail: { type: String },
-    address: {
-      line1: { type: String },
-      line2: { type: String },
-      city: { type: String },
-      district: { type: String },
-    },
+
     admissionClass: { type: String },
-    previousSchool: { type: String },
 
     noOfBrother: { type: Number },
     noOfSister: { type: Number },
@@ -131,8 +137,5 @@ AdmissionSchema.statics.allocatedAcknowledgement = async () => {
 
   return { acknowledgementNumber };
 };
-
-
-                                                                                                                                                   
 
 module.exports = mongoose.model("Admission", AdmissionSchema);

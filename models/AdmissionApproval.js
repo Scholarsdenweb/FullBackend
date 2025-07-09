@@ -46,7 +46,7 @@ const AdmissionApprovalSchema = new mongoose.Schema(
     parentDetails: DetailStatusSchema,
     documentsDetails: DocumentsStatusSchema,
     signatureDetails: DetailStatusSchema,
-    bankDetails: DetailStatusSchema,
+    addressDetails: DetailStatusSchema,
 
     // Optional global status
     status: {

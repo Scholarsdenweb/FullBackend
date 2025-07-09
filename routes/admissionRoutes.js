@@ -284,6 +284,7 @@ router.patch("/putFormData", verifyTokenForAdmission(), async (req, res) => {
       motherAadhaarID,
       motherDob,
       motherBloodGroup,
+      termsAndCondition,
       motherOccupations,
       studentName,
       aadhaarID,
@@ -339,6 +340,7 @@ router.patch("/putFormData", verifyTokenForAdmission(), async (req, res) => {
         program,
         category,
         studentPhoto,
+        termsAndCondition,
         // cancelledCheque,
         // passbookPhoto,
         studentPhoto,
@@ -441,7 +443,7 @@ router.patch(
       console.log("findAdmissionApproval", findAdmissionApproval);
 
       if (findAdmissionApproval) {
-        if (findAdmissionApproval.status === "rejected") {
+        if (findAdmissionApproval.status === "not approved") {
           findAdmissionApproval.status = "pending";
           await findAdmissionApproval.save();
           return res.status(200).json({
@@ -484,7 +486,7 @@ router.patch(
             status: false,
             message: "Signature info not verified",
           },
-          bankDetails: {
+          addressDetails: {
             status: false,
             message: "Bank account info not verified",
           },
@@ -531,36 +533,42 @@ router.patch(
   async (req, res) => {
     try {
       const { _id } = req.user;
-      const {
-        address = {},
-    
-      } = req.body;
+      const { address = {} } = req.body;
 
-      const findAdmission = await Admission.findById(_id);
-      if (!findAdmission) {
+      console.log("req.body", req.body);
+      console.log("req.body", address);
+
+      const admission = await Admission.findById(_id);
+      if (!admission) {
         return res.status(404).json({ message: "Admission not found" });
       }
 
-      // Update the Admission with new values
-      findAdmission.address = {
-        ...findAdmission.address,
-        line1: address.line1 || "",
-        city: address.city || "",
-        status: address.status || "",
+      // Update only the fields provided
+      admission.address = {
+        ...admission.address,
+        line1: address.line1 || admission.address?.line1 || "",
+        city: address.city || admission.address?.city || "",
+        state: address.state || admission.address?.state || "",
       };
-  
 
-      await findAdmission.save();
+      await admission.save();
 
-      // Check or create AdmissionApproval
 
-  
+      console.log("address fro backend", admission)
+
+      // Respond with required fields expected by frontend
       return res.status(200).json({
         message: "Address and student details updated successfully",
+        address: {
+          line1: admission.address.line1,
+          city: admission.address.city,
+          state: admission.address.state,
+        },
+        isExistingStudent: admission.existingStudent || false,
+        schoolName: admission.schoolName || "",
       });
-
     } catch (error) {
-      console.error("Error in submitBankRefundForm:", error);
+      console.error("Error in submitAddressForm:", error);
       return res.status(500).json({ message: "Server error!" });
     }
   }

@@ -126,7 +126,7 @@ router.post("/editAdmissionApproval", async (req, res) => {
       parentDetails,
       documentsDetails,
       signatureDetails,
-      bankDetails,
+      addressDetails,
     } = req.body;
 
     if (!acknowledgementNumber || !status) {
@@ -154,7 +154,7 @@ router.post("/editAdmissionApproval", async (req, res) => {
       existingApproval.parentDetails = parentDetails;
       existingApproval.documentsDetails = documentsDetails;
       existingApproval.signatureDetails = signatureDetails;
-      existingApproval.bankDetails = bankDetails;
+      existingApproval.addressDetails = addressDetails;
 
       await existingApproval.save({ session });
 

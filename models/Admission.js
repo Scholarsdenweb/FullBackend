@@ -53,7 +53,7 @@ const AdmissionSchema = new mongoose.Schema(
     address: {
       line1: { type: String },
       city: { type: String },
-      status: { type: String },
+      state: { type: String },
     },
     existingStudent: {
       type: String,

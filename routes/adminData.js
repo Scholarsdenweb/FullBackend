@@ -68,7 +68,7 @@ const allowedAdmins = [ "9719706242", "9068833360", "7037550621", "8171091333"];
 // Example backend route
 
 
-router.post("/getData", adminCheck(allowedAdmins), async (req, res) => {
+router.post("/getData", adminCheck(), async (req, res) => {
   try {
     const { page = 1 } = req.body;
 

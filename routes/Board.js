@@ -6,7 +6,7 @@ const router = express.Router();
 
 router.get("/", async (req, res) => {
   console.log("hello");
-  const boards = await BoardList.find();
+const boards = await BoardList.find().sort({ _id: 1 });
   if (!boards || boards.length === 0) {
     return res.status(404).send("No boards found");
   }

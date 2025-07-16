@@ -42,7 +42,7 @@ router.post("/signup", async (req, res) => {
 
 // Admin Login
 router.post("/login", async (req, res) => {
-  const { email, password } = req.body.adminDetails;
+  const { email, password } = req.body;
   console.log("req.body", req.body);
   try {
     console.log("email password", email, password);
@@ -69,6 +69,10 @@ router.post("/login", async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
+
+
+
+
 
 // Get Admin Details (Protected Route)
 router.get("/me", verifyTokenForAdmission(), async (req, res) => {

@@ -276,17 +276,73 @@ const checkRole = (allowedRoles) => {
   };
 };
 
-const adminCheck = (allowedAdmin) => {
-  return (req, res, next) => {
-    const contactNumber = req.body.contactNumber;
 
-    const isAllowedAdmin = allowedAdmin.includes(contactNumber);
-    if (!isAllowedAdmin) {
-      return res.status(403).json({ message: "Access denied." });
+// const adminCheck = async() => {
+//   return (req, res, next) => {
+//     try{
+//     const token = req.headers.authorization?.split(" ")[1];
+
+//       if (!token) {
+//         return res.status(401).json({ message: "No token provided" });
+//       }
+
+//       // Verify the token
+//       const decoded = jwt.verify(token, process.env.JWT_SECRET);
+//       console.log("Decoded Token:", decoded);
+
+   
+//     next();
+//     } catch (error) {
+//       console.error("Error in verifyToken middleware:", error);
+//       return res.status(401).json({ message: "Invalid or expired token" });
+//     }
+//   };
+// };
+
+
+
+
+
+
+
+
+
+const adminCheck = () => {
+  return async (req, res, next) => {
+    try {
+      console.log("req.headers.authorization:", req.headers.authorization);
+
+      // Extract the token from the Authorization header
+      const token = req.headers.authorization?.split(' ')[1];
+      if (!token) {
+        return res.status(401).json({ message: "No token provided" });
+      }
+
+      // Verify the token
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      console.log("Decoded Token:", decoded);
+
+      const { contactNumber } = decoded;
+
+      // Use the correct User model to fetch the user
+      const admin = await Admin.findOne({contactNumber}); // Ensure User is your actual model
+      if (!admin) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      console.log("User from verifyToken:", admin);
+      req.admin = admin; // Attach the user to the request object
+
+      // Call the next middleware
+      next();
+    } catch (error) {
+      console.error("Error in verifyToken middleware:", error);
+      return res.status(401).json({ message: "Invalid or expired token" });
     }
-    next();
   };
 };
+
+
 
 module.exports = {
   verifyToken,

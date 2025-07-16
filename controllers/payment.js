@@ -8,15 +8,22 @@ const BasicDetails = require("../models/form/BasicDetails");
 const FamilyDetails = require("../models/form/FamilyDetails");
 
 
-const {SMSForRegisteredStudent} = require("../utils/smsTemplates")
+const {SMSForRegisteredStudent} = require("../utils/smsTemplates");
+const Amount = require("../models/Amount");
 
 require("dotenv").config();
 
 const checkout = async (req, res) => {
   console.log("checkout");
   try {
+const amount = await Amount.findOne();
+
+console.log("amount from create-invoice", amount);
+
+
+
     const options = {
-      amount: 50000, // amount in the smallest currency unit
+      amount: amount.amount * 100, // amount in the smallest currency unit
       currency: "INR",
       // receipt: "order_rcptid_11"
     };

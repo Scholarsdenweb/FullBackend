@@ -3,6 +3,7 @@ const Employee = require("../models/Employee");
 const express = require("express");
 const app = express();
 const crypto = require("crypto");
+const Admin = require("../models/Admin");
 
 app.use(express.json());
 
@@ -33,24 +34,24 @@ const studentSignup = async (req, res) => {
       });
     }
 
-    const dataExistInEnquiry = await User.find({ fatherContactNumber: contactNumber });
+    const dataExistInEnquiry = await User.find({
+      fatherContactNumber: contactNumber,
+    });
 
-    console.log("dataExistInEnquiry before response", dataExistInEnquiry)
+    console.log("dataExistInEnquiry before response", dataExistInEnquiry);
 
     if (dataExistInEnquiry.length > 0) {
       const tokenForExistingStudentInEnquiry = jwt.sign(
         { role: "Student", contactNumber },
         JWT_SECRET
       );
-      
+
       console.log("dataExistInEnquiry", dataExistInEnquiry);
-      return res
-        .status(200)
-        .json({
-          message: "Student Exist in Enquiry Form",
-          student : dataExistInEnquiry,
-          token: tokenForExistingStudentInEnquiry,
-        });
+      return res.status(200).json({
+        message: "Student Exist in Enquiry Form",
+        student: dataExistInEnquiry,
+        token: tokenForExistingStudentInEnquiry,
+      });
     }
 
     console.log("student for studentsSignup", student);
@@ -75,7 +76,6 @@ const studentSignup = async (req, res) => {
       JWT_SECRET
     );
 
-
     console.log("newStudent created ", newStudent);
     res.status(200).send({ token, newStudent });
   } catch (error) {
@@ -84,11 +84,8 @@ const studentSignup = async (req, res) => {
   }
 };
 
-
-
-
-const employeeSignup = async (req, res) => {
-  const { name, email, role, password } = req.body;
+const adminSignup = async (req, res) => {
+  const { name, email, role } = req.body;
   const employee = await Employee.findOne({ email: email });
   if (employee) {
     return res.status(400).send("Employee already exists");
@@ -101,8 +98,7 @@ const employeeSignup = async (req, res) => {
     name,
     email,
     role,
-    password: hashedPassword,
-    employeeId: crypto.randomUUID(),
+    
   });
 
   const token = jwt.sign(
@@ -157,29 +153,26 @@ const studentLogin = async (req, res) => {
   }
 };
 
-const employeeLogin = async (req, res) => {
-  const { email, password } = req.body;
-  const employee = await Employee.findOne({ email: email });
-  console.log("Email", employee);
-  if (!employee) {
-    return res.status(400).send("Employee not found");
+const adminLogin = async (req, res) => {
+  const { contactNumber } = req.body;
+  const admin = await Admin.findOne({contactNumber });
+  console.log("Admin", admin);
+  if (!admin) {
+    return res.status(400).send("Admin not found");
   }
-  const validPassword = await bcrypt.compare(password, employee.password);
-  if (!validPassword) {
-    return res.status(400).send("Invalid Password");
-  }
+
   const token = jwt.sign(
-    { _id: employee._id, role: employee.role },
+    { contactNumber, role: admin.role },
     JWT_SECRET
   );
   res.status(200).send({
     token,
-    employee: {
-      name: employee.name,
-      email: employee.email,
-      role: employee.role,
-      task: employee.task,
-      profile: employee.profile,
+    admin: {
+      contactNumber: admin.contactNumber,
+      email: admin.email,
+      role: admin.role,
+   
+    
     },
   });
 };
@@ -273,9 +266,9 @@ const resetPassword = async (req, res) => {
 
 module.exports = {
   studentSignup,
-  employeeSignup,
+  adminSignup,
   studentLogin,
-  employeeLogin,
+  adminLogin,
   requestPasswordReset,
   resetPassword,
 };

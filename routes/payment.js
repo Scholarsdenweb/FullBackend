@@ -20,6 +20,7 @@ const {
   checkRole,
 } = require("../middleware/authentication");
 const { default: axios } = require("axios");
+const Amount = require("../models/Amount");
 const router = express.Router();
 
 router.post("/checkout", checkout);
@@ -46,7 +47,13 @@ router.post("/create-invoice", async (req, res) => {
 
   console.log("name contact email amount", name, contact, email, amount);
 
+
+  // const amount = await RiseFee.findOne({});
+
   try {
+
+
+
     const invoice = await razorpay.invoices.create({
       type: "link",
       description: "Payment for services",

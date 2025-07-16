@@ -6,6 +6,7 @@ const AdmissionApproval = require("../models/AdmissionApproval");
 const JWT_SECRET = process.env.JWT_SECRET;
 
 const addAdmin = async (req, res) => {
+  console.log("req.body", req.body);
   const { contactNumber, role, name, email } = req.body;
 
   const existingAdmin = await Admin.findOne({ contactNumber });
@@ -22,6 +23,7 @@ const addAdmin = async (req, res) => {
     const result = await createAdmin.save();
     return res.status(200).json({ result });
   } catch (error) {
+    console.log("error", error);
     res.status(500).json("Error adding admin: " + error);
   }
 };
@@ -106,10 +108,13 @@ const addReceiptId = async (req, res) => {
       { new: true, session }
     );
 
-    if (!updateAdmissionApproval) throw new Error("AdmissionApproval not found");
+    if (!updateAdmissionApproval)
+      throw new Error("AdmissionApproval not found");
 
     if (updateAdmissionApproval.status === "successful") {
-      const findAdmission = await Admission.findOne({ acknowledgementNumber }).session(session);
+      const findAdmission = await Admission.findOne({
+        acknowledgementNumber,
+      }).session(session);
 
       const studentClass = findAdmission.studentClass;
       const program = findAdmission.program;
@@ -117,12 +122,10 @@ const addReceiptId = async (req, res) => {
       const { admissionRollNumber } = await Admission.allocateStudentsId(
         studentClass,
         program
-      ); 
+      );
 
       findAdmission.admissionRollNo = admissionRollNumber;
       await findAdmission.save({ session });
-
- 
     }
 
     await session.commitTransaction();
@@ -141,12 +144,13 @@ const addReceiptId = async (req, res) => {
       code: error.code,
     });
     await session.abortTransaction();
-    return res.status(500).json({ message: "Server Error", error: error.message });
+    return res
+      .status(500)
+      .json({ message: "Server Error", error: error.message });
   } finally {
     session.endSession();
   }
 };
-
 
 module.exports = {
   addAdmin,

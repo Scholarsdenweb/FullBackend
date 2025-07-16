@@ -13,6 +13,8 @@ const adminRoute = require("./routes/AdminRoute");
 const fileUpload = require("express-fileupload");
 const admissionAdminRoute = require("./routes/admissionAdminRoute");
 
+const amountRoute = require("./routes/amount")
+
 const mongoose = require("mongoose");
 const port = process.env.PORT || 5004;
 require("dotenv").config();
@@ -62,6 +64,8 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/admissions", admissionRoutes);
 
 app.use("/api/user", userRoute);
+
+app.use("/api/amount", amountRoute);
 
 // const formRoutes = require('./routes/formRoutes');
 // const takenByRoutes = require('./routes/takenByRoutes');

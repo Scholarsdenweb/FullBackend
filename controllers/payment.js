@@ -155,15 +155,17 @@ console.log("GenerateAdmit card function working");
     };
     // Generate admit card
     const admitCard = await processHTMLAndGenerateAdmitCards(data);
-    const response = await SMSForRegisteredStudent(
-      student.studentName,
-      data.examDate,
-      student.StudentsId,
-      data.paymentId,
-      student.contactNumber
-    );
 
-    console.log("response from sdat process completed", response);
+
+    // For sending sms
+    // const response = await SMSForRegisteredStudent(
+    //   student.studentName,
+    //   data.examDate,
+    //   student.StudentsId,
+    //   data.paymentId,
+    //   student.contactNumber
+    // );
+    // console.log("response from sdat process completed", response);
 
     console.log("Admit card generated:", admitCard);
     student.admitCard = admitCard;

@@ -51,15 +51,18 @@ const updateAmount = async (req, res) => {
   try {
     const { changedAmount } = req.body;
 
+    console.log("changedAmount", changedAmount);
+    
     const updatedAmount = await Amount.findOne();
-
+    
     updatedAmount.amount = changedAmount;
+    console.log("changedAmount", changedAmount);
 
     await updatedAmount.save();
 
-    console.log("updateAmount", updateAmount);
+    console.log("updateAmount", updatedAmount);
 
-    return res.status(200).json({ updateAmount });
+    return res.status(200).json({ updatedAmount });
   } catch (error) {
     console.log("error from updateAmount", error);
     return res.status(500).json({ message: "Server error" });

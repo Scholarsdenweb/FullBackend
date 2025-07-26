@@ -253,7 +253,7 @@ router.post(
         const token = jwt.sign(
           {
             _id: findAdmission._id,
-            parentsContactNumber: findAdmission.fatherContactNumber,
+            studentContactNumber: findAdmission.fatherContactNumber,
             acknowledgementNumber,
           },
           process.env.JWT_SECRET
@@ -280,6 +280,8 @@ router.patch("/putFormData", verifyTokenForAdmission(), async (req, res) => {
       fatherDob,
       fatherBloodGroup,
       fatherOccupations,
+      fatherContactNumber,
+      motherContactNumber,
       motherName,
       motherAadhaarID,
       motherDob,
@@ -325,6 +327,8 @@ router.patch("/putFormData", verifyTokenForAdmission(), async (req, res) => {
         fatherDob,
         fatherBloodGroup,
         fatherOccupations,
+        fatherContactNumber,
+        motherContactNumber,
         motherName,
         motherAadhaarID,
         motherDob,
@@ -525,10 +529,6 @@ router.patch(
   }
 );
 
-
-
-
-
 router.patch(
   "/submitAddressForm",
   verifyTokenForAdmission(),
@@ -555,8 +555,7 @@ router.patch(
 
       await admission.save();
 
-
-      console.log("address fro backend", admission)
+      console.log("address fro backend", admission);
 
       // Respond with required fields expected by frontend
       return res.status(200).json({
@@ -575,13 +574,6 @@ router.patch(
     }
   }
 );
-
-
-
-
-
-
-
 
 router.post("/filter-ackNumber", async () => {
   try {
@@ -648,6 +640,8 @@ router.put("/:id", verifyTokenForAdmission(), async (req, res) => {
       fatherDob,
       fatherBloodGroup,
       fatherOccupations,
+      fatherContactNumber,
+      motherContactNumber,
       motherName,
       motherAadhaarID,
       motherDob,
@@ -664,6 +658,8 @@ router.put("/:id", verifyTokenForAdmission(), async (req, res) => {
         fatherDob,
         fatherBloodGroup,
         fatherOccupations,
+        fatherContactNumber,
+        motherContactNumber,
         motherName,
         motherAadhaarID,
         motherDob,

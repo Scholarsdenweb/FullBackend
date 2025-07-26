@@ -70,6 +70,8 @@ const AdmissionSchema = new mongoose.Schema(
     fatherDob: { type: String },
     fatherBloodGroup: { type: String },
     fatherOccupations: { type: String },
+    fatherContactNumber: { type: String },
+    motherContactNumber: { type: String },
     motherName: { type: String },
     motherAadhaarID: { type: String },
     motherDob: { type: String },

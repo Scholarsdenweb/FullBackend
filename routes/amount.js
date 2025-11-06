@@ -4,7 +4,7 @@ const router = express.Router();
 
 
 router.get("/", getAmount);
-// router.post("/", addAmount);
+router.post("/", addAmount);
 router.patch("/", updateAmount);
 
 

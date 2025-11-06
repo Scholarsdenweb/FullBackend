@@ -19,60 +19,15 @@ const isFileValid = async (filePath) => {
   try {
     const stats = await fs.statSync(filePath);
 
+    console.log("File stats:", stats);
+    console.log("File size:", stats.size);
+
     return stats.size > 0;
   } catch (error) {
     console.error("Error checking file size:", error);
     return false;
   }
 };
-
-// MainStream Section
-
-//    <div class="stream-section">
-// <label>Stream:</label>
-// <div class="mainStream">
-//   <label> Medical </label>
-//   <input type="checkbox" id="medical" ${
-//     data.stream === "NEET(UG)" ? "checked" : ""
-//   }/>
-// </div>
-
-// <div class="mainStream">
-//   <label>Engineering</label>
-//   <input type="checkbox" id="engineering"
-//   ${data.stream === "JEE(Main & Adv.)" ? "checked" : ""}/>
-// </div>
-// <div class="mainStream">
-//   <label>Foundation</label>
-//   <input type="checkbox" id="foundation" ${
-//     data.stream === "Foundation" ? "checked" : ""
-//   }/>
-// </div>
-// </div>
-
-// <div class="class-section">
-
-// {/* // CLassList       */}
-// <label>Class:</label>
-// <div class= "class-list">
-// ${["V", "VI", "VII", "VIII", "IX", "X", "XI", "XII", "XII Passed"]
-//   .map(
-//     (classLevel) => `
-//   <div class="mainClass">
-//   <label
-//   >${classLevel}</label>
-
-//    <input type="checkbox"
-//   id="class-${classLevel.toLowerCase()}" ${
-//       data.class.split(" ")[0] === classLevel ? "checked" : ""
-//     }/>
-//   </div>
-// `
-//   )
-//   .join("")}
-
-//     </div>
-// </div>
 
 const generateAdmitCardPDF = async (data, filePath) => {
   console.log("generateAdmitCardPDF", data, filePath);
@@ -274,8 +229,14 @@ SD House (Corporate Office): Sai Mandir Road, Deen Dayal Nagar-I, Moradabad (UP)
   </html>
   `;
 
+    await page.setContent(htmlContent, { waitUntil: "networkidle2" });
+
+    console.log("pathFile from generateAdmitCardPDF", filePath);
+
     await page.setContent(htmlContent);
-    await page.pdf({ path: filePath, printBackground: true });
+    await page.pdf({ path: filePath, format: "A4", printBackground: true });
+
+    await browser.close();
   } catch (error) {
     console.log({ error });
   }
@@ -285,6 +246,10 @@ const uploadToCloudinary = async (filePath, rollNumber, studentName) => {
   try {
     const folder = "admit_cards"; // Folder name in Cloudinary
     const publicId = `${folder}/${studentName}/${rollNumber}`; // Store the file with the student's roll number as the name
+    console.log("Uploading file to Cloudinary:", publicId);
+
+
+
 
     const result = await cloudinary.uploader.upload(filePath, {
       resource_type: "raw", // Specify 'raw' for non-image files like PDFs
@@ -336,17 +301,22 @@ const processHTMLAndGenerateAdmitCards = async (student) => {
 
   try {
     const data = await generateAdmitCardPDF(studentData, pdfFilePath);
-    console.log("Data from StudentData ", data);
-
+    console.log("Data from pdfFilePath ", pdfFilePath);
+    console.log("Data from generateAdmitCardPDF ", data);
+    1;
     const fileValidData = await isFileValid(pdfFilePath);
 
     console.log("Check fileValidData from generateAdmitCardPDF", fileValidData);
+    console.log("Check fileValidData from generateAdmitCardPDF", pdfFilePath);
+
+    console.log("Generated PDF file path:", pdfFilePath);
+    console.log("Generated PDF file path:", student?.name?.trim());
 
     if (true) {
       const url = await uploadToCloudinary(
         pdfFilePath,
-        student.studentId,
-        student.name
+        student?.studentId,
+        student?.name?.trim()
       );
       return url;
     } else {

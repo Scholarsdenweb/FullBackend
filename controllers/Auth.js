@@ -13,6 +13,9 @@ const jwt = require("jsonwebtoken");
 const nodemailer = require("nodemailer");
 const User = require("../models/UserModel");
 
+require("dotenv").config();
+
+
 const studentSignup = async (req, res) => {
   try {
     const { role = "Student", contactNumber } = req.body;
@@ -153,31 +156,98 @@ const studentLogin = async (req, res) => {
   }
 };
 
-const adminLogin = async (req, res) => {
-  const { contactNumber } = req.body;
-  const admin = await Admin.findOne({contactNumber });
-  console.log("Admin", admin);
-  if (!admin) {
-    return res.status(400).send("Admin not found");
-  }
+// const adminLogin = async (req, res) => {
+//   const { contactNumber } = req.body;
+//   const admin = await Admin.findOne({contactNumber });
+//   console.log("Admin", admin);
+//   if (!admin) {
+//     return res.status(400).send("Admin not found");
+//   }
 
-  const token = jwt.sign(
-    { contactNumber, role: admin.role },
-    JWT_SECRET
-  );
-  res.status(200).send({
-    token,
-    admin: {
-      contactNumber: admin.contactNumber,
-      email: admin.email,
-      role: admin.role,
+//   const token = jwt.sign(
+//     { contactNumber, role: admin.role },
+//     JWT_SECRET
+//   );
+//   res.status(200).send({
+//     token,
+//     admin: {
+//       contactNumber: admin.contactNumber,
+//       email: admin.email,
+//       role: admin.role,
    
     
-    },
-  });
+//     },
+//   });
+// };
+
+
+
+const adminLogin = async (req, res) => {
+  try {
+    const { contactNumber } = req.body;
+
+    // Input validation
+    if (!contactNumber) {
+      return res.status(400).json({ 
+        success: false,
+        message: "Contact number is required" 
+      });
+    }
+
+    // Find admin by contact number
+    const admin = await Admin.findOne({ contactNumber });
+    console.log("Admin found:", admin);
+
+    if (!admin) {
+      return res.status(404).json({ 
+        success: false,
+        message: "Admin not found with this contact number" 
+      });
+    }
+
+    // Generate JWT token with expiration
+    const token = jwt.sign(
+      { 
+        id: admin._id,
+        contactNumber: admin.contactNumber, 
+        role: admin.role 
+      },
+      process.env.JWT_SECRET || JWT_SECRET,
+      { expiresIn: '7d' } // Token expires in 7 days
+    );
+
+    // Set cookie with token
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production', // Use secure in production
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      sameSite: 'strict',
+      path: '/'
+    });
+
+    // Send response
+    res.status(200).json({
+      success: true,
+      message: "Login successful",
+      token,
+      admin: {
+        id: admin._id,
+        contactNumber: admin.contactNumber,
+        email: admin.email,
+        role: admin.role,
+      },
+    });
+
+  } catch (error) {
+    console.error("Error in adminLogin:", error);
+    res.status(500).json({ 
+      success: false,
+      message: "Internal server error",
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
 };
 
-require("dotenv").config();
 
 const transporter = nodemailer.createTransport({
   service: "gmail",

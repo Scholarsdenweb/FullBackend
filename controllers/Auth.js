@@ -15,7 +15,6 @@ const User = require("../models/UserModel");
 
 require("dotenv").config();
 
-
 const studentSignup = async (req, res) => {
   try {
     const { role = "Student", contactNumber } = req.body;
@@ -101,7 +100,6 @@ const adminSignup = async (req, res) => {
     name,
     email,
     role,
-    
   });
 
   const token = jwt.sign(
@@ -174,55 +172,55 @@ const studentLogin = async (req, res) => {
 //       contactNumber: admin.contactNumber,
 //       email: admin.email,
 //       role: admin.role,
-   
-    
+
 //     },
 //   });
 // };
 
-
-
 const adminLogin = async (req, res) => {
   try {
     const { contactNumber } = req.body;
+    console.log("Contact Number from request body:", req.body);
+    console.log("Contact Number from request body:", contactNumber);
 
     // Input validation
     if (!contactNumber) {
-      return res.status(400).json({ 
+      return res.status(403).json({
         success: false,
-        message: "Contact number is required" 
+        message: "Contact number is required",
       });
     }
 
     // Find admin by contact number
-    const admin = await Admin.findOne({ contactNumber });
-    console.log("Admin found:", admin);
+    const admin = await Admin.findOne({ contactNumber }).select("-password");
+    console.log("Admin found from admin login:", admin);
 
     if (!admin) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         success: false,
-        message: "Admin not found with this contact number" 
+        message: "Admin not found with this contact number",
       });
     }
 
     // Generate JWT token with expiration
     const token = jwt.sign(
-      { 
+      {
         id: admin._id,
-        contactNumber: admin.contactNumber, 
-        role: admin.role 
+        contactNumber: admin.contactNumber,
+        role: admin.role,
       },
       process.env.JWT_SECRET || JWT_SECRET,
-      { expiresIn: '7d' } // Token expires in 7 days
+      { expiresIn: "7d" } // Token expires in 7 days
     );
 
     // Set cookie with token
-    res.cookie('token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production', // Use secure in production
+    res.cookie("token", token, {
+      httpOnly: false,
+      secure: false, // Use secure in production
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      sameSite: 'strict',
-      path: '/'
+      sameSite: process.env.NODE_ENV === "production" ? "strict" : "none",
+      path: "/",
+      // domain: process.env.NODE_ENV === 'production' ? '.scholarsden.in' : undefined
     });
 
     // Send response
@@ -237,17 +235,15 @@ const adminLogin = async (req, res) => {
         role: admin.role,
       },
     });
-
   } catch (error) {
     console.error("Error in adminLogin:", error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
       message: "Internal server error",
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 };
-
 
 const transporter = nodemailer.createTransport({
   service: "gmail",

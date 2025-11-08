@@ -7,8 +7,7 @@ const BatchRelatedDetails = require("../models/form/BatchRelatedDetails");
 const BasicDetails = require("../models/form/BasicDetails");
 const FamilyDetails = require("../models/form/FamilyDetails");
 
-
-const {SMSForRegisteredStudent} = require("../utils/smsTemplates");
+const { SMSForRegisteredStudent } = require("../utils/smsTemplates");
 const Amount = require("../models/Amount");
 
 require("dotenv").config();
@@ -16,11 +15,9 @@ require("dotenv").config();
 const checkout = async (req, res) => {
   console.log("checkout");
   try {
-const amount = await Amount.findOne();
+    const amount = await Amount.findOne();
 
-console.log("amount from create-invoice", amount);
-
-
+    console.log("amount from create-invoice", amount);
 
     const options = {
       amount: amount.amount * 100, // amount in the smallest currency unit
@@ -42,58 +39,255 @@ console.log("amount from create-invoice", amount);
   }
 };
 
+// const paymentVerification = async (req, res) => {
+//   try {
+//     // console.log("req.body of paymentVerification", req);
+//     const { razorpay_payment_id, razorpay_order_id, razorpay_signature, studentId } =
+//       req.body;
+
+//     const sign = razorpay_order_id + "|" + razorpay_payment_id;
+//     console.log("req.body", req.body);
+
+//     console.log("rezorpay_signature", razorpay_signature);
+//     console.log("razorpay_payment_id", razorpay_payment_id);
+//     console.log("razorpay_order_id", razorpay_order_id);
+//     console.log("sign", studentId);
+
+//     // Uncomment if Razorpay signature verification is required
+//     const expectedSign = crypto
+//       .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+//       .update(sign.toString())
+//       .digest("hex");
+//     console.log("ExpectedSign", expectedSign);
+//     if (razorpay_signature === expectedSign) {
+//       const payment = await Payment.create({
+//         razorpay_order_id,
+//         razorpay_payment_id,
+//         razorpay_signature,
+//         studentId,
+//         payment_date: new Date(),
+//       });
+
+//       console.log("Payment created:", payment);
+//       return res
+//         .status(200)
+//         .json({ success: true, paymentId: razorpay_payment_id });
+
+//       // return res.redirect(`http://localhost:5173/payment/success/${payment._id}`);
+//     } else {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Invalid signature",
+//       });
+//     }
+//   } catch (error) {
+//     console.error("Error in payment verification:", error);
+//     return res
+//       .status(500)
+//       .json({ success: false, message: "Internal Server Error", error });
+//   }
+// };
+
+// Payment Controller - paymentVerification function
+// Update your existing paymentVerification function with this code
+
+// const paymentVerification = async (req, res) => {
+//   try {
+//     const {
+//       razorpay_payment_id,
+//       razorpay_order_id,
+//       razorpay_signature,
+//       studentId,
+//       payment_amount, // Now receiving payment_amount from frontend
+//     } = req.body;
+
+//     console.log("Payment verification request:", {
+//       razorpay_payment_id,
+//       razorpay_order_id,
+//       razorpay_signature,
+//       studentId,
+//       payment_amount,
+//     });
+
+//     // Validate required fields
+//     if (
+//       !razorpay_payment_id ||
+//       !razorpay_order_id ||
+//       !razorpay_signature ||
+//       !studentId ||
+//       !payment_amount
+//     ) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Missing required payment verification fields",
+//       });
+//     }
+
+//     // Verify signature
+//     const body = razorpay_order_id + "|" + razorpay_payment_id;
+//     const expectedSign = crypto
+//       .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+//       .update(body.toString())
+//       .digest("hex");
+
+//     console.log("Expected signature:", expectedSign);
+//     console.log("Received signature:", razorpay_signature);
+
+//     const isAuthentic = expectedSign === razorpay_signature;
+
+//     if (isAuthentic) {
+//       // Save payment details to database
+//       const payment = await Payment.create({
+//         razorpay_payment_id,
+//         razorpay_order_id,
+//         razorpay_signature,
+//         studentId,
+//         payment_amount, // Save the amount
+//         payment_status: "success",
+//         payment_date: new Date(),
+//       });
+
+//       console.log("Payment saved successfully:", payment);
+
+//       // TODO: Send WhatsApp message with admit card here
+//       // You can call your WhatsApp API service here
+//       // await sendAdmitCardViaWhatsApp(studentId);
+
+//       return res.status(200).json({
+//         success: true,
+//         message: "Payment verified successfully",
+//         paymentId: razorpay_payment_id,
+//       });
+//     } else {
+//       console.error("Payment signature verification failed");
+//       return res.status(400).json({
+//         success: false,
+//         message: "Payment verification failed - Invalid signature",
+//       });
+//     }
+//   } catch (error) {
+//     console.error("Error in payment verification:", error);
+//     return res.status(500).json({
+//       success: false,
+//       message: "Internal server error during payment verification",
+//       error: error.message,
+//     });
+//   }
+// };
+
+// Payment Controller - paymentVerification function
+// Update your existing paymentVerification function with this code
+
 const paymentVerification = async (req, res) => {
   try {
-    // console.log("req.body of paymentVerification", req);
-    const { razorpay_payment_id, razorpay_order_id, razorpay_signature, studentId } =
-      req.body;
+    const {
+      razorpay_payment_id,
+      razorpay_order_id,
+      razorpay_signature,
+      studentId,
+      payment_amount, // Now receiving payment_amount from frontend
+    } = req.body;
 
-    const sign = razorpay_order_id + "|" + razorpay_payment_id;
-    console.log("req.body", req.body);
+    console.log("Payment verification request:", {
+      razorpay_payment_id,
+      razorpay_order_id,
+      razorpay_signature,
+      studentId,
+      payment_amount,
+    });
 
-    console.log("rezorpay_signature", razorpay_signature);
-    console.log("razorpay_payment_id", razorpay_payment_id);
-    console.log("razorpay_order_id", razorpay_order_id);
-    console.log("sign", studentId);
+    // Validate required fields
+    if (
+      !razorpay_payment_id ||
+      !razorpay_order_id ||
+      !razorpay_signature ||
+      !studentId ||
+      !payment_amount
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required payment verification fields",
+      });
+    }
 
-    // Uncomment if Razorpay signature verification is required
+    // Verify signature
+    const body = razorpay_order_id + "|" + razorpay_payment_id;
     const expectedSign = crypto
       .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
-      .update(sign.toString())
+      .update(body.toString())
       .digest("hex");
-    console.log("ExpectedSign", expectedSign);
-    if (razorpay_signature === expectedSign) {
+
+    console.log("Expected signature:", expectedSign);
+    console.log("Received signature:", razorpay_signature);
+
+    const isAuthentic = expectedSign === razorpay_signature;
+
+    if (isAuthentic) {
+      // Save payment details to database
       const payment = await Payment.create({
-        razorpay_order_id,
         razorpay_payment_id,
+        razorpay_order_id,
         razorpay_signature,
         studentId,
+        payment_amount, // Save the amount
+        payment_status: "success",
         payment_date: new Date(),
       });
 
-      console.log("Payment created:", payment);
-      return res
-        .status(200)
-        .json({ success: true, paymentId: razorpay_payment_id });
+      console.log("Payment saved successfully:", payment);
 
-      // return res.redirect(`http://localhost:5173/payment/success/${payment._id}`);
+      // Get student details for WhatsApp notification
+      const student = await Students.findOne({ StudentsId: studentId });
+
+      console.log("Student details for WhatsApp notification:", student);
+
+      if (student) {
+        // Send WhatsApp notification
+        const {
+          sendAdmitCardNotification,
+        } = require("../utils/services/whatsappService");
+
+        // const whatsappResult = await sendAdmitCardNotification({
+        //   studentId: student._id,
+        //   studentName: student.studentName || student.name,
+        //   contactNumber: student.contactNumber || student.phone,
+        //   paymentId: razorpay_payment_id,
+        //   amount: payment_amount,
+        //   admitCardUrl: student.admitCard, // If you have PDF URL
+        // });
+
+        // if (whatsappResult.success) {
+        //   console.log("Admit card notification sent via WhatsApp");
+        // } else {
+        //   console.error("Failed to send WhatsApp notification:", whatsappResult.error);
+        //   // Don't fail the payment if WhatsApp fails
+        // }
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: "Payment verified successfully",
+        paymentId: razorpay_payment_id,
+      });
     } else {
+      console.error("Payment signature verification failed");
       return res.status(400).json({
         success: false,
-        message: "Invalid signature",
+        message: "Payment verification failed - Invalid signature",
       });
     }
   } catch (error) {
     console.error("Error in payment verification:", error);
-    return res
-      .status(500)
-      .json({ success: false, message: "Internal Server Error", error });
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error during payment verification",
+      error: error.message,
+    });
   }
 };
 
 const generateAdmitCard = async (req, res) => {
-
-console.log("GenerateAdmit card function working");
+  console.log("GenerateAdmit card function working");
 
   try {
     console.log("Generate Admit Card");
@@ -156,7 +350,6 @@ console.log("GenerateAdmit card function working");
     // Generate admit card
     const admitCard = await processHTMLAndGenerateAdmitCards(data);
 
-
     // For sending sms
     // const response = await SMSForRegisteredStudent(
     //   student.studentName,
@@ -184,7 +377,11 @@ console.log("GenerateAdmit card function working");
     console.log("Error in payment verification:", error);
     return res
       .status(500)
-      .json({ success: false, message: "Internal Server Error", errorData: error });
+      .json({
+        success: false,
+        message: "Internal Server Error",
+        errorData: error,
+      });
   }
 };
 

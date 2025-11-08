@@ -51,7 +51,9 @@ const generateAdmitCardPDF = async (data, filePath) => {
     }
 
     const page = await browser.newPage();
-    const logoPath = path.resolve(__dirname, "rise-logo.png");
+    // const logoPath = path.resolve(__dirname, "rise-logo.png");
+        const logoPath = path.resolve(__dirname, "SDATLogo.png");
+
 
     console.log("logoPath from admitCard", logoPath);
     const logoBase64 = fs.readFileSync(logoPath, { encoding: "base64" });
@@ -219,8 +221,9 @@ const generateAdmitCardPDF = async (data, filePath) => {
           </div>
         </div>
         <div class="footer">
-         Building 1, 2 & 4: Near Qila, Kanth Road, Moradabad (UP) 244001
-SD House (Corporate Office): Sai Mandir Road, Deen Dayal Nagar-I, Moradabad (UP) 244001
+           SD Campus Near Tehsil, Sonakpur Overbridge Road, Moradabad (UP) 244001<br />
+          SD House (Corporate Office): Sai Mandir Road, Deen Dayal Nagar-I,
+          Moradabad (UP) 244001
           <br />
           Contact: +91 8126555222 / 333 | www.scholarsden.in / scholarsden
         </div>

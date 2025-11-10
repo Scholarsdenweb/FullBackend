@@ -11,6 +11,27 @@ const User = require("../models/UserModel");
 const JWT_SECRET = process.env.JWT_SECRET;
 const jwt = require("jsonwebtoken");
 
+const JWT_EXPIRE = process.env.JWT_EXPIRE || "7d";
+const NODE_ENV = process.env.NODE_ENV || "development";
+const bcrypt = require("bcrypt");
+
+
+
+// ====== JWT & COOKIE HELPERS ======
+const generateToken = (payload) => {
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRE });
+};
+
+const setAuthCookie = (res, token) => {
+  res.cookie("authToken", token, {
+    httpOnly: true,
+    secure: NODE_ENV === "production",
+    sameSite: NODE_ENV === "production" ? "strict" : "lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    path: "/",
+  });
+};
+
 const uploadStudentResult = async (req, res) => {
   try {
     const { result, studentId } = req.body;
@@ -178,7 +199,7 @@ const deleteStudent = async (req, res) => {
 
   const session = await mongoose.startSession();
   session.startTransaction();
-  const _id = student_id
+  const _id = student_id;
 
   try {
     const deletedStudent = await Students.findByIdAndDelete(_id, {
@@ -358,20 +379,19 @@ const continueRegistration = async (req, res) => {
   const findStudentById = await Students.findById({ _id });
   console.log("findStudentById", findStudentById);
 
-  const token = jwt.sign(
-    {
-      _id: findStudentById._id,
-      role: findStudentById.role,
-      contactNumber: findStudentById.contactNumber,
-    },
-    JWT_SECRET
-  );
-
-  console.log("token", token);
-
-  res.status(200).json({
-    token,
+  const token = generateToken({
+    _id: findStudentById._id,
+    role: findStudentById.role,
+    contactNumber: findStudentById.contactNumber,
   });
+  console.log("token", token);
+  setAuthCookie(res, token);
+
+  return res.status(200).json({
+    token,
+  });;
+
+  
 };
 
 const createNewStudent = async (req, res) => {

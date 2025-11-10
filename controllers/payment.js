@@ -242,10 +242,10 @@ const paymentVerification = async (req, res) => {
       console.log("Student details for WhatsApp notification:", student);
 
       if (student) {
-        // Send WhatsApp notification
-        const {
-          sendAdmitCardNotification,
-        } = require("../utils/services/whatsappService");
+        // // Send WhatsApp notification
+        // const {
+        //   sendAdmitCardNotification,
+        // } = require("../utils/services/whatsappService");
 
         // const whatsappResult = await sendAdmitCardNotification({
         //   studentId: student._id,

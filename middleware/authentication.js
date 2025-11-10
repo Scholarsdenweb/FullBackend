@@ -12,19 +12,56 @@ require("dotenv").config();
  * @param {Object} req - Express request object
  * @returns {Object|null} - Decoded token or null if invalid
  */
+// const extractAndVerifyToken = (req) => {
+//   const authHeader = req.headers.authorization;
+
+//   console.log("Authorization Header:", req.headers);
+//   console.log("Authorization Header:", authHeader);
+
+//   if (!authHeader || !authHeader.startsWith("Bearer ")) {
+//     return null;
+//   }
+
+//   const token = authHeader.split(" ")[1];
+
+//   try {
+//     return jwt.verify(token, process.env.JWT_SECRET);
+//   } catch (error) {
+//     console.error("Token verification error:", error.message);
+//     return null;
+//   }
+// };
+
 const extractAndVerifyToken = (req) => {
+  let token = null;
+
+  // Try Authorization header first (for API clients)
   const authHeader = req.headers.authorization;
 
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+  console.log("Authorization Header:", req.headers);
+  console.log("Authorization Header:", authHeader);
+  if (authHeader && authHeader.startsWith("Bearer ")) {
+    token = authHeader.split(" ")[1];
+  }
+  // Then try cookies (for web browsers with withCredentials)
+  else if (req.cookies) {
+    token = req.cookies.authToken || req.cookies.token;
+  }
+
+  console.log("Token source:", authHeader ? "Authorization header" : "Cookie");
+  console.log("Token found:", !!token);
+
+  if (!token) {
+    console.log("❌ No token found in Authorization header or cookies");
     return null;
   }
 
-  const token = authHeader.split(" ")[1];
-
   try {
-    return jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    console.log("✅ Token verified for:", decoded.contactNumber);
+    return decoded;
   } catch (error) {
-    console.error("Token verification error:", error.message);
+    console.error("❌ Token verification error:", error.message);
     return null;
   }
 };
@@ -37,8 +74,8 @@ const admissionAdmin = async (req, res, next) => {
     const decoded = extractAndVerifyToken(req);
 
     if (!decoded) {
-      return res.status(401).json({ 
-        message: "Authorization token missing, malformed, or invalid" 
+      return res.status(401).json({
+        message: "Authorization token missing, malformed, or invalid",
       });
     }
 
@@ -52,7 +89,9 @@ const admissionAdmin = async (req, res, next) => {
     next();
   } catch (error) {
     console.error("admissionAdmin error:", error);
-    return res.status(500).json({ message: "Server error during authentication" });
+    return res
+      .status(500)
+      .json({ message: "Server error during authentication" });
   }
 };
 
@@ -72,8 +111,8 @@ const verifyTokenForRegistration = (allowedModels = []) => {
       const { _id, role } = decoded;
 
       if (!allowedModels.includes(role)) {
-        return res.status(403).json({ 
-          message: "Access denied. Invalid user type for this operation" 
+        return res.status(403).json({
+          message: "Access denied. Invalid user type for this operation",
         });
       }
 
@@ -111,7 +150,9 @@ const takenPhoneByToken = () => {
       const { contactNumber, role } = decoded;
 
       if (!contactNumber) {
-        return res.status(400).json({ message: "Contact number not found in token" });
+        return res
+          .status(400)
+          .json({ message: "Contact number not found in token" });
       }
 
       req.user = { role, contactNumber };
@@ -167,16 +208,16 @@ const verifyTokenForAdmission = () => {
       const { _id, parentsContactNumber, acknowledgementNumber } = decoded;
 
       if (!acknowledgementNumber) {
-        return res.status(400).json({ 
-          message: "Acknowledgement number not found in token" 
+        return res.status(400).json({
+          message: "Acknowledgement number not found in token",
         });
       }
 
       const user = await AdmissionUser.findOne({ acknowledgementNumber });
 
       if (!user) {
-        return res.status(404).json({ 
-          message: "Admission record not found" 
+        return res.status(404).json({
+          message: "Admission record not found",
         });
       }
 
@@ -204,10 +245,10 @@ const verifyTokenForExistingAdmission = () => {
 
       const { _id, parentsContactNumber, acknowledgementNumber } = decoded;
 
-      req.user = { 
-        parentsContactNumber, 
-        _id, 
-        acknowledgementNumber 
+      req.user = {
+        parentsContactNumber,
+        _id,
+        acknowledgementNumber,
       };
 
       next();
@@ -227,14 +268,14 @@ const checkRole = (allowedRoles = []) => {
     const userRole = req.user?.role || req.userRole;
 
     if (!userRole) {
-      return res.status(403).json({ 
-        message: "Access denied. User role not found" 
+      return res.status(403).json({
+        message: "Access denied. User role not found",
       });
     }
 
     if (!allowedRoles.includes(userRole)) {
-      return res.status(403).json({ 
-        message: "Access denied. Insufficient permissions" 
+      return res.status(403).json({
+        message: "Access denied. Insufficient permissions",
       });
     }
 
@@ -257,8 +298,8 @@ const adminCheck = () => {
       const { contactNumber } = decoded;
 
       if (!contactNumber) {
-        return res.status(400).json({ 
-          message: "Contact number not found in token" 
+        return res.status(400).json({
+          message: "Contact number not found in token",
         });
       }
 
@@ -277,16 +318,11 @@ const adminCheck = () => {
   };
 };
 
-
-
-
 /**
  * Simple middleware to authenticate token and attach user to request
  * Use this for general authentication without specific model requirements
  */
 const authenticateToken = async (req, res, next) => {
-
-
   console.log("authenticateToken called");
   console.log("authenticateToken called", req.headers.authorization);
   try {
@@ -316,4 +352,3 @@ module.exports = {
   admissionAdmin,
   authenticateToken, // Add this
 };
-

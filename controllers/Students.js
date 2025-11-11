@@ -407,13 +407,16 @@ const createNewStudent = async (req, res) => {
     await newStudent.save();
 
     // Generate token
-    const token = jwt.sign(
-      { _id: newStudent._id, role: newStudent.role, contactNumber },
-      JWT_SECRET
-    );
+      // const token = jwt.sign(
+      //   { _id: newStudent._id, role: newStudent.role, contactNumber },
+      //   JWT_SECRET
+      // );
+
+    const token = generateToken({ _id: newStudent._id, role: newStudent.role, contactNumber });
 
     console.log("newStudent created ", newStudent);
-    res.status(200).json({ token, newStudent });
+    setAuthCookie(res, token);
+    return res.status(200).json({ token, newStudent });
   } catch (error) {
     console.error("Error in signup:", error.message);
     res.status(500).send("Internal Server Error");

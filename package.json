@@ -42,6 +42,7 @@
     "node-cron": "^4.0.6",
     "nodemailer": "^6.10.1",
     "nodemon": "^3.1.8",
+    "pdf-lib": "^1.17.1",
     "puppeteer": "^24.1.0",
     "puppeteer-core": "^24.1.0",
     "razorpay": "^2.9.5",

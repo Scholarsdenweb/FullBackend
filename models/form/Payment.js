@@ -47,7 +47,7 @@ const paymentSchema = new mongoose.Schema(
 );
 
 // Index for faster queries
-paymentSchema.index({ studentId: 1 });
+// paymentSchema.index({ studentId: 1 });
 paymentSchema.index({ razorpay_payment_id: 1 });
 
 const Payment = mongoose.model("Payment", paymentSchema);

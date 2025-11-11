@@ -38,37 +38,121 @@ const sendAdmitCardViaTwilio = async (studentData) => {
 // Option 2: Using WATI (Indian provider, easier for WhatsApp Business)
 const sendAdmitCardViaWATI = async (studentData) => {
   try {
-    const watiApiUrl = process.env.WATI_API_URL; // e.g., https://live-server-12345.wati.io
-    const watiToken = process.env.WATI_API_TOKEN;
+    const whatsappApi = process.env.WATI_API_URL; // e.g., https://live-server-12345.wati.io
+    // const watiToken = process.env.WATI_API_TOKEN;
 
-    const response = await axios.post(
-      `${watiApiUrl}/api/v1/sendTemplateMessage`,
-      {
-        whatsappNumber: `91${studentData.contactNumber}`,
-        template_name: "admit_card_notification", // Create this template in WATI dashboard
-        broadcast_name: "SDAT Admit Card",
-        parameters: [
-          {
-            name: "student_name",
-            value: studentData.studentName,
+
+    console.log("watiApi", whatsappApi);
+
+    console.log("studentData in whatsapp service", studentData);
+    const formattedNumber = `91${studentData?.contactNumber}`;
+
+    console.log("formattedNumber", formattedNumber);
+
+    // Prepare admit card file URL and name
+    const fileUrl = studentData?.admitCardUrl; // Ensure this is a publicly accessible URL
+    const fileName = `Admit_Card_${studentData?.studentName.replace(
+      /\s+/g,
+      "_"
+    )}.pdf`;
+
+    let result = {
+      status: "failed",
+      responseCode: null,
+      error: null,
+    };
+    const studentName = studentData?.studentName || "Student";
+// const messageBody = `🎓 Your SDAT Admit Card is ready!
+
+// Dear ${studentName},
+
+// Please find your admit card attached.
+
+// Here are your details:
+// - Name: ${studentName}
+// - Roll Number: ${studentData?.StudentsId || "N/A"}
+// - Payment ID: ${studentData?.paymentId}
+
+// All the best! 🌟`;
+
+
+    // const response = await axios.post(
+    //   `${watiApiUrl}/api/v1/sendTemplateMessage`,
+    //   {
+    //     whatsappNumber: `91${studentData.contactNumber}`,
+    //     template_name: "admit_card_notification", // Create this template in WATI dashboard
+    //     broadcast_name: "SDAT Admit Card",
+    //     parameters: [
+    //       {
+    //         name: "student_name",
+    //         value: studentData.studentName,
+    //       },
+    //       {
+    //         name: "payment_id",
+    //         value: studentData.paymentId,
+    //       },
+    //       {
+    //         name: "amount",
+    //         value: studentData.amount.toString(),
+    //       },
+    //     ],
+    //   },
+    //   {
+    //     headers: {
+    //       Authorization: `Bearer ${watiToken}`,
+    //       "Content-Type": "application/json",
+    //     },
+    //   }
+    // );
+
+
+  try {
+      const response = await axios.post(
+        "https://backend.api-wa.co/campaign/myoperator/api/v2",
+        {
+          apiKey: whatsappApi,
+          campaignName: "ReRise_Result",
+          destination: formattedNumber,
+          userName: "Scholars Den",
+          templateParams: [],
+          source: "new-landing-page form",
+          media: {
+            url: studentData?.admitCard,
+            filename: fileName,
           },
-          {
-            name: "payment_id",
-            value: studentData.paymentId,
-          },
-          {
-            name: "amount",
-            value: studentData.amount.toString(),
-          },
-        ],
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${watiToken}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
+          buttons: [],
+          carouselCards: [],
+          location: {},
+          attributes: {},
+        }
+      );
+
+      console.log("response from wati", response);
+
+      result.status = "sent";
+      result.responseCode = response.status;
+    } catch (error) {
+      console.log("error from sendAdmitCardViaWATI",error)
+      console.error(
+        "Error sending WhatsApp message:",
+        error?.response?.data || error.message
+      );
+      result.error = error?.response?.data || error.message;
+    }
+
+
+
+
+
+    
+
+
+
+
+
+
+
+
 
     console.log("WhatsApp sent via WATI:", response.data);
     return { success: true, data: response.data };
@@ -77,6 +161,21 @@ const sendAdmitCardViaWATI = async (studentData) => {
     return { success: false, error: error.message };
   }
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // Option 3: Using WhatsApp Business API with Document
 const sendAdmitCardWithPDF = async (studentData, pdfBuffer) => {

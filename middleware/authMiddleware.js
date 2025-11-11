@@ -52,6 +52,8 @@ const verifyToken = () => {
       // Verify the token
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
+      console.log("Decoded Token:", decoded);
+
       const { _id } = decoded;
 
       // Use the correct User model to fetch the user

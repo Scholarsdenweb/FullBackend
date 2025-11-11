@@ -99,7 +99,7 @@ const studentSignup = async (req, res) => {
     // ====== CHECK IF STUDENT ALREADY EXISTS ======
     const existingStudent = await Student.find({ contactNumber });
 
-    if (existingStudent) {
+    if (existingStudent.length>0) {
       console.log("✅ Student already exists:", contactNumber);
       console.log("✅ Student already exists:", existingStudent);
 
@@ -123,8 +123,9 @@ const studentSignup = async (req, res) => {
         fatherContactNumber: contactNumber,
       });
 
-      if (enquiryStudent) {
+      if (enquiryStudent.length>0) {
         console.log("✅ Student exists in enquiry form:", contactNumber);
+        console.log("✅ Student exists in enquiry form:", enquiryStudent);
 
         const token = generateToken({
           contactNumber: contactNumber,
@@ -157,6 +158,7 @@ const studentSignup = async (req, res) => {
       const token = generateToken({
         role: "Student",
         contactNumber: contactNumber,
+        _id: newStudent._id,
       });
 
       setAuthCookie(res, token);
@@ -556,6 +558,8 @@ const refreshToken = async (req, res) => {
 
     // Verify old token
     const decoded = jwt.verify(token, JWT_SECRET, { ignoreExpiration: true });
+
+    console.log("✅ Token verified for refresh:", decoded);
 
     // Check if user exists
     const user = await Student.findById(decoded._id);

@@ -669,6 +669,12 @@ const uploadToCloudinary = async (filePath, rollNumber, studentName) => {
 
 
 // Add this helper function to compress images before PDF generation
+
+
+
+
+
+
 const compressImageForPDF = async (imageUrl) => {
   try {
     const sharp = require('sharp');

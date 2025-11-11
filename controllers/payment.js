@@ -6,6 +6,9 @@ const Students = require("../models/Student");
 const BatchRelatedDetails = require("../models/form/BatchRelatedDetails");
 const BasicDetails = require("../models/form/BasicDetails");
 const FamilyDetails = require("../models/form/FamilyDetails");
+const {
+  sendAdmitCardNotification,
+} = require("../utils/services/whatsappService");
 
 const { SMSForRegisteredStudent } = require("../utils/smsTemplates");
 const Amount = require("../models/Amount");
@@ -243,10 +246,6 @@ const paymentVerification = async (req, res) => {
 
       if (student) {
         // // Send WhatsApp notification
-        // const {
-        //   sendAdmitCardNotification,
-        // } = require("../utils/services/whatsappService");
-
         // const whatsappResult = await sendAdmitCardNotification({
         //   studentId: student._id,
         //   studentName: student.studentName || student.name,
@@ -255,7 +254,6 @@ const paymentVerification = async (req, res) => {
         //   amount: payment_amount,
         //   admitCardUrl: student.admitCard, // If you have PDF URL
         // });
-
         // if (whatsappResult.success) {
         //   console.log("Admit card notification sent via WhatsApp");
         // } else {
@@ -351,14 +349,8 @@ const generateAdmitCard = async (req, res) => {
     const admitCard = await processHTMLAndGenerateAdmitCards(data);
 
     // For sending sms
-    // const response = await SMSForRegisteredStudent(
-    //   student.studentName,
-    //   data.examDate,
-    //   student.StudentsId,
-    //   data.paymentId,
-    //   student.contactNumber
-    // );
-    // console.log("response from sdat process completed", response);
+    const response = await sendAdmitCardNotification(student);
+    console.log("response from sdat process completed", response);
 
     console.log("Admit card generated:", admitCard);
     student.admitCard = admitCard;
@@ -375,13 +367,11 @@ const generateAdmitCard = async (req, res) => {
     });
   } catch (error) {
     console.log("Error in payment verification:", error);
-    return res
-      .status(500)
-      .json({
-        success: false,
-        message: "Internal Server Error",
-        errorData: error,
-      });
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+      errorData: error,
+    });
   }
 };
 

@@ -16,7 +16,7 @@ router.post("/student_login", studentLogin);
 router.get('/verify', authenticateToken, (req, res) => {
 
   console.log("Verification request received", req.user);
-  res.json({ 
+  return res.status(200).json({ 
     authenticated: true, 
     user: req.user 
   });

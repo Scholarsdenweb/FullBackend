@@ -45,6 +45,9 @@ const extractAndVerifyToken = (req) => {
   }
   // Then try cookies (for web browsers with withCredentials)
   else if (req.cookies) {
+
+    console.log("Cookies:authToken", req.cookies.authToken);
+    console.log("Cookies:token", req.cookies.token);
     token = req.cookies.authToken || req.cookies.token;
   }
 
@@ -103,6 +106,8 @@ const verifyTokenForRegistration = (allowedModels = []) => {
   return async (req, res, next) => {
     try {
       const decoded = extractAndVerifyToken(req);
+
+      console.log("Decoded Token from verifyTokenForRegistration:", decoded);
 
       if (!decoded) {
         return res.status(401).json({ message: "No valid token provided" });
@@ -327,6 +332,8 @@ const authenticateToken = async (req, res, next) => {
   console.log("authenticateToken called", req.headers.authorization);
   try {
     const decoded = extractAndVerifyToken(req);
+
+    console.log("Decoded Token from authenticateToken:", decoded);
 
     if (!decoded) {
       return res.status(401).json({ message: "No valid token provided" });

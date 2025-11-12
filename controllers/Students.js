@@ -365,11 +365,14 @@ const continueWithExistingStudent = async (req, res) => {
     newBasicDetails
   );
 
-  // Generate token
-  const token = jwt.sign(
-    { _id: newStudent._id, role: newStudent.role, contactNumber },
-    JWT_SECRET
-  );
+ 
+
+ const token =  generateToken({ _id: newStudent._id, role: newStudent.role, contactNumber });
+
+  setAuthCookie(res, token);
+
+
+
   return res.status(200).json({ token, newStudent });
 };
 

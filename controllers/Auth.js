@@ -99,6 +99,7 @@ const studentSignup = async (req, res) => {
     // ====== CHECK IF STUDENT ALREADY EXISTS ======
     const existingStudent = await Student.find({ contactNumber });
 
+    // if (false) {
     if (existingStudent.length>0) {
       console.log("✅ Student already exists:", contactNumber);
       console.log("✅ Student already exists:", existingStudent);
@@ -176,7 +177,7 @@ const studentSignup = async (req, res) => {
       });
     }
   } catch (error) {
-    console.error("❌ Error in studentSignup:", error.message);
+    console.error("❌ Error in studentSignudsdp:", error.message);
 
     const errorMessage =
       NODE_ENV === "production"

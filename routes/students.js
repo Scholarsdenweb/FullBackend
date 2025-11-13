@@ -2,6 +2,8 @@ const express = require("express");
 const router = express.Router();
 const axios = require("axios");
 
+const Payment = require("../models/form/Payment");
+
 const {
   getStudents,
   addStudents,
@@ -41,7 +43,6 @@ router.get(
   getStudents
 );
 router.get("/getAllStudentByPhone", takenPhoneByToken(), getAllStudentByPhone);
-
 
 // GET /students/:id - Get complete student details
 
@@ -92,7 +93,6 @@ router.get(
   resultDetails
 );
 
-
 router.post(
   "/fetchExistingUserFormEnquiryDetails",
   takenPhoneByToken(),
@@ -110,18 +110,14 @@ router.post("/sendVerification", async (req, res) => {
   try {
     const { mobileNumber } = req.body;
 
-
     if (!mobileNumber) {
       return res
         .status(400)
         .json({ success: false, message: "Mobile number is required." });
     }
 
-
-
     // Generate a random 4-digit OTP
     const otp = Math.floor(1000 + Math.random() * 9000);
-
 
     // const options = {
     //   method: "POST",
@@ -139,7 +135,7 @@ router.post("/sendVerification", async (req, res) => {
     //     numbers: `${mobileNumber}`,
     //   },
     // };
-   
+
     // // Make the API request to Fast2SMS
     // const response = await axios.post(options.url, options.data, {
     //   headers: options.headers,
@@ -147,8 +143,8 @@ router.post("/sendVerification", async (req, res) => {
 
     // console.log(response.data);
 
- let otpStoreData;
-    const response = await otpVerification(otp, mobileNumber)
+    let otpStoreData;
+    const response = await otpVerification(otp, mobileNumber);
 
     // Store the OTP in the database
     const existingOtp = await OtpStore.findOne({ mobileNumber });
@@ -179,6 +175,158 @@ router.post("/sendVerification", async (req, res) => {
     });
   }
 });
+
+// router.post("/deleteStudentByNumber", async (req, res) => {
+//   const { contactNumber } = req.body;
+
+//   const student = await Students.deleteMany({
+//     contactNumber: contactNumber,
+//   });
+
+//   console.log("deleteEnquiryByPhoneNumber", deleteEnquiryByPhoneNumber);
+//   return res.status(200).json({ message: "Successfully deleted" });
+// });
+
+// router.post("/deleteStudentByNumber", async (req, res) => {
+//   const { contactNumber } = req.body;
+
+//   if (!contactNumber) {
+//     return res
+//       .status(400)
+//       .json({ success: false, message: "Contact number is required" });
+//   }
+
+//   try {
+//     // Find the student
+//     const student = await Students.findOne({ contactNumber });
+//     if (!student) {
+//       return res
+//         .status(404)
+//         .json({ success: false, message: "Student not found" });
+//     }
+
+//     const StudentsId = student?.StudentsId;
+//     const studentId = student._id;
+
+//     console.log("studentId to be deleted", studentId);
+
+//     // Delete all related documents
+//     await Promise.all([
+//       BasicDetails.deleteMany({ student_id: studentId }),
+//       BatchRelatedDetails.deleteMany({ student_id: studentId }),
+//       FamilyDetails.deleteMany({ student_id: studentId }),
+//       EducationalDetails.deleteMany({ student_id: studentId }),
+//       Payment.deleteMany({ studentId: StudentsId }),
+//     ]);
+
+//     // Delete student record
+//     await Students.deleteOne({ _id: studentId });
+
+//     return res.status(200).json({
+//       success: true,
+//       message: `Successfully deleted student and all related data for contact number: ${contactNumber}`,
+//     });
+//   } catch (error) {
+//     console.error("Error deleting student data:", error);
+//     return res.status(500).json({
+//       success: false,
+//       message: "Error deleting student and related data",
+//       error: error.message,
+//     });
+//   }
+// });
+
+
+
+
+router.post("/deleteStudentByNumber", async (req, res) => {
+  const { contactNumber } = req.body;
+
+  if (!contactNumber) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Contact number is required" });
+  }
+
+  try {
+    // Find all students with this contact number
+    const students = await Students.find({ contactNumber });
+
+    if (!students || students.length === 0) {
+      return res
+        .status(404)
+        .json({ success: false, message: "No students found with this contact number" });
+    }
+
+    // Get all student IDs (_id) and StudentsIds
+    const studentObjectIds = students.map((s) => s._id);
+    const studentUniqueIds = students.map((s) => s.StudentsId);
+
+    console.log("Deleting students:", studentObjectIds);
+
+    // Delete all related documents for all students
+    await Promise.all([
+      BasicDetails.deleteMany({ student_id: { $in: studentObjectIds } }),
+      BatchRelatedDetails.deleteMany({ student_id: { $in: studentObjectIds } }),
+      FamilyDetails.deleteMany({ student_id: { $in: studentObjectIds } }),
+      EducationalDetails.deleteMany({ student_id: { $in: studentObjectIds } }),
+      Payment.deleteMany({ studentId: { $in: studentUniqueIds } }),
+    ]);
+
+    // Delete the students themselves
+    await Students.deleteMany({ _id: { $in: studentObjectIds } });
+
+    return res.status(200).json({
+      success: true,
+      message: `Successfully deleted ${students.length} student(s) and all related data for contact number: ${contactNumber}`,
+    });
+  } catch (error) {
+    console.error("Error deleting students:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error deleting students and related data",
+      error: error.message,
+    });
+  }
+});
+
+
+
+
+
+
+router.get("/admit-card-generated", async (req, res) => {
+  try {
+    // Find payments where admit card has been sent
+    const students = await Students.find({ admitCard: { $exists: true, $ne: null } })
+
+    // Extract studentIds from payment records
+
+    // Fetch student details
+ 
+    return res.status(200).json({
+      success: true,
+      count: students.length,
+      message: "Students whose admit card has been generated",
+      data: students,
+    });
+  } catch (error) {
+    console.error("Error fetching admit card students:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error fetching students with admit cards generated",
+      error: error.message,
+    });
+  }
+});
+
+
+
+
+
+
+
+
 
 router.post("/verifyNumber", async (req, res) => {
   const { mobileNumber, otp } = req.body;
@@ -325,17 +473,17 @@ router.post("/filter", async (req, res) => {
         }
 
         if (params.startingDate && params.lastDate) {
-           const fromDate = new Date(params.startingDate).toISOString();
-      const toDate = new Date(params.lastDate);
+          const fromDate = new Date(params.startingDate).toISOString();
+          const toDate = new Date(params.lastDate);
 
-      toDate.setHours(23, 59, 59, 999);
-      const toDateISO = toDate.toISOString();
+          toDate.setHours(23, 59, 59, 999);
+          const toDateISO = toDate.toISOString();
           matchQuery.createdAt = {
             $gte: new Date(fromDate),
             $lte: new Date(toDateISO),
           };
         }
-console.log("params.data", params);
+        console.log("params.data", params);
         // Fetch students first
         students = await Students.find(matchQuery)
           .sort({ createdAt: sortDirection })
@@ -927,8 +1075,6 @@ router.post("/fetchDataByDateRange", async (req, res) => {
   }
 });
 
-
-
 router.get("/:id", async (req, res) => {
   try {
     const studentId = req.params.id;
@@ -965,9 +1111,5 @@ router.get("/:id", async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 });
-
-
-
-
 
 module.exports = router;

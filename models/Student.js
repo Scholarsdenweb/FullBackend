@@ -18,6 +18,12 @@ const studentsSchema = new mongoose.Schema(
     enquiryNumber: {
       type: String,
     },
+    messageStatus: {
+      admitCardSend: { type: Boolean, default: false },
+      admitCardSentDate: { type: Date },
+      resultSend: { type: Boolean, default: false },
+      resultSentDate: { type: Date },
+    },
     password: { type: String },
     resetToken: { type: String },
     resetTokenExpiry: { type: String },
@@ -102,7 +108,6 @@ studentsSchema.statics.allocateStudentsId = async function (classForAdmission) {
 
   const admissionClass = normalizeValue(classForAdmission);
 
-
   console.log("admisisionClass,,,,,,,,,,,,,,,,,,,", admissionClass);
 
   if (currentmonth > 9 && currentmonth < 12) {
@@ -161,11 +166,12 @@ studentsSchema.statics.allocateStudentsId = async function (classForAdmission) {
   const studentNumber = String(count).padStart(3, "0"); // 3-digit padding
   console.log("studentNumber", studentNumber);
 
-  console.log("admissionClass./.........", admissionClass)
+  console.log("admissionClass./.........", admissionClass);
 
-  console.log("romanToInt(admissionClass)..............", romanToInt(
-    admissionClass
-  ))
+  console.log(
+    "romanToInt(admissionClass)..............",
+    romanToInt(admissionClass)
+  );
   const StudentsId = `${currentYear}${romanToInt(
     admissionClass
   )}${studentNumber}`;

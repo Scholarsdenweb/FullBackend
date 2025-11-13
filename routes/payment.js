@@ -6,6 +6,9 @@ const {
   generateAdmitCard,
 } = require("../controllers/payment");
 
+
+const { sendAdmitCardNotification } = require("../utils/services/whatsappService");
+
 const Razorpay = require("razorpay");
 const crypto = require("crypto");
 
@@ -33,6 +36,25 @@ router.post(
   generateAdmitCard
 );
 
+router.post(
+  "/sendAdmitCard",
+  verifyTokenForRegistration("Student"),
+  async (req, res) => {
+    console.log("STep 1 start");
+    const {StudentsId} = req.body;
+    const response = await sendAdmitCardNotification(StudentsId);
+
+    console.log("Response from sendAdmitCardNotification", response);
+    if (response?.success) {
+      return res.status(200).json({ message: "Admit card sent successfully" , status : true});
+    } else {
+      res
+        .status(500)
+        .json({ message: "Failed to send admit card", error: response.error, status : false });
+    }
+  }
+);
+
 // router.post("/")
 router.get("/getKey", getKey);
 router.get(
@@ -47,13 +69,9 @@ router.post("/create-invoice", async (req, res) => {
 
   console.log("name contact email amount", name, contact, email, amount);
 
-
   // const amount = await RiseFee.findOne({});
 
   try {
-
-
-
     const invoice = await razorpay.invoices.create({
       type: "link",
       description: "Payment for services",
@@ -84,31 +102,30 @@ router.post("/create-invoice", async (req, res) => {
 router.post("/send-invoice", async (req, res) => {
   // const payment = req.body;
   // if (payment.event === "payment.captured") {
-    const options = {
-      method: "POST",
-      url: "https://www.fast2sms.com/dev/bulkV2",
-      headers: {
-        authorization: `${process.env.FAST2SMS_API_KEY}`,
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      data: {
-        route: "dlt",
-        sender_id: "SCHDEN",
-        message: "182187",
-        variables_values: `1234`,
-        flash: 0,
-        numbers: `9719706242`,
-        // numbers: `${findAdmission?.parentsContactNumber}`,
-      },
-    };
+  const options = {
+    method: "POST",
+    url: "https://www.fast2sms.com/dev/bulkV2",
+    headers: {
+      authorization: `${process.env.FAST2SMS_API_KEY}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    data: {
+      route: "dlt",
+      sender_id: "SCHDEN",
+      message: "182187",
+      variables_values: `1234`,
+      flash: 0,
+      numbers: `9719706242`,
+      // numbers: `${findAdmission?.parentsContactNumber}`,
+    },
+  };
 
-    // Make the API request to Fast2SMS
-    const response = await axios.post(options.url, options.data, {
-      headers: options.headers,
-    });
-    console.log("response of sms ", response);
+  // Make the API request to Fast2SMS
+  const response = await axios.post(options.url, options.data, {
+    headers: options.headers,
+  });
+  console.log("response of sms ", response);
   // }
-
 });
 
 module.exports = router;

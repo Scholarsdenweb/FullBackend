@@ -347,15 +347,13 @@ const generateAdmitCard = async (req, res) => {
     };
     // Generate admit card
     const admitCard = await processHTMLAndGenerateAdmitCards(data);
-
-    // For sending sms
-    const response = await sendAdmitCardNotification(student);
-    console.log("response from sdat process completed", response);
-
-    console.log("Admit card generated:", admitCard);
+       console.log("Admit card generated:", admitCard);
     student.admitCard = admitCard;
     const updatedStudent = await student.save();
     console.log("Updated student:", updatedStudent);
+
+  
+ 
     // Send success response
 
     // return res.redirect(`${process.env.FRONTEND_URL}/registration/payment`);
@@ -374,6 +372,14 @@ const generateAdmitCard = async (req, res) => {
     });
   }
 };
+
+
+
+
+
+
+
+
 
 // router.post("/sendVerification", async (req, res) => {
 //   try {

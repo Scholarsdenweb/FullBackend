@@ -2,6 +2,7 @@
 // WhatsApp integration for sending admit cards
 
 const axios = require("axios");
+const Students = require("../../models/Student");
 
 /**
  * Send Admit Card via WhatsApp using Twilio API
@@ -38,9 +39,9 @@ const sendAdmitCardViaTwilio = async (studentData) => {
 // Option 2: Using WATI (Indian provider, easier for WhatsApp Business)
 const sendAdmitCardViaWATI = async (studentData) => {
   try {
+    console.log("Step -3 inside the sendAdmitCardViaWATI function");
     const whatsappApi = process.env.WATI_API_URL; // e.g., https://live-server-12345.wati.io
     // const watiToken = process.env.WATI_API_TOKEN;
-
 
     console.log("watiApi", whatsappApi);
 
@@ -50,7 +51,7 @@ const sendAdmitCardViaWATI = async (studentData) => {
     console.log("formattedNumber", formattedNumber);
 
     // Prepare admit card file URL and name
-    const fileUrl = studentData?.admitCardUrl; // Ensure this is a publicly accessible URL
+    const fileUrl = studentData?.admitCard; // Ensure this is a publicly accessible URL
     const fileName = `Admit_Card_${studentData?.studentName.replace(
       /\s+/g,
       "_"
@@ -62,51 +63,18 @@ const sendAdmitCardViaWATI = async (studentData) => {
       error: null,
     };
     const studentName = studentData?.studentName || "Student";
-// const messageBody = `🎓 Your SDAT Admit Card is ready!
 
-// Dear ${studentName},
+    console.log(
+      "Step 4 before the try of sendAdmitCardViaWATI function, fileUrl, fileName",
+      fileUrl,
+      fileName
+    );
+    console.log(
+      "Step 5 before the try of sendAdmitCardViaWATI function whatsappApi",
+      whatsappApi
+    );
 
-// Please find your admit card attached.
-
-// Here are your details:
-// - Name: ${studentName}
-// - Roll Number: ${studentData?.StudentsId || "N/A"}
-// - Payment ID: ${studentData?.paymentId}
-
-// All the best! 🌟`;
-
-
-    // const response = await axios.post(
-    //   `${watiApiUrl}/api/v1/sendTemplateMessage`,
-    //   {
-    //     whatsappNumber: `91${studentData.contactNumber}`,
-    //     template_name: "admit_card_notification", // Create this template in WATI dashboard
-    //     broadcast_name: "SDAT Admit Card",
-    //     parameters: [
-    //       {
-    //         name: "student_name",
-    //         value: studentData.studentName,
-    //       },
-    //       {
-    //         name: "payment_id",
-    //         value: studentData.paymentId,
-    //       },
-    //       {
-    //         name: "amount",
-    //         value: studentData.amount.toString(),
-    //       },
-    //     ],
-    //   },
-    //   {
-    //     headers: {
-    //       Authorization: `Bearer ${watiToken}`,
-    //       "Content-Type": "application/json",
-    //     },
-    //   }
-    // );
-
-
-  try {
+    try {
       const response = await axios.post(
         "https://backend.api-wa.co/campaign/myoperator/api/v2",
         {
@@ -117,7 +85,7 @@ const sendAdmitCardViaWATI = async (studentData) => {
           templateParams: [],
           source: "new-landing-page form",
           media: {
-            url: studentData?.admitCard,
+            url: fileUrl,
             filename: fileName,
           },
           buttons: [],
@@ -126,33 +94,20 @@ const sendAdmitCardViaWATI = async (studentData) => {
           attributes: {},
         }
       );
+      console.log("Step 4 inside the try of sendAdmitCardViaWATI function");
 
       console.log("response from wati", response);
 
       result.status = "sent";
       result.responseCode = response.status;
     } catch (error) {
-      console.log("error from sendAdmitCardViaWATI",error)
+      // console.log("error from sendAdmitCardViaWATI", error);
       console.error(
         "Error sending WhatsApp message:",
         error?.response?.data || error.message
       );
       result.error = error?.response?.data || error.message;
     }
-
-
-
-
-
-    
-
-
-
-
-
-
-
-
 
     console.log("WhatsApp sent via WATI:", response.data);
     return { success: true, data: response.data };
@@ -161,21 +116,6 @@ const sendAdmitCardViaWATI = async (studentData) => {
     return { success: false, error: error.message };
   }
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 // Option 3: Using WhatsApp Business API with Document
 const sendAdmitCardWithPDF = async (studentData, pdfBuffer) => {
@@ -203,19 +143,72 @@ const sendAdmitCardWithPDF = async (studentData, pdfBuffer) => {
 };
 
 // Main function to call from payment verification
-const sendAdmitCardNotification = async (studentData) => {
+// const sendAdmitCardNotification = async (StudentsId) => {
+//   try {
+//     // Choose your preferred method
+//     // const result = await sendAdmitCardViaTwilio(studentData);
+
+//     console.log("STep 2 start enter in the sendAdmitCardNotification");
+
+//     const studentData = Students.find({ StudentsId });
+
+//     console.log("Student from whatsapp service", studentData);
+
+//     const result = await sendAdmitCardViaWATI(studentData);
+
+//     console.log("Result from sendAdmitCardViaWATI", result);
+//     // const result = await sendAdmitCardWithPDF(studentData, pdfBuffer);
+
+//     if (result.success) {
+//       // Update student record that WhatsApp was sent
+
+//       console.log("RESULT in whatsapp service IS SUCCESS ");
+//       const Student = require("../models/Student");
+//       await Student.findByIdAndUpdate(studentData.studentId, {
+//         admit_card_sent: true,
+//         whatsapp_sent_date: new Date(),
+//       });
+//     }
+
+//     return result;
+//   } catch (error) {
+//     console.error("Error in sendAdmitCardNotification:", error);
+//     return { success: false, error: error.message };
+//   }
+// };
+
+const sendAdmitCardNotification = async (StudentsId) => {
   try {
-    // Choose your preferred method
-    // const result = await sendAdmitCardViaTwilio(studentData);
+    console.log("Step 2 start enter in the sendAdmitCardNotification");
+
+    // Fix 1: Use findOne instead of find, and await it
+    const studentData = await Students.findOne({ StudentsId });
+
+    // Fix 2: Check if student exists
+    if (!studentData) {
+      console.log("Student not found with StudentsId:", StudentsId);
+      return { success: false, error: "Student not found" };
+    }
+
+    console.log("Student from whatsapp service", studentData);
+
     const result = await sendAdmitCardViaWATI(studentData);
-    // const result = await sendAdmitCardWithPDF(studentData, pdfBuffer);
+    console.log("Result from sendAdmitCardViaWATI", result);
 
     if (result.success) {
-      // Update student record that WhatsApp was sent
-      const Student = require("../models/Student");
-      await Student.findByIdAndUpdate(studentData.studentId, {
-        admit_card_sent: true,
-        whatsapp_sent_date: new Date(),
+      console.log("RESULT in whatsapp service IS SUCCESS");
+
+      // Fix 3: Update using _id instead of non-existent studentId field
+      // Fix 4: Update the correct field name from schema (messageStatus.admitCardSend)
+      // await Students.findByIdAndUpdate(studentData._id, {
+      //   "messageStatus.admitCardSend": true,
+      //   // If you want to track when it was sent, you'll need to add a field to your schema
+      //   // For now, the timestamps will be updated automatically
+      // });
+
+      await Students.findByIdAndUpdate(studentData._id, {
+        "messageStatus.admitCardSend": true,
+        "messageStatus.admitCardSentDate": new Date(),
       });
     }
 
@@ -235,16 +228,16 @@ module.exports = {
 
 /*
  * ENVIRONMENT VARIABLES NEEDED (.env file):
- * 
+ *
  * For Twilio:
  * TWILIO_ACCOUNT_SID=your_account_sid
  * TWILIO_AUTH_TOKEN=your_auth_token
  * TWILIO_WHATSAPP_NUMBER=whatsapp:+14155238886
- * 
+ *
  * For WATI:
  * WATI_API_URL=https://live-server-xxxxx.wati.io
  * WATI_API_TOKEN=your_wati_token
- * 
+ *
  * INSTALLATION:
  * npm install twilio
  */

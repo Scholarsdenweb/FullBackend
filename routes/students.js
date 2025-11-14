@@ -36,6 +36,71 @@ const FamilyDetails = require("../models/form/FamilyDetails");
 
 const allowedAdmins = ["9719706242", "9068833360"];
 
+
+
+
+
+
+
+// Route: GET /api/students/with-id
+router.get("/with-id", async (req, res) => {
+  try {
+    const { page = 1, limit = 10, classFilter } = req.query;
+
+    // Build query
+    const query = {
+      StudentsId: { $exists: true, $ne: null },
+    };
+
+    // Get batch details if class filter is provided
+    let studentIds = null;
+    if (classFilter) {
+      const BatchRelatedDetails = mongoose.model("BatchRelatedDetails");
+      const batches = await BatchRelatedDetails.find({
+        classForAdmission: classFilter,
+      }).select("student_id");
+      
+      studentIds = batches.map((b) => b.student_id);
+      query._id = { $in: studentIds };
+    }
+
+    // Pagination
+    const skip = (page - 1) * limit;
+
+    // Fetch students
+    const students = await Students.find(query)
+      .select("StudentsId studentName email contactNumber createdAt")
+      .sort({ StudentsId: 1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    // Get total count
+    const total = await Students.countDocuments(query);
+
+    return res.status(200).json({
+      success: true,
+      message: "Students with StudentsId fetched successfully",
+      data: students,
+      pagination: {
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(total / limit),
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching students:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message,
+    });
+  }
+});
+
+
+
+
 router.get(
   "/",
   verifyTokenForRegistration("hr"),

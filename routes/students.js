@@ -335,7 +335,7 @@ router.post("/deleteStudentByNumber", async (req, res) => {
       BatchRelatedDetails.deleteMany({ student_id: { $in: studentObjectIds } }),
       FamilyDetails.deleteMany({ student_id: { $in: studentObjectIds } }),
       EducationalDetails.deleteMany({ student_id: { $in: studentObjectIds } }),
-      Payment.deleteMany({ studentId: { $in: studentUniqueIds } }),
+      Payment.deleteMany({ studentId: { $in: studentObjectIds } }),
     ]);
 
     // Delete the students themselves

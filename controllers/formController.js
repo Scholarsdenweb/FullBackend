@@ -32,32 +32,32 @@ const addForm = async (Model, req, res) => {
 
     console.log("MOdel from addForm", Model.modelName);
 
-    if (Model.modelName === "FamilyDetails") {
-      console.log("FamilyDetails is working");
-      const batchDetails = await BatchRelatedDetails.findOne({
-        student_id: req.user._id,
-      });
-      if (!batchDetails) {
-        return res
-          .status(404)
-          .json({ success: false, message: "Batch Details not found" });
-      }
+    // if (Model.modelName === "FamilyDetails") {
+    //   console.log("FamilyDetails is working");
+    //   const batchDetails = await BatchRelatedDetails.findOne({
+    //     student_id: req.user._id,
+    //   });
+    //   if (!batchDetails) {
+    //     return res
+    //       .status(404)
+    //       .json({ success: false, message: "Batch Details not found" });
+    //   }
 
-      const newStudentsId = await Students.allocateStudentsId(
-        batchDetails.classForAdmission
-      );
-      console.log("Allocated StudentsId:", newStudentsId);
+    //   const newStudentsId = await Students.allocateStudentsId(
+    //     batchDetails.classForAdmission
+    //   );
+    //   console.log("Allocated StudentsId:", newStudentsId);
 
 
 
-      // Update the student document
-      await Students.findByIdAndUpdate(
-        req.user._id,
-        { StudentsId: newStudentsId },
-        { new: true }
-      );
+    //   // Update the student document
+    //   await Students.findByIdAndUpdate(
+    //     req.user._id,
+    //     { StudentsId: newStudentsId },
+    //     { new: true }
+    //   );
 
-    }
+    // }
 
 
 
@@ -82,32 +82,32 @@ const updateForm = async (Model, req, res) => {
     
     console.log("MOdel from addForm", Model.modelName);
 
-    if (Model.modelName === "FamilyDetails") {
-      console.log("FamilyDetails is working");
-      const batchDetails = await BatchRelatedDetails.findOne({
-        student_id: req.user._id,
-      });
-      if (!batchDetails) {
-        return res
-          .status(404)
-          .json({ success: false, message: "Batch Details not found" });
-      }
+    // if (Model.modelName === "FamilyDetails") {
+    //   console.log("FamilyDetails is working");
+    //   const batchDetails = await BatchRelatedDetails.findOne({
+    //     student_id: req.user._id,
+    //   });
+    //   if (!batchDetails) {
+    //     return res
+    //       .status(404)
+    //       .json({ success: false, message: "Batch Details not found" });
+    //   }
 
-      const newStudentsId = await Students.allocateStudentsId(
-        batchDetails.classForAdmission
-      );
-      console.log("Allocated StudentsId:", newStudentsId);
+    //   const newStudentsId = await Students.allocateStudentsId(
+    //     batchDetails.classForAdmission
+    //   );
+    //   console.log("Allocated StudentsId:", newStudentsId);
 
 
 
-      // Update the student document
-      await Students.findByIdAndUpdate(
-        req.user._id,
-        { StudentsId: newStudentsId },
-        { new: true }
-      );
+    //   // Update the student document
+    //   await Students.findByIdAndUpdate(
+    //     req.user._id,
+    //     { StudentsId: newStudentsId },
+    //     { new: true }
+    //   );
 
-    }
+    // }
 
 
 

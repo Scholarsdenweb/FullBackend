@@ -171,6 +171,9 @@ const paymentVerification = async (req, res) => {
   try {
     await session.startTransaction();
 
+
+    console.log("req.body in paymentVerification", req.body);
+
     const {
       razorpay_payment_id,
       razorpay_order_id,
@@ -249,6 +252,21 @@ const paymentVerification = async (req, res) => {
       },
       { session, new: true }
     );
+
+    const paymentRecord = new Payment({
+      razorpay_payment_id,
+      razorpay_order_id,
+      razorpay_signature,
+      studentId,
+      StudentsId: studentsId,
+      payment_amount,
+      payment_status: "success",
+      payment_date: new Date(),
+    });
+
+    await paymentRecord.save({ session });
+
+    console.log("Payment record created:", paymentRecord._id);
 
     await session.commitTransaction();
 

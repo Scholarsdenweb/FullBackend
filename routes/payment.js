@@ -6,8 +6,9 @@ const {
   generateAdmitCard,
 } = require("../controllers/payment");
 
-
-const { sendAdmitCardNotification } = require("../utils/services/whatsappService");
+const {
+  sendAdmitCardNotification,
+} = require("../utils/services/whatsappService");
 
 const Razorpay = require("razorpay");
 const crypto = require("crypto");
@@ -41,16 +42,26 @@ router.post(
   verifyTokenForRegistration("Student"),
   async (req, res) => {
     console.log("STep 1 start");
-    const {StudentsId} = req.body;
-    const response = await sendAdmitCardNotification(StudentsId);
+    const { studentId } = req.body;
+
+    console.log("STep 2 before body", req.body);
+
+    console.log("STep 2 after body", studentId);
+    const response = await sendAdmitCardNotification(studentId);
 
     console.log("Response from sendAdmitCardNotification", response);
     if (response?.success) {
-      return res.status(200).json({ message: "Admit card sent successfully" , status : true});
+      return res
+        .status(200)
+        .json({ message: "Admit card sent successfully", status: true });
     } else {
       res
         .status(500)
-        .json({ message: "Failed to send admit card", error: response.error, status : false });
+        .json({
+          message: "Failed to send admit card",
+          error: response.error,
+          status: false,
+        });
     }
   }
 );

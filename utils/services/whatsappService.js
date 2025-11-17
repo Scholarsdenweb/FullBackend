@@ -3,6 +3,10 @@
 
 const axios = require("axios");
 const Students = require("../../models/Student");
+const ExamDate = require("../../models/ExamDate");
+const BasicDetails = require("../../models/form/BasicDetails");
+const Amount = require("../../models/Amount");
+const Payment = require("../../models/form/Payment");
 
 /**
  * Send Admit Card via WhatsApp using Twilio API
@@ -45,6 +49,13 @@ const sendAdmitCardViaWATI = async (studentData) => {
 
     console.log("watiApi", whatsappApi);
 
+    const examDate = await BasicDetails.findOne({
+      student_id: studentData._id,
+    });
+    const paidAmount = await Payment.findOne({ studentId: studentData._id });
+    console.log("examDate in whatsapp service", examDate);
+    console.log("paidAmount in whatsapp service", paidAmount);
+
     console.log("studentData in whatsapp service", studentData);
     const formattedNumber = `91${studentData?.contactNumber}`;
 
@@ -79,10 +90,15 @@ const sendAdmitCardViaWATI = async (studentData) => {
         "https://backend.api-wa.co/campaign/myoperator/api/v2",
         {
           apiKey: whatsappApi,
-          campaignName: "ReRise_Result",
+          campaignName: "Admit_Card_OF_SDAt",
           destination: formattedNumber,
           userName: "Scholars Den",
-          templateParams: [],
+          templateParams: [
+            studentData.studentName,
+            studentData.StudentsId,
+            examDate?.examDate || "Not Specified",
+            `₹${paidAmount?.payment_amount}` || "Not Specified",
+          ],
           source: "new-landing-page form",
           media: {
             url: fileUrl,
@@ -96,7 +112,9 @@ const sendAdmitCardViaWATI = async (studentData) => {
       );
       console.log("Step 4 inside the try of sendAdmitCardViaWATI function");
 
-      console.log("response from wati", response);
+      // console.log("response from wati", response);
+
+      console.log("WhatsApp message sent via WATI:", response.data);
 
       result.status = "sent";
       result.responseCode = response.status;
@@ -109,8 +127,8 @@ const sendAdmitCardViaWATI = async (studentData) => {
       result.error = error?.response?.data || error.message;
     }
 
-    console.log("WhatsApp sent via WATI:", response.data);
-    return { success: true, data: response.data };
+    // console.log("WhatsApp sent via WATI:", response.data);
+    return { success: true };
   } catch (error) {
     console.error("Error sending WhatsApp via WATI:", error);
     return { success: false, error: error.message };
@@ -177,47 +195,182 @@ const sendAdmitCardWithPDF = async (studentData, pdfBuffer) => {
 //   }
 // };
 
+// const sendAdmitCardNotification = async (StudentsId) => {
+//   try {
+//     console.log("Step 2 start enter in the sendAdmitCardNotification");
+
+//     // Fix 1: Use findOne instead of find, and await it
+//     const studentData = await Students.findOne({ StudentsId });
+
+//     // Fix 2: Check if student exists
+//     if (!studentData) {
+//       console.log("Student not found with StudentsId:", StudentsId);
+//       return { success: false, error: "Student not found" };
+//     }
+
+//     console.log("Student from whatsapp service", studentData);
+
+//     const result = await sendAdmitCardViaWATI(studentData);
+//     console.log("Result from sendAdmitCardViaWATI", result);
+
+//     if (result.success) {
+//       console.log("RESULT in whatsapp service IS SUCCESS");
+
+//       // Fix 3: Update using _id instead of non-existent studentId field
+//       // Fix 4: Update the correct field name from schema (messageStatus.admitCardSend)
+//       // await Students.findByIdAndUpdate(studentData._id, {
+//       //   "messageStatus.admitCardSend": true,
+//       //   // If you want to track when it was sent, you'll need to add a field to your schema
+//       //   // For now, the timestamps will be updated automatically
+//       // });
+
+//       await Students.findByIdAndUpdate(studentData._id, {
+//         "messageStatus.admitCardSend": true,
+//         "messageStatus.admitCardSentDate": new Date(),
+//       });
+//     }
+
+//     return result;
+//   } catch (error) {
+//     console.error("Error in sendAdmitCardNotification:", error);
+//     return { success: false, error: error.message };
+//   }
+// };
+
+/**
+ * Sends admit card notification via WhatsApp and updates student record
+ * @param {string} StudentsId - The unique student identifier
+ * @returns {Promise<Object>} Result object with success status and error if any
+ */
 const sendAdmitCardNotification = async (StudentsId) => {
   try {
-    console.log("Step 2 start enter in the sendAdmitCardNotification");
+    console.log(
+      "Step 2: Entering sendAdmitCardNotification for StudentsId:",
+      StudentsId
+    );
 
-    // Fix 1: Use findOne instead of find, and await it
-    const studentData = await Students.findOne({ StudentsId });
 
-    // Fix 2: Check if student exists
+    
+    // Validate input
+    if (!StudentsId || typeof StudentsId !== "string") {
+      console.error("Invalid StudentsId provided:", StudentsId);
+      return {
+        success: false,
+        error: "Invalid StudentsId provided",
+      };
+    }
+
+    // Fetch student data
+    const studentData = await Students.findOne({ StudentsId }).lean();
+
+    // Check if student exists
     if (!studentData) {
       console.log("Student not found with StudentsId:", StudentsId);
-      return { success: false, error: "Student not found" };
+      return {
+        success: false,
+        error: "Student not found",
+      };
     }
 
-    console.log("Student from whatsapp service", studentData);
+    console.log("Student found:", {
+      StudentsId: studentData.StudentsId,
+      studentName: studentData.studentName,
+      contactNumber: studentData.contactNumber,
+    });
 
+    // Check if admit card was already sent
+    if (studentData?.messageStatus?.admitCardSend) {
+      console.log("Admit card already sent to student:", StudentsId);
+      return {
+        success: true,
+        message: "Admit card was already sent",
+        alreadySent: true,
+        sentDate: studentData.messageStatus.admitCardSentDate,
+      };
+    }
+
+    // Validate required fields for sending admit card
+    if (!studentData.contactNumber) {
+      console.error("Student missing contact number:", StudentsId);
+      return {
+        success: false,
+        error: "Student contact number not found",
+      };
+    }
+
+    if (!studentData.admitCard) {
+      console.error("Student missing admit card:", StudentsId);
+      return {
+        success: false,
+        error: "Admit card not generated for this student",
+      };
+    }
+
+    // Send admit card via WATI
+    console.log("Sending admit card via WATI...");
     const result = await sendAdmitCardViaWATI(studentData);
-    console.log("Result from sendAdmitCardViaWATI", result);
 
+    console.log("Result from sendAdmitCardViaWATI:", {
+      success: result.success,
+      message: result.message || result.error,
+    });
+
+    // Update student record if notification was successful
     if (result.success) {
-      console.log("RESULT in whatsapp service IS SUCCESS");
+      console.log("Updating student record for successful notification");
 
-      // Fix 3: Update using _id instead of non-existent studentId field
-      // Fix 4: Update the correct field name from schema (messageStatus.admitCardSend)
-      // await Students.findByIdAndUpdate(studentData._id, {
-      //   "messageStatus.admitCardSend": true,
-      //   // If you want to track when it was sent, you'll need to add a field to your schema
-      //   // For now, the timestamps will be updated automatically
-      // });
+      const updateResult = await Students.findByIdAndUpdate(
+        studentData._id,
+        {
+          $set: {
+            "messageStatus.admitCardSend": true,
+            "messageStatus.admitCardSentDate": new Date(),
+          },
+        },
+        {
+          new: true, // Return updated document
+          runValidators: true, // Run schema validators
+        }
+      );
 
-      await Students.findByIdAndUpdate(studentData._id, {
-        "messageStatus.admitCardSend": true,
-        "messageStatus.admitCardSentDate": new Date(),
-      });
+      if (!updateResult) {
+        console.error("Failed to update student record");
+        return {
+          success: false,
+          error: "Notification sent but failed to update database",
+        };
+      }
+
+      console.log("Student record updated successfully");
+
+      return {
+        success: true,
+        message: "Admit card notification sent successfully",
+        sentDate: updateResult.messageStatus.admitCardSentDate,
+        studentName: updateResult.studentName,
+      };
     }
 
+    // Notification failed
+    console.error("Failed to send admit card notification:", result.error);
     return result;
   } catch (error) {
-    console.error("Error in sendAdmitCardNotification:", error);
-    return { success: false, error: error.message };
+    console.error("Error in sendAdmitCardNotification:", {
+      StudentsId,
+      error: error.message,
+      stack: error.stack,
+    });
+
+    return {
+      success: false,
+      error: error.message || "An unexpected error occurred",
+    };
   }
 };
+
+
+
+module.exports = { sendAdmitCardNotification };
 
 module.exports = {
   sendAdmitCardViaTwilio,

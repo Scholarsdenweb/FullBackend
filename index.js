@@ -22,7 +22,14 @@ app.use(cookieParser());
 
 // 2. CORS Configuration - ONLY ONCE!
 app.use(cors({
-  origin: 'https://registration.scholarsden.in', // Your frontend URL
+  origin: [
+    'https://registration.scholarsden.in',
+    'https://www.scholarsden.in',
+    'https://scholarsden.in',
+    'https://enquiry.scholarsden.in',
+    'https://admissionform.scholarsden.in',
+    'http://localhost:5173', // Vite default port
+  ], // Your frontend URL
   credentials: true, // ESSENTIAL for cookies
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],

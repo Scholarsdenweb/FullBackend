@@ -22,7 +22,7 @@ app.use(cookieParser());
 
 // 2. CORS Configuration - ONLY ONCE!
 app.use(cors({
-  origin: 'http://localhost:5173', // Your frontend URL
+  origin: 'https://registration.scholarsden.in', // Your frontend URL
   credentials: true, // ESSENTIAL for cookies
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],

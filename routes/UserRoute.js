@@ -1,18 +1,36 @@
 const express = require("express");
 const User = require("../models/UserModel");
 const OtpStore = require("../models/OtpStore");
-const axios = require("axios");
+
+const fetch = require("node-fetch");
 
 const sendSDATReminder = require("../utils/sendSDATReminder");
+
+const JWT_SECRET = process.env.JWT_SECRET || "default-secret-key";
+const JWT_EXPIRE = process.env.JWT_EXPIRE || "7d";
+const NODE_ENV = process.env.NODE_ENV || "development";
 
 const router = express.Router();
 require("dotenv").config();
 
-const JWT_SECRET = process.env.JWT_SECRET;
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const { verifyToken } = require("../middleware/authentication");
 const { enquirySubmitionTemplate } = require("../utils/smsTemplates");
+
+const setAuthCookie = (res, token) => {
+  res.cookie("authToken", token, {
+    httpOnly: true,
+    secure: NODE_ENV === "production",
+    sameSite: NODE_ENV === "production" ? "strict" : "lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    path: "/",
+  });
+};
+
+const generateToken = (payload) => {
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRE });
+};
 
 router.post("/", async (req, res) => {
   try {
@@ -36,10 +54,19 @@ router.post("/", async (req, res) => {
     console.log("JWT_SECRET", JWT_SECRET);
 
     // Generate token
-    const token = jwt.sign(
-      { _id: newUser._id, fatherContactNumber: newUser.fatherContactNumber },
-      JWT_SECRET
-    );
+    // const token = jwt.sign(
+    //   { _id: newUser._id, fatherContactNumber: newUser.fatherContactNumber },
+    //   JWT_SECRET
+    // );
+
+    const token = generateToken({
+      _id: newUser._id,
+      fatherContactNumber: newUser.fatherContactNumber,
+    });
+
+    console.log("Generated Token", token);
+
+    setAuthCookie(res, token);
 
     console.log("Token", token);
     res.status(200).send({ token, newUser });
@@ -177,6 +204,7 @@ router.patch("/putFormData", verifyToken(), async (req, res) => {
   try {
     const {
       studentName,
+      email,
       studentContactNumber,
       program,
       courseOfIntrested,
@@ -203,6 +231,7 @@ router.patch("/putFormData", verifyToken(), async (req, res) => {
       {
         studentName,
         studentContactNumber,
+        email,
         program,
         courseOfIntrested,
         schoolName,
@@ -523,6 +552,34 @@ router.post("/fetchDataByDateRange", async (req, res) => {
   } catch (error) {
     console.error("Error fetching data by date range:", error);
     return res.status(500).json({ error: "Server error" });
+  }
+});
+
+router.post("/zoho/leads", async (req, res) => {
+  console.log("This is working /zoho/leads ", req.body);
+  try {
+    const url = "https://www.zohoapis.com/crm/v7/Leads";
+
+    console.log("Request Body:", req.body);
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization:
+          "Zoho-oauthtoken 1000.854fa78cac2fd0b695284d050c3cfd9d.033c8af32a8098db42c8482beb46a672",
+      },
+      body: JSON.stringify(req.body),
+    });
+
+    const data = await response.json();
+
+    console.log("Zoho Response Data:", data);
+    res
+      .status(200)
+      .json({ data: data, message: "Lead created successfully in Zoho CRM" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 

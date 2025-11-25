@@ -100,7 +100,7 @@ const studentSignup = async (req, res) => {
     const existingStudent = await Student.find({ contactNumber });
 
     // if (false) {
-    if (existingStudent.length>0) {
+    if (existingStudent.length > 0) {
       console.log("✅ Student already exists:", contactNumber);
       console.log("✅ Student already exists:", existingStudent);
 
@@ -124,7 +124,7 @@ const studentSignup = async (req, res) => {
         fatherContactNumber: contactNumber,
       });
 
-      if (enquiryStudent.length>0) {
+      if (enquiryStudent.length > 0) {
         console.log("✅ Student exists in enquiry form:", contactNumber);
         console.log("✅ Student exists in enquiry form:", enquiryStudent);
 
@@ -140,7 +140,7 @@ const studentSignup = async (req, res) => {
           message:
             "Student found in enquiry records. Complete your registration!",
           token,
-          student:enquiryStudent,
+          student: enquiryStudent,
           isNewStudent: false,
         });
       }
@@ -358,6 +358,9 @@ const adminLogin = async (req, res) => {
         message: "Invalid contact number",
       });
     }
+
+    const allAdmins = await Admin.find();
+    console.log("All admins:", allAdmins);
 
     // ====== FIND ADMIN ======
     const admin = await Admin.findOne({ contactNumber });

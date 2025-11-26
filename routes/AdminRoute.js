@@ -75,11 +75,13 @@ router.post("/getEnquiryData", async (req, res) => {
     let totalStudents;
     if (email === "jatin@scholarsden.in") {
       nextPageData = await User.find()
+        .sort({ createdAt: -1 })
         .skip(skip + limit)
         .limit(limit);
       totalStudents = await User.countDocuments();
     } else {
       nextPageData = await User.find({ enquiryTakenBy: email })
+        .sort({ createdAt: -1 })
         .skip(skip + limit)
         .limit(limit);
 
@@ -89,6 +91,12 @@ router.post("/getEnquiryData", async (req, res) => {
     const isLastPage = nextPageData.length === 0; // If nextPageData is empty, it's the last page
 
     const totalPages = Math.ceil(totalStudents / limit);
+
+    console.log("data from getEnquiryData", data);
+
+
+
+    
     res.status(200).json({
       data,
       currentPage: page,
@@ -287,8 +295,5 @@ function formatStudent(student) {
     howToKnow: student.howToKnow,
   };
 }
-
-
-
 
 module.exports = router;

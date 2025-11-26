@@ -56,18 +56,18 @@ const UserSchema = new mongoose.Schema(
     // brochureGiven: {
     //     type: String,
     // },
-    createdAt: {
-      type: "String",
-      default: () => new Date().toISOString(),
-    },
-    updatedAt: {
-      type: "String",
-      default: () => new Date().toISOString(),
-    },
+    // createdAt: {
+    //   type: "String",
+    //   default: () => new Date().toISOString(),
+    // },
+    // updatedAt: {
+    //   type: "String",
+    //   default: () => new Date().toISOString(),
+    // },
   },
-//   {
-//     timestamps: true,
-//   }
+  {
+    timestamps: true,
+  }
 );
 
 UserSchema.pre("save", function (next) {

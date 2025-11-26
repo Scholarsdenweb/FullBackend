@@ -31,18 +31,25 @@ const validateEmail = (email) => {
 };
 
 // ====== JWT & COOKIE HELPERS ======
+// ====== JWT & COOKIE HELPERS ======
 const generateToken = (payload) => {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRE });
 };
 
+// Remove async - res.cookie is synchronous
 const setAuthCookie = (res, token) => {
-  res.cookie("authToken", token, {
-    httpOnly: true,
-    secure: NODE_ENV === "production",
-    sameSite: NODE_ENV === "production" ? "strict" : "lax",
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    path: "/",
-  });
+  try {
+    res.cookie("authToken", token, {
+      httpOnly: true,
+      secure: false, // ⬅️ FALSE for localhost (no HTTPS)
+      sameSite: "lax", // ⬅️ "lax" for localhost
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      path: "/",
+    });
+    console.log("✅ Auth cookie set successfully");
+  } catch (error) {
+    console.error("❌ Error setting auth cookie:", error);
+  }
 };
 
 // ====== NODEMAILER TRANSPORTER ======
@@ -359,9 +366,6 @@ const adminLogin = async (req, res) => {
       });
     }
 
-    const allAdmins = await Admin.find();
-    console.log("All admins:", allAdmins);
-
     // ====== FIND ADMIN ======
     const admin = await Admin.findOne({ contactNumber });
     if (!admin) {
@@ -381,6 +385,13 @@ const adminLogin = async (req, res) => {
     });
 
     setAuthCookie(res, token);
+     res.cookie("phone", admin.contactNumber, {
+      // httpOnly: true,
+      secure: false, // ⬅️ FALSE for localhost (no HTTPS)
+      sameSite: "lax", // ⬅️ "lax" for localhost
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      path: "/",
+    });
 
     res.status(200).json({
       success: true,

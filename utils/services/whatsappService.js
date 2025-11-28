@@ -41,49 +41,148 @@ const sendAdmitCardViaTwilio = async (studentData) => {
 };
 
 // Option 2: Using WATI (Indian provider, easier for WhatsApp Business)
+// const sendAdmitCardViaWATI = async (studentData) => {
+//   try {
+//     console.log("Step -3 inside the sendAdmitCardViaWATI function");
+//     const whatsappApi = process.env.WATI_API_URL; // e.g., https://live-server-12345.wati.io
+//     // const watiToken = process.env.WATI_API_TOKEN;
+
+//     console.log("watiApi", whatsappApi);
+
+//     const examDate = await BasicDetails.findOne({
+//       student_id: studentData._id,
+//     });
+//     const paidAmount = await Payment.findOne({ studentId: studentData._id });
+//     console.log("examDate in whatsapp service", examDate);
+//     console.log("paidAmount in whatsapp service", paidAmount);
+
+//     console.log("studentData in whatsapp service", studentData);
+//     const formattedNumber = `91${studentData?.contactNumber}`;
+
+//     console.log("formattedNumber", formattedNumber);
+
+//     // Prepare admit card file URL and name
+//     const fileUrl = studentData?.admitCard; // Ensure this is a publicly accessible URL
+//     const fileName = `Admit_Card_${studentData?.studentName.replace(
+//       /\s+/g,
+//       "_"
+//     )}.pdf`;
+
+//     let result = {
+//       status: "failed",
+//       responseCode: null,
+//       error: null,
+//     };
+//     const studentName = studentData?.studentName || "Student";
+
+//     console.log(
+//       "Step 4 before the try of sendAdmitCardViaWATI function, fileUrl, fileName",
+//       fileUrl,
+//       fileName
+//     );
+//     console.log(
+//       "Step 5 before the try of sendAdmitCardViaWATI function whatsappApi",
+//       whatsappApi
+//     );
+
+//     try {
+//       const response = await axios.post(
+//         "https://backend.api-wa.co/campaign/myoperator/api/v2",
+//         {
+//           apiKey: whatsappApi,
+//           campaignName: "Admit_Card_OF_SDAt",
+//           destination: formattedNumber,
+//           userName: "Scholars Den",
+//           templateParams: [
+//             studentData.studentName,
+//             studentData.StudentsId,
+//             examDate?.examDate || "Not Specified",
+//             `₹${paidAmount?.payment_amount}` || "Not Specified",
+//           ],
+//           source: "new-landing-page form",
+//           media: {
+//             url: fileUrl,
+//             filename: fileName,
+//           },
+//           buttons: [],
+//           carouselCards: [],
+//           location: {},
+//           attributes: {},
+//         }
+//       );
+//       console.log("Step 4 inside the try of sendAdmitCardViaWATI function");
+
+//       // console.log("response from wati", response);
+
+//       console.log("WhatsApp message sent via WATI:", response.data);
+
+//       result.status = "sent";
+//       result.responseCode = response.status;
+//     } catch (error) {
+//       // console.log("error from sendAdmitCardViaWATI", error);
+//       console.error(
+//         "Error sending WhatsApp message:",
+//         error?.response?.data || error.message
+//       );
+//       result.error = error?.response?.data || error.message;
+//     }
+
+//     // console.log("WhatsApp sent via WATI:", response.data);
+//     return { success: true };
+//   } catch (error) {
+//     console.error("Error sending WhatsApp via WATI:", error);
+//     return { success: false, error: error.message };
+//   }
+// };
+
 const sendAdmitCardViaWATI = async (studentData) => {
   try {
-    console.log("Step -3 inside the sendAdmitCardViaWATI function");
-    const whatsappApi = process.env.WATI_API_URL; // e.g., https://live-server-12345.wati.io
+    console.log("Inside sendAdmitCardViaWATI");
+
+    const whatsappApi = process.env.WATI_API_URL;
     // const watiToken = process.env.WATI_API_TOKEN;
 
-    console.log("watiApi", whatsappApi);
+    if (!whatsappApi) {
+      console.error("WATI_API_URL is missing in environment variables");
+      return { success: false, error: "WATI API URL missing" };
+    }
 
+    // Fetch required data
     const examDate = await BasicDetails.findOne({
       student_id: studentData._id,
     });
     const paidAmount = await Payment.findOne({ studentId: studentData._id });
-    console.log("examDate in whatsapp service", examDate);
-    console.log("paidAmount in whatsapp service", paidAmount);
 
-    console.log("studentData in whatsapp service", studentData);
-    const formattedNumber = `91${studentData?.contactNumber}`;
+    console.log("Exam Data:", examDate);
+    console.log("Payment Data:", paidAmount);
 
-    console.log("formattedNumber", formattedNumber);
+    if (!studentData?.contactNumber) {
+      return { success: false, error: "Student contact number missing" };
+    }
 
-    // Prepare admit card file URL and name
-    const fileUrl = studentData?.admitCard; // Ensure this is a publicly accessible URL
+    const formattedNumber = `91${studentData.contactNumber}`;
+
+    // Prepare file url and name
+    const fileUrl = studentData?.admitCard;
     const fileName = `Admit_Card_${studentData?.studentName.replace(
       /\s+/g,
       "_"
     )}.pdf`;
+
+    if (!fileUrl) {
+      return { success: false, error: "Admit card URL missing" };
+    }
+
+    const studentName = studentData?.studentName || "Student";
+
+    console.log("Sending WhatsApp message...");
+    console.log("API URL:", whatsappApi);
 
     let result = {
       status: "failed",
       responseCode: null,
       error: null,
     };
-    const studentName = studentData?.studentName || "Student";
-
-    console.log(
-      "Step 4 before the try of sendAdmitCardViaWATI function, fileUrl, fileName",
-      fileUrl,
-      fileName
-    );
-    console.log(
-      "Step 5 before the try of sendAdmitCardViaWATI function whatsappApi",
-      whatsappApi
-    );
 
     try {
       const response = await axios.post(
@@ -94,43 +193,39 @@ const sendAdmitCardViaWATI = async (studentData) => {
           destination: formattedNumber,
           userName: "Scholars Den",
           templateParams: [
-            studentData.studentName,
+            studentName,
             studentData.StudentsId,
             examDate?.examDate || "Not Specified",
-            `₹${paidAmount?.payment_amount}` || "Not Specified",
+            paidAmount?.payment_amount
+              ? `₹${paidAmount.payment_amount}`
+              : "Not Specified",
           ],
-          source: "new-landing-page form",
+          source: "new-landing-page-form",
           media: {
             url: fileUrl,
             filename: fileName,
           },
-          buttons: [],
-          carouselCards: [],
-          location: {},
-          attributes: {},
         }
       );
-      console.log("Step 4 inside the try of sendAdmitCardViaWATI function");
 
-      // console.log("response from wati", response);
-
-      console.log("WhatsApp message sent via WATI:", response.data);
+      console.log("WhatsApp message sent:", response.data);
 
       result.status = "sent";
       result.responseCode = response.status;
+
+      return { success: true, data: response.data };
     } catch (error) {
-      // console.log("error from sendAdmitCardViaWATI", error);
       console.error(
-        "Error sending WhatsApp message:",
+        "Error sending WhatsApp:",
         error?.response?.data || error.message
       );
-      result.error = error?.response?.data || error.message;
-    }
 
-    // console.log("WhatsApp sent via WATI:", response.data);
-    return { success: true };
+      result.error = error?.response?.data || error.message;
+
+      return { success: false, error: result.error };
+    }
   } catch (error) {
-    console.error("Error sending WhatsApp via WATI:", error);
+    console.error("Unexpected error in sendAdmitCardViaWATI:", error);
     return { success: false, error: error.message };
   }
 };
@@ -249,8 +344,6 @@ const sendAdmitCardNotification = async (StudentsId) => {
       StudentsId
     );
 
-
-    
     // Validate input
     if (!StudentsId || typeof StudentsId !== "string") {
       console.error("Invalid StudentsId provided:", StudentsId);
@@ -367,8 +460,6 @@ const sendAdmitCardNotification = async (StudentsId) => {
     };
   }
 };
-
-
 
 module.exports = { sendAdmitCardNotification };
 

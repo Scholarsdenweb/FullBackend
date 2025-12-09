@@ -2,7 +2,7 @@ const express = require("express");
 const crypto = require("crypto");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const nodemailer = require("nodemailer");
+// const nodemailer = require("nodemailer");
 require("dotenv").config();
 
 // Models
@@ -53,22 +53,22 @@ const setAuthCookie = (res, token) => {
 };
 
 // ====== NODEMAILER TRANSPORTER ======
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: EMAIL_USER,
-    pass: EMAIL_PASS, // Use App Password for Gmail
-  },
-});
+// const transporter = nodemailer.createTransport({
+//   service: "gmail",
+//   auth: {
+//     user: EMAIL_USER,
+//     pass: EMAIL_PASS, // Use App Password for Gmail
+//   },
+// });
 
-// Verify transporter
-transporter.verify((error, success) => {
-  if (error) {
-    console.error("❌ Email transporter error:", error.message);
-  } else {
-    console.log("✅ Email transporter ready");
-  }
-});
+// // Verify transporter
+// transporter.verify((error, success) => {
+//   if (error) {
+//     console.error("❌ Email transporter error:", error.message);
+//   } else {
+//     console.log("✅ Email transporter ready");
+//   }
+// });
 
 // ====== PASSWORD HELPERS ======
 const hashPassword = async (password) => {

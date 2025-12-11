@@ -76,7 +76,7 @@ router.post("/filterAdmissionApproval", async (req, res) => {
   try {
     const { status, acknowledgementNumber } = req.body;
     const page = parseInt(req.query.page) || 1; // Default to page 1
-    const limit = 3;
+    const limit = 10;
     const skip = (page - 1) * limit;
     console.log("req.body", req.body);
     console.log("req.query", req.query);
@@ -181,7 +181,7 @@ router.post("/editAdmissionApproval", async (req, res) => {
 router.get("/completedApproval", admissionAdmin, async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1; // Default to page 1
-    const limit = 3;
+    const limit = 10;
     const skip = (page - 1) * limit;
 
     const total = await AdmissionApproval.countDocuments({
@@ -209,7 +209,7 @@ router.get("/pendingApproval", async (req, res) => {
   console.log("pending Approval function is working");
   try {
     const page = parseInt(req.query.page) || 1; // Default to page 1
-    const limit = 3;
+    const limit = 10;
     const skip = (page - 1) * limit;
 
     const total = await AdmissionApproval.countDocuments({
@@ -242,7 +242,7 @@ router.get("/pendingApproval", async (req, res) => {
 router.get("/rejectedApproval", admissionAdmin, async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1; // Default to page 1
-    const limit = 3;
+    const limit = 10;
     const skip = (page - 1) * limit;
 
     const total = await AdmissionApproval.countDocuments({
@@ -269,7 +269,7 @@ router.get("/rejectedApproval", admissionAdmin, async (req, res) => {
 router.get("/notApproved", admissionAdmin, async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1; // Default to page 1
-    const limit = 3;
+    const limit = 10;
     const skip = (page - 1) * limit;
 
     const total = await AdmissionApproval.countDocuments({
@@ -297,7 +297,7 @@ router.get("/paid", admissionAdmin, async (req, res) => {
   try {
     console.log("page in paid ", req.query);
     const page = parseInt(req.query.page) || 1;
-    const limit = 3;
+    const limit = 10;
     const skip = (page - 1) * limit;
 
     const total = await AdmissionApproval.countDocuments({
@@ -330,7 +330,7 @@ router.post("/consellor-assign", admissionAdmin, async (req, res) => {
     const { consellorAssign, acknowledgementNumber } = req.body;
 
     const page = parseInt(req.query.page) || 1;
-    const limit = 3;
+    const limit = 10;
     const skip = (page - 1) * limit;
 
     const assignedCounsellor = await AdmissionApproval.findOneAndUpdate(
@@ -360,7 +360,7 @@ router.get("/approvalByAssignedConsellor", admissionAdmin, async (req, res) => {
     console.log("req.admin", req.admin);
     const { _id } = req.admin;
     const page = parseInt(req.query.page) || 1; // Default to page 1
-    const limit = 3;
+    const limit = 10;
     const skip = (page - 1) * limit;
 
     const total = await AdmissionApproval.countDocuments({

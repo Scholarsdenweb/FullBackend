@@ -35,8 +35,11 @@ require("dotenv").config();
 const extractAndVerifyToken = (req) => {
   let token = null;
 
+console.log("extractAndVerifyToken called", req.headers.cookie);
+
+
   // Try Authorization header first (for API clients)
-  const authHeader = req.headers.authorization;
+  const authHeader = req.cookies.authToken;
 
   console.log("Authorization Header:", req.headers);
   console.log("Authorization Header:", authHeader);

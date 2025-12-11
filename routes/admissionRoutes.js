@@ -10,6 +10,10 @@ const {
   verifyTokenForExistingAdmission,
 } = require("../middleware/authentication.js");
 
+const JWT_SECRET = process.env.JWT_SECRET || "default-secret-key";
+const JWT_EXPIRE = process.env.JWT_EXPIRE || "7d";
+const NODE_ENV = process.env.NODE_ENV || "development";
+
 const axios = require("axios");
 
 const multer = require("multer");
@@ -47,6 +51,20 @@ const upload = multer({
     }
   },
 });
+
+const setAuthCookie = (res, token) => {
+  res.cookie("authToken", token, {
+    httpOnly: true,
+    secure: NODE_ENV === "production",
+    sameSite: NODE_ENV === "production" ? "strict" : "lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    path: "/",
+  });
+};
+
+const generateToken = (payload) => {
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRE });
+};
 
 // router.post(
 //   "/getStudentByPhone",
@@ -144,6 +162,8 @@ router.post("/createAdmission", async (req, res) => {
   try {
     const { fatherContactNumber } = req.body;
 
+    // IT IS USED TO CHECK IN ENQUIRY AND STUDENT DATABASE FOR EXISTING STUDENT
+
     // const studentAvailableInEnquiry = await User.find({
     //   fatherContactNumber,
     // });
@@ -171,13 +191,13 @@ router.post("/createAdmission", async (req, res) => {
     });
 
     if (findAllAdmisssion.length > 0) {
-      const token = jwt.sign(
-        { parentsContactNumber: fatherContactNumber },
-        process.env.JWT_SECRET
-      );
+      const token = generateToken({
+        parentsContactNumber: fatherContactNumber,
+      });
+
+      setAuthCookie(res, token);
 
       return res.status(201).json({
-        token,
         message: "Student Already Exist in Admission",
         data: findAllAdmisssion,
       });

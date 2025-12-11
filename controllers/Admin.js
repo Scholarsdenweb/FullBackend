@@ -3,7 +3,31 @@ const jwt = require("jsonwebtoken");
 const Admission = require("../models/Admission");
 const AdmissionApproval = require("../models/AdmissionApproval");
 
-const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_SECRET = process.env.JWT_SECRET || "default-secret-key";
+const JWT_EXPIRE = process.env.JWT_EXPIRE || "7d";
+const NODE_ENV = process.env.NODE_ENV || "development";
+
+
+
+
+const setAuthCookie = (res, token) => {
+  res.cookie("authToken", token, {
+    httpOnly: true,
+    secure: NODE_ENV === "production",
+    sameSite: NODE_ENV === "production" ? "strict" : "lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    path: "/",
+  });
+};
+
+const generateToken = (payload) => {
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRE });
+};
+
+
+
+
+
 
 const addAdmin = async (req, res) => {
   console.log("req.body", req.body);
@@ -37,24 +61,33 @@ const adminLogin = async (req, res) => {
     return res.status(400).json("Admin already exists");
   }
   try {
-    const token = jwt.sign(
-      {
-        _id: existingAdmin._id,
-        contactNumber: existingAdmin.contactNumber,
-        role: existingAdmin.role,
-      },
-      JWT_SECRET
-    );
-    console.log("token", token);
+   const token =  generateToken({
+      _id: existingAdmin._id,
+      contactNumber: existingAdmin.contactNumber,
+      role: existingAdmin.role,
+    });
+
+
+    // const token = jwt.sign(
+    //   {
+    //     _id: existingAdmin._id,
+    //     contactNumber: existingAdmin.contactNumber,
+    //     role: existingAdmin.role,
+    //   },
+    //   JWT_SECRET
+    // );
+
+    setAuthCookie(res, token);
+    // console.log("token", token);
 
     return res.status(200).send({
-      token,
       admin: {
         contactNumber: contactNumber,
         role: existingAdmin.role,
       },
     });
   } catch (error) {
+    console.log("error", error);
     res.status(500).json("Error adding student: " + error);
   }
 };
@@ -63,6 +96,8 @@ const getAdminDetails = async (req, res) => {
   try {
     console.log("req.admin from getAdminDetails ", req.admin);
     const { contactNumber, role, _id, name, email } = req.admin;
+
+    console.log("Admin Details:", { contactNumber, role, _id, name, email });
     return res
       .status(200)
       .json({ data: { contactNumber, role, _id, name, email } });

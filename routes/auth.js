@@ -22,7 +22,10 @@ router.get("/verify", authenticateToken, (req, res) => {
 });
 
 router.post("/logout", (req, res) => {
+
+  console.log("Logout request received");
   res.clearCookie("authToken");
+  res.clearCookie("phone");
   res.json({ success: true });
 });
 router.post("/admin_login", adminLogin);

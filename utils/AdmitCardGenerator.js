@@ -672,9 +672,6 @@ const uploadToCloudinary = async (filePath, rollNumber, studentName) => {
 
 
 
-
-
-
 const compressImageForPDF = async (imageUrl) => {
   try {
     const sharp = require('sharp');
@@ -771,17 +768,6 @@ const processHTMLAndGenerateAdmitCards = async (student) => {
     }
   }
 };
-
-
-
-
-
-
-
-
-
-
-
 
 
 

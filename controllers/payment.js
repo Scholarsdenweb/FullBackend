@@ -341,14 +341,14 @@ const generateAdmitCard = async (req, res) => {
       class: batchDetails.classForAdmission,
       stream: batchDetails.program,
       examDate: basicDetails.examDate,
-      examTime: "12:00 PM",
+      examTime: "11:00 AM",
       profilePicture: student.profilePicture,
 
       paymentId: student.paymentId,
       studentId: student.StudentsId,
       FatherName: familyDetails.FatherName,
-      CenterName: "Bulding 1",
-      CenterAddress: "Near Qila, Kanth Road Moradabad, Uttar Pradesh",
+      CenterName: "SD Campus",
+      CenterAddress: "Near Tehsil, Sonakpur Overbridge Road, Moradabad, Uttar Pradesh",
     };
     // Generate admit card
     const admitCard = await processHTMLAndGenerateAdmitCards(data);

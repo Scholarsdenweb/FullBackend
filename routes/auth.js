@@ -31,4 +31,6 @@ router.post("/logout", (req, res) => {
 router.post("/admin_login", adminLogin);
 router.post("/forget_password", requestPasswordReset);
 router.post("/reset-password/:token", resetPassword);
+
+router.post("/employee_login", adminLogin);
 module.exports = router;

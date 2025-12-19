@@ -171,12 +171,16 @@ const generateReportCardPDF = async (data, pdfFilePath) => {
     ).toFixed(1);
 
     console.log("percentage", percentage);
-    const scholarship = data.Scholarship;
+    const scholarship = data?.Scholarship?.split("%")[0]
+      ? data?.Scholarship?.split("%")[0]
+      : data.Scholarship;
 
     console.log("scholarship", scholarship);
 
     const examDate = data.examDate; // Dynamic Date
     const [day, month, year] = examDate.split(/[./]/);
+
+    console.log("Exam Date days, month, yeaR", day, month, year);
 
     const monthNames = [
       "",
@@ -731,7 +735,7 @@ gap: 10px;
               )}</p>
               <p><b>Class:</b> ${data.Class}</p>
               <p>
-                <b>Scholarship:</b> ${scholarship}% (Valid till 25th June '25)
+                <b>Scholarship:</b> ${scholarship}% (Valid till 28th Dec '25)
               </p>
               <p><b>Rank:</b> ${data.Rank}</p>
               <p><b>Percentage: </b>${percentage}%</p>
@@ -882,17 +886,12 @@ gap: 10px;
        
 
 document.getElementById('examDate').innerHTML = \`
-${"22"}
-<sup>nd</sup> ${
+${day}
+<sup>th</sup> ${
       // monthNames[parseInt(month)]
-      "June"
+      monthNames[Number(month)]
     } '${year.slice(-2)}\`;
 
-
-
-
-
-      
 
 
  const scholarshipMessageElement = document.getElementById('scholarshipMessage');

@@ -18,32 +18,32 @@ const { default: mongoose } = require("mongoose");
 
 require("dotenv").config();
 
-const checkout = async (req, res) => {
-  console.log("checkout");
-  try {
-    const amount = await Amount.findOne();
+// const checkout = async (req, res) => {
+//   console.log("checkout");
+//   try {
+//     const amount = await Amount.findOne();
 
-    console.log("amount from create-invoice", amount);
+//     console.log("amount from create-invoice", amount);
 
-    const options = {
-      amount: amount.amount * 100, // amount in the smallest currency unit
-      currency: "INR",
-      // receipt: "order_rcptid_11"
-    };
-    console.log("options", options);
-    const order = await instance.orders.create(options);
+//     const options = {
+//       amount: amount.amount * 100, // amount in the smallest currency unit
+//       currency: "INR",
+//       // receipt: "order_rcptid_11"
+//     };
+//     console.log("options", options);
+//     const order = await instance.orders.create(options);
 
-    console.log("order", order);
+//     console.log("order", order);
 
-    res.status(200).json({
-      success: true,
-      order,
-    });
-  } catch (error) {
-    console.log("checkout error");
-    console.log(error);
-  }
-};
+//     res.status(200).json({
+//       success: true,
+//       order,
+//     });
+//   } catch (error) {
+//     console.log("checkout error");
+//     console.log(error);
+//   }
+// };
 
 // const paymentVerification = async (req, res) => {
 //   try {
@@ -149,6 +149,53 @@ const checkout = async (req, res) => {
 // };
 
 // ===== HELPER FUNCTION: Verify Payment Signature =====
+
+
+const checkout = async (req, res) => {
+  console.log("checkout");
+  try {
+    const amountDoc = await Amount.findOne(); // e.g. amount = 500
+    const baseAmount = amountDoc.amount; // 500
+
+    const razorpayFeePercent = 2.36;
+
+    // Calculate amount customer should pay
+    const finalAmount = Math.ceil(
+      baseAmount / (1 - razorpayFeePercent / 100)
+    );
+
+    console.log("Base Amount:", baseAmount);
+    console.log("Customer Pays:", finalAmount);
+
+    const options = {
+      amount: finalAmount * 100, // Razorpay expects paise
+      currency: "INR",
+    };
+
+    const order = await instance.orders.create(options);
+
+    res.status(200).json({
+      success: true,
+      order,
+      breakdown: {
+        baseAmount,
+        razorpayCharges: finalAmount - baseAmount,
+        totalPayable: finalAmount,
+      },
+    });
+  } catch (error) {
+    console.log("checkout error", error);
+    res.status(500).json({ success: false });
+  }
+};
+
+
+
+
+
+
+
+
 const verifyPaymentSignature = (orderId, paymentId, signature) => {
   try {
     const generatedSignature = crypto

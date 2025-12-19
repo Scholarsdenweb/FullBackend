@@ -1148,6 +1148,7 @@ router.get("/:id", async (req, res) => {
 
     // First, find the main student record
     const student = await Students.findById(studentId).lean();
+
     if (!student) {
       return res.status(404).json({ error: "Student not found" });
     }
@@ -1160,6 +1161,12 @@ router.get("/:id", async (req, res) => {
         FamilyDetails.findOne({ student_id: studentId }).lean(),
         EducationalDetails.findOne({ student_id: studentId }).lean(),
       ]);
+
+
+          console.log("Student Data",familyDetails);
+
+
+
 
     // Combine all data into a single response object
     const response = {

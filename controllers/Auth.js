@@ -414,6 +414,74 @@ const adminLogin = async (req, res) => {
   }
 };
 
+
+
+// const adminLogin = async (req, res) => {
+//   try {
+//     const { email, password } = req.body;
+
+//     // ====== VALIDATION ======
+//     if (!email) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Contact number is required",
+//       });
+//     }
+
+//     // if (!validatePhoneNumber(contactNumber)) {
+//     //   return res.status(400).json({
+//     //     success: false,
+//     //     message: "Invalid contact number",
+//     //   });
+//     // }
+
+//     // ====== FIND ADMIN ======
+//     const admin = await Employee.findOne({ email });
+//     if (!admin) {
+//       return res.status(401).json({
+//         success: false,
+//         message: "Admin not found",
+//       });
+//     }
+
+//     console.log("✅ Admin login successful:", admin._id);
+
+//     // ====== GENERATE TOKEN ======
+//     const token = generateToken({
+//       _id: admin._id,
+//       contactNumber: admin.contactNumber,
+//       role: admin.role,
+//     });
+
+//     setAuthCookie(res, token);
+//      res.cookie("phone", admin.contactNumber, {
+//       // httpOnly: true,
+//       secure: false, // ⬅️ FALSE for localhost (no HTTPS)
+//       sameSite: "lax", // ⬅️ "lax" for localhost
+//       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+//       path: "/",
+//     });
+
+//     res.status(200).json({
+//       success: true,
+//       message: "Login successful",
+//       token,
+//       admin: {
+//         _id: admin._id,
+//         contactNumber: admin.contactNumber,
+//         email: admin.email,
+//         role: admin.role,
+//       },
+//     });
+//   } catch (error) {
+//     console.error("❌ Error in adminLogin:", error.message);
+
+//     res.status(500).json({
+//       success: false,
+//       message: "Login failed. Please try again.",
+//     });
+//   }
+// };
 // ====== REQUEST PASSWORD RESET ======
 const requestPasswordReset = async (req, res) => {
   try {

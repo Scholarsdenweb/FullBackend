@@ -347,96 +347,27 @@ const studentLogin = async (req, res) => {
 };
 
 // ====== ADMIN LOGIN ======
-const adminLogin = async (req, res) => {
-  try {
-    const { contactNumber } = req.body;
-
-    // ====== VALIDATION ======
-    if (!contactNumber) {
-      return res.status(400).json({
-        success: false,
-        message: "Contact number is required",
-      });
-    }
-
-    if (!validatePhoneNumber(contactNumber)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid contact number",
-      });
-    }
-
-    // ====== FIND ADMIN ======
-    const admin = await Admin.findOne({ contactNumber });
-    if (!admin) {
-      return res.status(401).json({
-        success: false,
-        message: "Admin not found",
-      });
-    }
-
-    console.log("✅ Admin login successful:", admin._id);
-
-    // ====== GENERATE TOKEN ======
-    const token = generateToken({
-      _id: admin._id,
-      contactNumber: admin.contactNumber,
-      role: admin.role,
-    });
-
-    setAuthCookie(res, token);
-     res.cookie("phone", admin.contactNumber, {
-      // httpOnly: true,
-      secure: false, // ⬅️ FALSE for localhost (no HTTPS)
-      sameSite: "lax", // ⬅️ "lax" for localhost
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      path: "/",
-    });
-
-    res.status(200).json({
-      success: true,
-      message: "Login successful",
-      token,
-      admin: {
-        _id: admin._id,
-        contactNumber: admin.contactNumber,
-        email: admin.email,
-        role: admin.role,
-      },
-    });
-  } catch (error) {
-    console.error("❌ Error in adminLogin:", error.message);
-
-    res.status(500).json({
-      success: false,
-      message: "Login failed. Please try again.",
-    });
-  }
-};
-
-
-
 // const adminLogin = async (req, res) => {
 //   try {
-//     const { email, password } = req.body;
+//     const { contactNumber } = req.body;
 
 //     // ====== VALIDATION ======
-//     if (!email) {
+//     if (!contactNumber) {
 //       return res.status(400).json({
 //         success: false,
 //         message: "Contact number is required",
 //       });
 //     }
 
-//     // if (!validatePhoneNumber(contactNumber)) {
-//     //   return res.status(400).json({
-//     //     success: false,
-//     //     message: "Invalid contact number",
-//     //   });
-//     // }
+//     if (!validatePhoneNumber(contactNumber)) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Invalid contact number",
+//       });
+//     }
 
 //     // ====== FIND ADMIN ======
-//     const admin = await Employee.findOne({ email });
+//     const admin = await Admin.findOne({ contactNumber });
 //     if (!admin) {
 //       return res.status(401).json({
 //         success: false,
@@ -482,7 +413,79 @@ const adminLogin = async (req, res) => {
 //     });
 //   }
 // };
+
+const adminLogin = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    console.log("adminLogin called with email:", email, password);
+
+    // ====== VALIDATION ======
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: "Email is required",
+      });
+    }
+
+    // if (!validatePhoneNumber(contactNumber)) {
+    //   return res.status(400).json({
+    //     success: false,
+    //     message: "Invalid contact number",
+    //   });
+    // }
+
+    // ====== FIND ADMIN ======
+    const admin = await Employee.findOne({ email });
+    console.log("✅ Admin login successful:", admin);
+
+    if (!admin) {
+      return res.status(401).json({
+        success: false,
+        message: "Admin not found",
+      });
+    }
+
+    console.log("✅ Admin login successful:", admin);
+
+    // ====== GENERATE TOKEN ======
+    const token = generateToken({
+      _id: admin._id,
+      contactNumber: admin.contactNumber,
+      role: admin.role,
+    });
+
+    setAuthCookie(res, token);
+    res.cookie("phone", admin.contactNumber, {
+      // httpOnly: true,
+      secure: false, // ⬅️ FALSE for localhost (no HTTPS)
+      sameSite: "lax", // ⬅️ "lax" for localhost
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      path: "/",
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Login successful",
+      token,
+      admin: {
+        _id: admin._id,
+        contactNumber: admin.contactNumber,
+        email: admin.email,
+        role: admin.role,
+      },
+    });
+  } catch (error) {
+    console.error("❌ Error in adminLogin:", error.message);
+
+    res.status(500).json({
+      success: false,
+      message: "Login failed. Please try again.",
+    });
+  }
+};
 // ====== REQUEST PASSWORD RESET ======
+
 const requestPasswordReset = async (req, res) => {
   try {
     const { email } = req.body;

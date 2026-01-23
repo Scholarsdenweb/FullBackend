@@ -50,7 +50,7 @@ const generateReportCardPDF = async (data, pdfFilePath) => {
     if (process.env.NODE_ENV === "production") {
       // Configure the version based on your package.json (for your future usage).
       const executablePath = await chromium.executablePath(
-        "https://github.com/Sparticuz/chromium/releases/download/v131.0.1/chromium-v131.0.1-pack.tar"
+        "https://github.com/Sparticuz/chromium/releases/download/v131.0.1/chromium-v131.0.1-pack.tar",
       );
       browser = await puppeteerCore.launch({
         executablePath,
@@ -94,12 +94,12 @@ const generateReportCardPDF = async (data, pdfFilePath) => {
 
     // https://res.cloudinary.com/dtytgoj3f/image/upload/Student_Pictures/Aman_Prajapati_202516004.jpg
 
-    const studentImagePath = data.studentLastName
-      ? `../Photographs/${data.studentFirstName} ${data.studentLastName}_${data.Registration}.jpeg`
-      : `../Photographs/${data.studentFirstName}_${data.Registration}.jpeg`;
     // const studentImagePath = data.studentLastName
-    //   ? `https://res.cloudinary.com/dtytgoj3f/image/upload/Student_Pictures/${data.studentFirstName}_${data.studentLastName}_${data.Registration}.jpg`
-    //   : `https://res.cloudinary.com/dtytgoj3f/image/upload/Student_Pictures/${data.studentFirstName}_${data.Registration}.jpg`;
+    //   ? `../Photographs/${data.studentFirstName} ${data.studentLastName}_${data.Registration}.jpeg`
+    //   : `../Photographs/${data.studentFirstName}_${data.Registration}.jpeg`;
+    const studentImagePath = data.studentLastName
+      ? `https://res.cloudinary.com/dtytgoj3f/image/upload/Student_Pictures/${data.studentFirstName}_${data.studentLastName}_${data.Registration}.jpg`
+      : `https://res.cloudinary.com/dtytgoj3f/image/upload/Student_Pictures/${data.studentFirstName}_${data.Registration}.jpg`;
 
     console.log("studentImagePath", studentImagePath);
 
@@ -107,6 +107,8 @@ const generateReportCardPDF = async (data, pdfFilePath) => {
 
     // const imagePath = studentImagePath;
     const imagePath = getImageAsBase64(studentImagePath);
+
+    console.log("imagePath", imagePath);
 
     // If Student Image not Found
     if (imagePath === undefined || imagePath === null || imagePath === "") {
@@ -142,20 +144,20 @@ const generateReportCardPDF = async (data, pdfFilePath) => {
 
     const allSubjectName = await data.subjects.map((subject) => subject.name);
     const allSubjectMarks = await data.subjects.map(
-      (subject) => subject.obtained
+      (subject) => subject.obtained,
     );
     const allSubjectFullMarks = await data.subjects.map(
-      (subject) => subject.fullMarks
+      (subject) => subject.fullMarks,
     );
     const allSubjectAverageMarks = await data.subjects.map(
-      (subject) => subject.average
+      (subject) => subject.average,
     );
     const subjectWiseRank = await data.subjects.map(
-      (subject) => subject.subjectWiseRank
+      (subject) => subject.subjectWiseRank,
     );
 
     const allSubjectHighestMarks = await data.subjects.map(
-      (subject) => subject.highestScore
+      (subject) => subject.highestScore,
     );
 
     console.log("allSubjectHighestMarks", allSubjectHighestMarks);
@@ -177,7 +179,7 @@ const generateReportCardPDF = async (data, pdfFilePath) => {
 
     console.log("scholarship", scholarship);
 
-    const examDate = data.examDate; // Dynamic Date
+    const examDate = data.examDate;
     const [day, month, year] = examDate.split(/[./]/);
 
     console.log("Exam Date days, month, yeaR", day, month, year);
@@ -207,6 +209,48 @@ const generateReportCardPDF = async (data, pdfFilePath) => {
         .join(" ");
     }
 
+    function formatDate(input) {
+      const [dayStr, monthStr, yearStr] = input.split(".");
+      const day = parseInt(dayStr, 10);
+      const month = parseInt(monthStr, 10) - 1; // JS months are 0-based
+      const year = yearStr?.slice(-2);
+
+      const months = [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
+      ];
+
+      function getOrdinal(n) {
+        if (n > 3 && n < 21) return "th";
+        switch (n % 10) {
+          case 1:
+            return "st";
+          case 2:
+            return "nd";
+          case 3:
+            return "rd";
+          default:
+            return "th";
+        }
+      }
+
+      return `${day}${getOrdinal(day)} ${months[month]} '${year}`;
+    }
+
+    const scholarshipValidDate = data?.scholarshipValidDate;
+
+    console.log("scholarshipValidDate ", scholarshipValidDate);
+
     // Example usage:
     // const input = "hello world, this is a test.";
     // const output = capitalizeFirstLetters(input);
@@ -222,7 +266,7 @@ const generateReportCardPDF = async (data, pdfFilePath) => {
     };
 
     const shortSubjectNames = allSubjectName.map(
-      (subject) => subjectShortForms[subject] || subject
+      (subject) => subjectShortForms[subject] || subject,
     );
 
     const tableRows = await data.subjects
@@ -232,7 +276,7 @@ const generateReportCardPDF = async (data, pdfFilePath) => {
       <td>${subject.name}</td>
       <td>${subject.obtained}</td>
       <td>${subject.fullMarks}</td>
-    </tr>`
+    </tr>`,
       )
       .join("");
 
@@ -447,8 +491,8 @@ const generateReportCardPDF = async (data, pdfFilePath) => {
      data.subjects.length === 3
        ? "12px"
        : data.subjects.length === 4
-       ? "8px"
-       : "4px"
+         ? "8px"
+         : "4px"
    };
   // padding : 8px;
   border-top: 1px solid rgb(92, 87, 87);
@@ -731,18 +775,18 @@ gap: 10px;
               </p>
               <p><b>Registration No:</b> ${data.Registration}</p>
               <p><b>Father's Name:</b> ${capitalizeFirstLetters(
-                data.Father
+                data.Father,
               )}</p>
               <p><b>Class:</b> ${data.Class}</p>
               <p>
-                <b>Scholarship:</b> ${scholarship}% (Valid till 28th Dec '25)
+                <b>Scholarship:</b> ${scholarship}% (Valid till ${formatDate(scholarshipValidDate)})
               </p>
               <p><b>Rank:</b> ${data.Rank}</p>
               <p><b>Percentage: </b>${percentage}%</p>
             </div>
             ${
-              imagePath
-                ? `<img class="student-photo" src="${imagePath}" alt="Student Photo" />`
+              studentImagePath
+                ? `<img class="student-photo" src="${studentImagePath}" alt="Student Photo" />`
                 : `<div class="student-photo">
               <div>
               Image Not Found
@@ -1255,7 +1299,7 @@ scholarshipMessageElement.innerHTML = \`
         const canvas = document.getElementById("comparisonChart");
         return canvas && canvas.getContext("2d") && canvas.toDataURL();
       },
-      { timeout: 10000 }
+      { timeout: 10000 },
     ); // Increase timeout to 10 seconds
 
     await page.evaluate(() => {
@@ -1278,25 +1322,24 @@ scholarshipMessageElement.innerHTML = \`
 };
 
 // Function to upload a file to Cloudinary
-// const uploadToCloudinary = async (pdfFilePath, rollNumber) => {
-//   try {
-//     const folder = "report_cards"; // Folder name in Cloudinary
-//     const publicId = `${folder}/${rollNumber}`; // Store the file with the student's roll number as the name
+const uploadToCloudinary = async (pdfFilePath, rollNumber) => {
+  try {
+    const folder = "report_cards"; // Folder name in Cloudinary
+    const publicId = `${folder}/${rollNumber}`; // Store the file with the student's roll number as the name
 
-//     console.log(`Uploading ${pdfFilePath} to Cloudinary...`);
-//     const result = await cloudinary.uploader.upload(pdfFilePath, {
-//       resource_type: "raw", // Specify 'raw' for non-image files like PDFs
-//       public_id: publicId,  // Set custom public ID for the file
-//       folder: "SDATResults", // Folder name in Cloudinary
-
-//     });
-//     console.log(`Uploaded to Cloudinary: ${result.url}`);
-//     return result.secure_url;
-//   } catch (error) {
-//     console.error("Error uploading to Cloudinary:", error);
-//     throw error;
-//   }
-// };
+    console.log(`Uploading ${pdfFilePath} to Cloudinary...`);
+    const result = await cloudinary.uploader.upload(pdfFilePath, {
+      resource_type: "raw", // Specify 'raw' for non-image files like PDFs
+      public_id: publicId, // Set custom public ID for the file
+      folder: "SDATResults", // Folder name in Cloudinary
+    });
+    console.log(`Uploaded to Cloudinary: ${result.url}`);
+    return result.secure_url;
+  } catch (error) {
+    console.error("Error uploading to Cloudinary:", error);
+    throw error;
+  }
+};
 
 // Function to process CSV data and generate report cards
 const processCSVAndGenerateReportCards = async (csvFilePath, res) => {
@@ -1308,6 +1351,7 @@ const processCSVAndGenerateReportCards = async (csvFilePath, res) => {
     .pipe(csv())
     .on("data", (row) => {
       students.push(row);
+      console.log("row from processCSVAndGenerateReportCards", row);
     })
     .on("end", async () => {
       for (const [StudentIndex, student] of students.entries()) {
@@ -1364,57 +1408,36 @@ const processCSVAndGenerateReportCards = async (csvFilePath, res) => {
           };
         });
 
-        // console.log("checkMarksData", checkMarksData);
-
-        // console.log("Student", student);
-
         function capitalizeWords(str) {
           return str
             ?.split(" ")
             ?.map(
               (word) =>
-                word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+                word.charAt(0).toUpperCase() + word.slice(1).toLowerCase(),
             )
             .join(" ");
         }
 
         let data = {
           studentFirstName: capitalizeWords(
-            student["Candidate Name"]?.split(" ")[0]
+            student["Candidate Name"]?.split(" ")[0],
           ),
           studentLastName: capitalizeWords(
             student["Candidate Name"]?.split(" ").length > 1
               ? student["Candidate Name"]?.split(" ").slice(1).join(" ")
-              : ""
+              : "",
           ),
           Registration: student["Roll No"],
           Rank: student["Rank"],
           Scholarship: student["Scholarship"],
           Father: capitalizeWords(student["Father's Name"]),
           Class: student["Class"],
+          scholarshipValidDate: student["Scholarship Validation Date"],
           examDate: student["Exam Date"],
           Rank: student[allKeys[0]],
           subjects: checkMarksData,
           totalMarks: totalMarks,
         };
-
-        try {
-          const existingDate = await ExamDate.findOne({
-            examDate: student["Exam Date"],
-          });
-
-          console.log("existingDate", existingDate);
-          console.log('student["Exam Date"]', student["Exam Date"]);
-          if (!existingDate) {
-            const addDate = await ExamDate.create({
-              examDate: student["Exam Date"],
-            });
-            console.log("addDate", addDate);
-          }
-        } catch (error) {
-          console.log("error in adding Exam date");
-          console.log("error", error);
-        }
 
         try {
           await generateReportCardPDF(data, pdfFilePath);
@@ -1424,48 +1447,49 @@ const processCSVAndGenerateReportCards = async (csvFilePath, res) => {
           if (isFileValid(pdfFilePath)) {
             try {
               // Upload the report card to Cloudinary
-              // const url = await uploadToCloudinary(pdfFilePath, student["Roll No"]);
-              // console.log("Report card uploaded to Cloudinary:", url);
-              // console.log("Student role number:", student["Roll No"]);
+              const url = await uploadToCloudinary(
+                pdfFilePath,
+                student["Roll No"],
+              );
+              console.log("Report card uploaded to Cloudinary:", url);
+              console.log("Student role number:", student["Roll No"]);
+
               // Update the student document with the Cloudinary URL
-              // const updatedStudent = await Students.updateOne({ "StudentsId": student["Roll No"] }, { $set: { "result": url } });
-              // console.log("updatedStudent", updatedStudent);
+              const updatedStudent = await Students.updateOne(
+                { StudentsId: student["Roll No"] },
+                { $set: { result: url } },
+              );
+              console.log("updatedStudent", updatedStudent);
 
-              const resultAlreadyExists = await Result.findOne({
-                StudentId: student["Roll No"],
-              });
-              console.log("resultAlreadyExists", resultAlreadyExists);
+              // Use findOneAndUpdate with upsert option to update or create
+              const resultRecord = await Result.findOneAndUpdate(
+                { StudentId: student["Roll No"] },
+                {
+                  $set: {
+                    resultUrl: url,
+                    examDate: student["Exam Date"].replace(/[\/.-]/g, ".")
+,
+                  },
+                },
+                {
+                  upsert: true, // Create if doesn't exist
+                  new: true, // Return the updated document
+                  setDefaultsOnInsert: true, // Apply schema defaults on insert
+                },
+              );
 
-              // if (!resultAlreadyExists) {
-
-              //   const AddResult = new Result({
-              //     StudentId: student["Roll No"],
-              //     resultUrl: url,
-              //     examDate: student["Exam Date"]
-              //   })
-              //   await AddResult.save();
-
-              //   console.log("AddResult", AddResult);
-              // }
-
-              // // Send progress update to frontend
-              // const resSend = await res.write(`data: ${JSON.stringify({ index: StudentIndex + 1, total: students.length, url })}\n\n`);
-
-              // console.log("resSend", resSend);
+              console.log("Result record (created/updated):", resultRecord);
             } catch (error) {
               console.error(
                 `Error uploading report card for Roll Number: ${student["Roll No"]}`,
-                error
+                error,
               );
+            } finally {
+              if (fs.existsSync(pdfFilePath)) fs.unlinkSync(pdfFilePath);
             }
-            //  finally {
-            //   if (fs.existsSync(pdfFilePath))
-            //     fs.unlinkSync(pdfFilePath);
-
-            // }
           } else {
             console.log(
-              `Generated PDF for ${student["Roll No"]} is empty or invalid.`
+              `Generated PDF for ${student["Roll No"]} is empty or invalid.`,
             );
           }
 
@@ -1473,7 +1497,7 @@ const processCSVAndGenerateReportCards = async (csvFilePath, res) => {
         } catch (error) {
           console.error(
             `Error processing report card for Roll Number: `,
-            error
+            error,
           );
         }
       }
@@ -1487,7 +1511,7 @@ const processCSVAndGenerateReportCards = async (csvFilePath, res) => {
 };
 
 // Run the script
-const csvFilePath = "./SDATResult.csv"; // Path to your CSV file
+// const csvFilePath = "./SDATResult.csv"; // Path to your CSV file
 // const csvFilePath = "./Jatin.csv"; // Path to your CSV file
 // processCSVAndGenerateReportCards(csvFilePath);
 

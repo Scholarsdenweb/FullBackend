@@ -82,72 +82,72 @@ router.post("/create-invoice", async (req, res) => {
 
   // const amount = await RiseFee.findOne({});
 
-  // try {
-  //   const invoice = await razorpay.invoices.create({
-  //     type: "link",
-  //     description: "Payment for services",
-  //     amount: 50000,
-  //     customer: {
-  //       name,
-  //       contact,
-  //       email,
-  //     },
-  //     line_items: [
-  //       {
-  //         name: "Service Fee",
-  //         amount: 50000,
-  //         currency: "INR",
-  //       },
-  //     ],
-  //     sms_notify: 1, // ✅ Send SMS
-  //     email_notify: 0,
-  //   });
-
-  //   res.json(invoice);
-  // } catch (err) {
-  //   console.error("Invoice creation failed:", err);
-  //   res.status(500).json({ error: "Invoice creation failed" });
-  // }
-
-
   try {
-  const baseAmount = 50000; // ₹500 in paise
-  const razorpayFee = Math.ceil(baseAmount * 0.0236); // ≈ ₹12
-  const totalAmount = baseAmount + razorpayFee; // ₹512
-
-  const invoice = await razorpay.invoices.create({
-    type: "link",
-    description: "Payment for services",
-    amount: totalAmount, // customer pays this
-    currency: "INR",
-    customer: {
-      name,
-      contact,
-      email,
-    },
-    line_items: [
-      {
-        name: "Service Fee",
-        amount: baseAmount,
-        currency: "INR",
+    const invoice = await razorpay.invoices.create({
+      type: "link",
+      description: "Payment for services",
+      amount: 50000,
+      customer: {
+        name,
+        contact,
+        email,
       },
-      {
-        name: "Payment Gateway Charges",
-        amount: razorpayFee,
-        currency: "INR",
-      },
-    ],
-    sms_notify: 1,
-    email_notify: 0,
-  });
+      line_items: [
+        {
+          name: "Service Fee",
+          amount: 50000,
+          currency: "INR",
+        },
+      ],
+      sms_notify: 1, // ✅ Send SMS
+      email_notify: 0,
+    });
+
+    res.json(invoice);
+  } catch (err) {
+    console.error("Invoice creation failed:", err);
+    res.status(500).json({ error: "Invoice creation failed" });
+  }
 
 
-  console.log("Created invoice:", invoice);
-  res.json(invoice);
-} catch (err) {
-  console.error("Invoice creation failed:", err);
-  res.status(500).json({ error: "Invoice creation failed" });
-}
+//   try {
+//   const baseAmount = 50000; // ₹500 in paise
+//   const razorpayFee = Math.ceil(baseAmount * 0.0236); // ≈ ₹12
+//   const totalAmount = baseAmount + razorpayFee; // ₹512
+
+//   const invoice = await razorpay.invoices.create({
+//     type: "link",
+//     description: "Payment for services",
+//     amount: totalAmount, // customer pays this
+//     currency: "INR",
+//     customer: {
+//       name,
+//       contact,
+//       email,
+//     },
+//     line_items: [
+//       {
+//         name: "Service Fee",
+//         amount: baseAmount,
+//         currency: "INR",
+//       },
+//       {
+//         name: "Payment Gateway Charges",
+//         amount: razorpayFee,
+//         currency: "INR",
+//       },
+//     ],
+//     sms_notify: 1,
+//     email_notify: 0,
+//   });
+
+
+//   console.log("Created invoice:", invoice);
+//   res.json(invoice);
+// } catch (err) {
+//   console.error("Invoice creation failed:", err);
+//   res.status(500).json({ error: "Invoice creation failed" });
+// }
 
 
 

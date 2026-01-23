@@ -7,6 +7,7 @@ const {
   studentLogin,
   requestPasswordReset,
   resetPassword,
+  employeeLogin,
 } = require("../controllers/Auth");
 const { authenticateToken } = require("../middleware/authentication");
 
@@ -32,5 +33,5 @@ router.post("/admin_login", adminLogin);
 router.post("/forget_password", requestPasswordReset);
 router.post("/reset-password/:token", resetPassword);
 
-router.post("/employee_login", adminLogin);
+router.post("/employee_login", employeeLogin);
 module.exports = router;

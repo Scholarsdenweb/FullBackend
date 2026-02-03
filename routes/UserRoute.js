@@ -23,11 +23,12 @@ const { enquirySubmitionTemplate } = require("../utils/smsTemplates");
 const setAuthCookie = (res, token) => {
   res.cookie("authToken", token, {
     httpOnly: true,
-    secure: NODE_ENV === "production",
-    sameSite: NODE_ENV === "production" ? "strict" : "lax",
+    secure: false,
+    sameSite: "lax",
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    path: NODE_ENV === "production" ? "enquiry.scholarsden.in" : "/",
+    path: "/",
   });
+
 };
 
 const generateToken = (payload) => {

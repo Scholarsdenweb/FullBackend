@@ -325,8 +325,11 @@ router.post("/generate-zip", async (req, res) => {
     await Promise.all(
       allResults.map(async (result) => {
         try {
+          console.log("result", result);
           const fileUrl = result.resultUrl;
+          console.log("fileUrl", fileUrl);
           const fileName = path.basename(fileUrl);
+          console.log("file name ", fileName);
           const filePath = path.join(downloadFolder, fileName);
           const response = await axios({
             method: "GET",

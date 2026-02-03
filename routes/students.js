@@ -42,6 +42,7 @@ const allowedAdmins = ["9719706242", "9068833360"];
 
 
 
+
 // Route: GET /api/students/with-id
 router.get("/with-id", async (req, res) => {
   try {
@@ -69,7 +70,7 @@ router.get("/with-id", async (req, res) => {
 
     // Fetch students
     const students = await Students.find(query)
-      .select("StudentsId studentName email contactNumber createdAt")
+      .select("StudentsId studentName email contactNumber createdAt updatedAt")
       .sort({ StudentsId: 1 })
       .skip(skip)
       .limit(parseInt(limit));
@@ -433,7 +434,7 @@ router.post("/verifyNumber", async (req, res) => {
 
 router.post("/filter", async (req, res) => {
   const { filterBy, sortOrder, ...params } = req.body;
-  const sortDirection = sortOrder === "asc" ? 1 : -1;
+  const sortDirection = sortOrder === "asc" ? -1 : 1;
 
   console.log("Check filter is working or not ", filterBy, params, sortOrder);
 
@@ -445,16 +446,16 @@ router.post("/filter", async (req, res) => {
         // Find students by class with proper population
         const allStudentsByClass = await BatchRelatedDetails.find({
           classForAdmission: params.class,
-        }).sort({ createdAt: sortDirection });
+        }).sort({ updatedAt: sortDirection });
 
         students = await Promise.all(
           allStudentsByClass.map(async (studentByClass) => {
             const student = await Students.findOne({
               _id: studentByClass.student_id,
-            }).sort({ createdAt: sortDirection });
+            }).sort({ updatedAt: sortDirection });
             const basicDetails = await Students.findOne({
               _id: studentByClass.student._id,
-            }).sort({ createdAt: sortDirection });
+            }).sort({ updatedAt: sortDirection });
 
             if (!student) return null;
 
@@ -463,7 +464,7 @@ router.post("/filter", async (req, res) => {
               studentName: student.studentName,
               classForAdmission: studentByClass?.classForAdmission,
               program: studentByClass?.program,
-              createdAt: student.createdAt,
+              createdAt: student.updatedAt,
               student_id: student._id,
               paymentId: student.paymentId,
               examDate: basicDetails.examDate,
@@ -476,7 +477,7 @@ router.post("/filter", async (req, res) => {
         // Find student by ID and join with batch details
         students = await Students.find({
           StudentsId: params.studentId,
-        }).sort({ createdAt: sortDirection });
+        }).sort({ updatedAt: sortDirection });
 
         students = await Promise.all(
           students.map(async (student) => {
@@ -485,14 +486,14 @@ router.post("/filter", async (req, res) => {
             });
             const basicDetails = await Students.findOne({
               _id: student.student._id,
-            }).sort({ createdAt: sortDirection });
+            }).sort({ updatedAt: sortDirection });
 
             return {
               StudentsId: student.StudentsId,
               studentName: student.studentName,
               classForAdmission: batchDetails?.classForAdmission,
               program: batchDetails?.program,
-              createdAt: student.createdAt,
+              createdAt: student.updatedAt,
               student_id: student._id,
               paymentId: student.paymentId,
               examDate: basicDetails.examDate,
@@ -505,7 +506,7 @@ router.post("/filter", async (req, res) => {
         // Find students by name and join with batch details
         students = await Students.find({
           studentName: { $regex: params.name, $options: "i" },
-        }).sort({ createdAt: sortDirection });
+        }).sort({ updatedAt: sortDirection });
 
         students = await Promise.all(
           students.map(async (student) => {
@@ -518,7 +519,7 @@ router.post("/filter", async (req, res) => {
               studentName: student.studentName,
               classForAdmission: batchDetails?.classForAdmission,
               program: batchDetails?.program,
-              createdAt: student.createdAt,
+              createdAt: student.updatedAt,
               student_id: student._id,
               paymentId: student.paymentId,
             };
@@ -543,7 +544,7 @@ router.post("/filter", async (req, res) => {
 
           toDate.setHours(23, 59, 59, 999);
           const toDateISO = toDate.toISOString();
-          matchQuery.createdAt = {
+          matchQuery.updatedAt = {
             $gte: new Date(fromDate),
             $lte: new Date(toDateISO),
           };
@@ -551,7 +552,7 @@ router.post("/filter", async (req, res) => {
         console.log("params.data", params);
         // Fetch students first
         students = await Students.find(matchQuery)
-          .sort({ createdAt: sortDirection })
+          .sort({ updatedAt: sortDirection })
           .lean();
 
         // Filter class from BatchRelatedDetails
@@ -574,7 +575,7 @@ router.post("/filter", async (req, res) => {
               studentName: student.studentName,
               classForAdmission: batchDetails?.classForAdmission,
               program: batchDetails?.program,
-              createdAt: student.createdAt,
+              createdAt: student.updatedAt,
               student_id: student._id,
               paymentId: student.paymentId,
             };
@@ -586,7 +587,7 @@ router.post("/filter", async (req, res) => {
       default:
         // Get all students with their batch details
         students = await Students.find({})
-          .sort({ createdAt: sortDirection })
+          .sort({ updatedAt: sortDirection })
           .lean();
 
         students = await Promise.all(
@@ -600,7 +601,7 @@ router.post("/filter", async (req, res) => {
               studentName: student.studentName,
               classForAdmission: batchDetails?.classForAdmission,
               program: batchDetails?.program,
-              createdAt: student.createdAt,
+              createdAt: student.updatedAt,
               student_id: student._id,
               paymentId: student.paymentId,
             };
@@ -613,7 +614,7 @@ router.post("/filter", async (req, res) => {
     students = students
       .filter((student) => student)
       .sort((a, b) => {
-        return sortDirection * (new Date(b.createdAt) - new Date(a.createdAt));
+        return sortDirection * (new Date(b.updatedAt) - new Date(a.updatedAt));
       });
 
     res.json(students);
@@ -1098,7 +1099,7 @@ router.post("/fetchDataByDateRange", async (req, res) => {
     console.log("toDateISO", toDateISO);
 
     const allStudents = await Students.find({
-      createdAt: {
+      updatedAt: {
         $gte: fromDate,
         $lte: toDateISO,
       },

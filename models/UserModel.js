@@ -70,14 +70,15 @@ const UserSchema = new mongoose.Schema(
   }
 );
 
-UserSchema.pre("save", function (next) {
-  this.updatedAt = new Date().toISOString();
-  next();
-});
+// UserSchema.pre("save", function (next) {
+//   this.updatedAt = new Date().toISOString();
+//   next();
+// });
+
 
 UserSchema.pre("save", async function (next) {
   const user = this;
-  user.updatedAt = new Date().toISOString();
+  // user.updatedAt = new Date().toISOString();
 
   if (user.isNew) {
     const now = new Date();

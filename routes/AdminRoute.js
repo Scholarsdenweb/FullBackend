@@ -94,9 +94,6 @@ router.post("/getEnquiryData", async (req, res) => {
 
     console.log("data from getEnquiryData", data);
 
-
-
-    
     res.status(200).json({
       data,
       currentPage: page,
@@ -272,116 +269,82 @@ router.post("/getEnquiryData", async (req, res) => {
 //   }
 // });
 
-
-
-
-
 router.post("/filter", async (req, res) => {
-  const { sortOrder = "desc", export: shouldExport = false, ...params } = req.body;
+  const { sortOrder = "desc", ...params } = req.body;
   const sortDirection = sortOrder === "asc" ? 1 : -1;
-  
+
   try {
     let query = {};
-    
-    // 🔍 Handle class filter
+
+    // 🔍 Class filter
     if (params.class) {
       query.courseOfIntrested = params.class;
     }
-    
-    // 🔍 Handle name filter (case-insensitive partial match)
+
     if (params.name) {
-      query.studentName = { $regex: params.name, $options: "i" };
+      query.studentName = { $regex: params.name.trim(), $options: "i" };
     }
-    
-    // 🔍 Handle ID/enquiryNumber filter
+
     if (params.enquiryNumber) {
-      query.enquiryNumber = { $regex: params.enquiryNumber, $options: "i" };
-    }
-    
-    // 🔍 Handle date range filter
-    if (params.startingDate && params.lastDate) {
-      const fromDate = new Date(params.startingDate).toISOString();
-      const toDate = new Date(params.lastDate);
-      toDate.setHours(23, 59, 59, 999);
-      const toDateISO = toDate.toISOString();
-      query.createdAt = {
-        $gte: fromDate,
-        $lte: toDateISO,
+      query.enquiryNumber = {
+        $regex: params.enquiryNumber.trim(),
+        $options: "i",
       };
     }
-    
-    const results = await User.find().sort({ createdAt: sortDirection });
-    const formatted = results.map(formatStudent);
-    
-    // 📥 Export as CSV if requested
-    if (shouldExport) {
-      if (formatted.length === 0) {
-        return res.status(404).json({ error: "No data to export" });
-      }
+
+    if (params.startingDate && params.lastDate) {
+      const fromDate = new Date(params.startingDate);
+      fromDate.setHours(0, 0, 0, 0); 
       
-      // Get all keys from the first object to create CSV headers
-      const headers = Object.keys(formatted[0]);
-      
-      // Create CSV content
-      const csvRows = [];
-      
-      // Add header row
-      csvRows.push(headers.join(","));
-      
-      // Add data rows
-      for (const row of formatted) {
-        const values = headers.map(header => {
-          const value = row[header];
-          // Handle null/undefined
-          if (value === null || value === undefined) return "";
-          // Escape quotes and wrap in quotes if contains comma, quote, or newline
-          const escaped = String(value).replace(/"/g, '""');
-          return /[",\n\r]/.test(escaped) ? `"${escaped}"` : escaped;
-        });
-        csvRows.push(values.join(","));
-      }
-      
-      const csv = csvRows.join("\n");
-      
-      // Set headers for file download
-      res.setHeader("Content-Type", "text/csv; charset=utf-8");
-      res.setHeader("Content-Disposition", `attachment; filename=students-export-${Date.now()}.csv`);
-      
-      return res.send(csv);
+      const toDate = new Date(params.lastDate);
+      toDate.setHours(23, 59, 59, 999); 
+
+      query.updatedAt = {
+        $gte: fromDate,  
+        $lte: toDate,   
+      };
     }
-    
-    // Return JSON as usual
+
+    console.log("Mongo query:", query);
+
+    // ✅ Apply filters
+    const results = await User.find({ createdAt: {
+    $gte: "2025-10-31T18:30:00.000Z",
+    $lte: "2026-02-02T18:29:59.999Z"
+  }}).sort({ updatedAt: sortDirection });
+
+    console.log("results count:", results.length);
+    const formatted = results.map(formatStudent);
+    console.log("formatted filter from mongo query");
+
     res.json(formatted);
-    
   } catch (error) {
     console.error("Error in filter route:", error);
     res.status(500).json({ error: error.message });
   }
 });
-
-
 router.post("/export", async (req, res) => {
   const { sortOrder = "desc", format = "csv", ...params } = req.body;
   const sortDirection = sortOrder === "asc" ? 1 : -1;
-  
+
   try {
     let query = {};
-    
+
     // 🔍 Handle class filter
     if (params.class) {
       query.courseOfIntrested = params.class;
     }
-    
+
     // 🔍 Handle name filter
     if (params.name) {
       query.studentName = { $regex: params.name, $options: "i" };
     }
-    
+
     // 🔍 Handle ID/enquiryNumber filter
     if (params.enquiryNumber) {
       query.enquiryNumber = { $regex: params.enquiryNumber, $options: "i" };
     }
-    
+
     // 🔍 Handle date range filter
     if (params.startingDate && params.lastDate) {
       const fromDate = new Date(params.startingDate).toISOString();
@@ -393,43 +356,43 @@ router.post("/export", async (req, res) => {
         $lte: toDateISO,
       };
     }
-    
+
     const results = await User.find(query).sort({ createdAt: sortDirection });
     const formatted = results.map(formatStudent);
-    
+
     if (format === "csv") {
       // Convert to CSV
       const fields = Object.keys(formatted[0] || {});
       const csv = [
         fields.join(","), // Header
-        ...formatted.map(row => 
-          fields.map(field => `"${row[field] || ""}"`).join(",")
-        )
+        ...formatted.map((row) =>
+          fields.map((field) => `"${row[field] || ""}"`).join(","),
+        ),
       ].join("\n");
-      
+
       res.setHeader("Content-Type", "text/csv");
-      res.setHeader("Content-Disposition", `attachment; filename=students-${Date.now()}.csv`);
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename=students-${Date.now()}.csv`,
+      );
       res.send(csv);
     } else {
       // Return JSON for download
       res.setHeader("Content-Type", "application/json");
-      res.setHeader("Content-Disposition", `attachment; filename=students-${Date.now()}.json`);
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename=students-${Date.now()}.json`,
+      );
       res.json(formatted);
     }
-    
   } catch (error) {
     console.error("Error in export route:", error);
     res.status(500).json({ error: error.message });
   }
 });
 
-
-
-
-
 // Format student
 function formatStudent(student) {
-  console.log("student data from formatStudent", student);
 
   return {
     enquiryNumber: student.enquiryNumber,

@@ -97,8 +97,10 @@ const generateReportCardPDF = async (data, pdfFilePath) => {
     // const studentImagePath = data.studentLastName
     //   ? `../Photographs/${data.studentFirstName} ${data.studentLastName}_${data.Registration}.jpeg`
     //   : `../Photographs/${data.studentFirstName}_${data.Registration}.jpeg`;
+    const formatName = (name) => name ? name.replace(/\s+/g, '_') : '';
+
     const studentImagePath = data.studentLastName
-      ? `https://res.cloudinary.com/dtytgoj3f/image/upload/Student_Pictures/${data.studentFirstName}_${data.studentLastName}_${data.Registration}.jpg`
+  ? `https://res.cloudinary.com/dtytgoj3f/image/upload/Student_Pictures/${formatName(data.studentFirstName)}_${formatName(data.studentLastName)}_${data.Registration}.jpg`
       : `https://res.cloudinary.com/dtytgoj3f/image/upload/Student_Pictures/${data.studentFirstName}_${data.Registration}.jpg`;
 
     console.log("studentImagePath", studentImagePath);
@@ -766,7 +768,7 @@ gap: 10px;
       <!-- Student Details -->
       <div class="student-details">
         <div class="inner-container">
-          <div class="line-text">REPORT CARD 2025</div>
+          <div class="line-text">REPORT CARD</div>
           <div class="student-info-container">
             <div class="student-info">
               <p class="name">
@@ -1322,10 +1324,12 @@ scholarshipMessageElement.innerHTML = \`
 };
 
 // Function to upload a file to Cloudinary
-const uploadToCloudinary = async (pdfFilePath, rollNumber) => {
+const uploadToCloudinary = async (pdfFilePath, studentName, rollNumber) => {
   try {
     const folder = "report_cards"; // Folder name in Cloudinary
-    const publicId = `${folder}/${rollNumber}`; // Store the file with the student's roll number as the name
+        const sanitizedStudentName = studentName.replace(/\s+/g, '_'); // or use '-' for hyphens
+
+    const publicId = `${folder}/${sanitizedStudentName}_${rollNumber}`; // Store the file with the student's roll number as the name
 
     console.log(`Uploading ${pdfFilePath} to Cloudinary...`);
     const result = await cloudinary.uploader.upload(pdfFilePath, {
@@ -1449,6 +1453,7 @@ const processCSVAndGenerateReportCards = async (csvFilePath, res) => {
               // Upload the report card to Cloudinary
               const url = await uploadToCloudinary(
                 pdfFilePath,
+                student["Candidate Name"],
                 student["Roll No"],
               );
               console.log("Report card uploaded to Cloudinary:", url);
@@ -1467,8 +1472,7 @@ const processCSVAndGenerateReportCards = async (csvFilePath, res) => {
                 {
                   $set: {
                     resultUrl: url,
-                    examDate: student["Exam Date"].replace(/[\/.-]/g, ".")
-,
+                    examDate: student["Exam Date"].replace(/[\/.-]/g, "."),
                   },
                 },
                 {

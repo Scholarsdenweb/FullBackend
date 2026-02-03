@@ -26,7 +26,7 @@ const setAuthCookie = (res, token) => {
     secure: NODE_ENV === "production",
     sameSite: NODE_ENV === "production" ? "strict" : "lax",
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    path: "/",
+    path: NODE_ENV === "production" ? "enquiry.scholarsden.in" : "/",
   });
 };
 

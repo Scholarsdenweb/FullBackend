@@ -29,6 +29,7 @@ const setAuthCookie = (res, token) => {
     path: "/",
   });
 
+  
 };
 
 const generateToken = (payload) => {

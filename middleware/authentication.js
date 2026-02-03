@@ -49,13 +49,9 @@ console.log("extractAndVerifyToken called", req.headers.cookie);
   // Then try cookies (for web browsers with withCredentials)
   else if (req.cookies) {
 
-    console.log("Cookies:authToken", req.cookies.authToken);
-    console.log("Cookies:token", req.cookies.token);
     token = req.cookies.authToken || req.cookies.token;
   }
 
-  console.log("Token source:", authHeader ? "Authorization header" : "Cookie");
-  console.log("Token found:", !!token);
 
   if (!token) {
     console.log("❌ No token found in Authorization header or cookies");
@@ -67,6 +63,7 @@ console.log("extractAndVerifyToken called", req.headers.cookie);
     console.log("✅ Token verified for:", decoded.contactNumber);
     return decoded;
   } catch (error) {
+    console.log("Error from extractAndVerifyToken", error);
     console.error("❌ Token verification error:", error.message);
     return null;
   }

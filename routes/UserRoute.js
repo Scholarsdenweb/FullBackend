@@ -6,15 +6,13 @@ const fetch = require("node-fetch");
 
 const sendSDATReminder = require("../utils/sendSDATReminder");
 
-const JWT_SECRET = process.env.JWT_SECRET || "default-secret-key";
+const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRE = process.env.JWT_EXPIRE || "7d";
 const NODE_ENV = process.env.NODE_ENV || "development";
 
 const axios = require("axios");
 
 const router = express.Router();
-require("dotenv").config();
-
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const { verifyToken } = require("../middleware/authentication");

@@ -57,14 +57,14 @@ router.post("/getEnquiryData", async (req, res) => {
 
     let data;
 
-    if (email === "jatin@scholarsden.in") {
+    // if (email === "jatin@scholarsden.in") {
       data = await User.find().sort({ createdAt: -1 }).skip(skip).limit(limit);
-    } else {
-      data = await User.find({ enquiryTakenBy: email })
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit);
-    }
+    // } else {
+      // data = await User.find({ enquiryTakenBy: email })
+      //   .sort({ createdAt: -1 })
+      //   .skip(skip)
+      //   .limit(limit);
+    // }
 
     // Check if there is no data or if this is the last page
     if (data.length === 0) {
@@ -73,20 +73,20 @@ router.post("/getEnquiryData", async (req, res) => {
 
     let nextPageData;
     let totalStudents;
-    if (email === "jatin@scholarsden.in") {
+    // if (email === "jatin@scholarsden.in") {
       nextPageData = await User.find()
         .sort({ createdAt: -1 })
         .skip(skip + limit)
         .limit(limit);
       totalStudents = await User.countDocuments();
-    } else {
-      nextPageData = await User.find({ enquiryTakenBy: email })
-        .sort({ createdAt: -1 })
-        .skip(skip + limit)
-        .limit(limit);
+    // } else {
+    //   nextPageData = await User.find({ enquiryTakenBy: email })
+    //     .sort({ createdAt: -1 })
+    //     .skip(skip + limit)
+    //     .limit(limit);
 
-      totalStudents = await User.countDocuments({ enquiryTakenBy: email });
-    }
+    //   totalStudents = await User.countDocuments({ enquiryTakenBy: email });
+    // }
 
     const isLastPage = nextPageData.length === 0; // If nextPageData is empty, it's the last page
 
@@ -106,223 +106,200 @@ router.post("/getEnquiryData", async (req, res) => {
   }
 });
 
-// router.post("/filter", async (req, res) => {
-//   const { filterBy, sortOrder, ...params } = req.body;
-//   const sortDirection = sortOrder === "asc" ? 1 : -1;
 
-//   console.log("Check filter is working or not ", filterBy, params, sortOrder);
 
-//   try {
-//     let enquiryDetails;
 
-//     switch (filterBy) {
-//       case "class":
-//         // Find students by class with proper population
-//         const allStudentsByClass = await User.find({
-//           courseOfIntrested: params.class,
-//         }).sort({ createdAt: sortDirection });
 
-//         enquiryDetails = await Promise.all(
-//           allStudentsByClass.map(async (enquiryByClass) => {
-//             if (!student) return null;
-
-//             return {
-//               enquiryNumber: enquiryByClass.enquiryNumber,
-//               studentName: enquiryByClass.studentName,
-//               fatherName: enquiryByClass.fatherName,
-//               fatherContactNumber: enquiryByClass?.fatherContactNumber,
-//               program: enquiryByClass?.program,
-//               courseOfIntrested: enquiryByClass?.courseOfIntrested,
-//               createdAt: enquiryByClass.createdAt,
-//             };
-//           })
-//         );
-//         break;
-
-//       case "id":
-//         // Find student by ID and join with batch details
-//         enquiryDetails = await Students.find({
-//           enquiryNumber: params.enquiryNumber,
-//           admissionForClass : params.admissionForClass
-//         }).sort({ createdAt: sortDirection });
-
-//         enquiryDetails = await Promise.all(
-//           enquiryDetails.map(async (enquiryById) => {
-//             return {
-//               enquiryNumber: enquiryById?.enquiryNumber,
-//               studentName: enquiryById?.studentName,
-//               fatherName: enquiryById?.fatherName,
-//               fatherContactNumber: enquiryById?.fatherContactNumber,
-//               program: enquiryById?.program,
-//               courseOfIntrested: enquiryById?.courseOfIntrested,
-//               createdAt: enquiryById?.createdAt,
-//             };
-//           })
-//         );
-//         break;
-
-//       case "name":
-//         // Find students by name and join with batch details
-//         enquiryDetails = await User.find({
-//           studentName: { $regex: params.name, $options: "i" },
-//         }).sort({ createdAt: sortDirection });
-
-//         enquiryDetails = await Promise.all(
-//           enquiryDetails.map(async (enquiryByName) => {
-//             return {
-//               enquiryNumber: enquiryByName.enquiryNumber,
-//               studentName: enquiryByName.studentName,
-//               fatherName: enquiryByName.fatherName,
-//               fatherContactNumber: enquiryByName?.fatherContactNumber,
-//               program: enquiryByName?.program,
-//               courseOfIntrested: enquiryByName?.courseOfIntrested,
-//               createdAt: enquiryByName.createdAt,
-//             };
-//           })
-//         );
-//         break;
-
-//       case "all":
-//       default:
-//         // Get all students with their batch details
-//         enquiryDetails = await User.find({})
-//           .sort({ createdAt: sortDirection })
-//           .lean();
-
-//         enquiryDetails = await Promise.all(
-//           enquiryDetails.map(async (allEnquiry) => {
-//             return {
-//               enquiryNumber: allEnquiry.enquiryNumber,
-//               studentName: allEnquiry.studentName,
-//               fatherName: allEnquiry.fatherName,
-//               fatherContactNumber: allEnquiry?.fatherContactNumber,
-//               program: allEnquiry?.program,
-//               courseOfIntrested: allEnquiry?.courseOfIntrested,
-//               createdAt: allEnquiry.createdAt,
-//             };
-//           })
-//         );
-//         break;
-//     }
-
-//     // Filter out any null entries and sort the final array
-//     enquiryDetails = enquiryDetails
-//       .filter((enquiryDetail) => enquiryDetail)
-//       .sort((a, b) => {
-//         return sortDirection * (new Date(b.createdAt) - new Date(a.createdAt));
-//       });
-
-//     res.json(enquiryDetails);
-//   } catch (error) {
-//     console.error("Error in filter route:", error);
-//     res.status(500).json({ error: error.message });
-//   }
-// });
-
-// router.post("/filter", async (req, res) => {
-//   const { sortOrder = "desc", ...params } = req.body;
-//   const sortDirection = sortOrder === "asc" ? 1 : -1;
-
-//   try {
-//     let query = {};
-
-//     // 🔍 Handle class filter
-//     if (params.class) {
-//       query.courseOfIntrested = params.class;
-//     }
-
-//     // 🔍 Handle name filter (case-insensitive partial match)
-//     if (params.name) {
-//       query.studentName = { $regex: params.name, $options: "i" };
-//     }
-
-//     // 🔍 Handle ID/enquiryNumber filter
-//     if (params.enquiryNumber) {
-//       query.enquiryNumber = { $regex: params.enquiryNumber, $options: "i" };
-//     }
-
-//     // 🔍 Handle date range filter
-//     if (params.startingDate && params.lastDate) {
-//       const fromDate = new Date(params.startingDate).toISOString();
-//       const toDate = new Date(params.lastDate);
-
-//       toDate.setHours(23, 59, 59, 999);
-//       const toDateISO = toDate.toISOString();
-
-//       query.createdAt = {
-//         $gte: fromDate,
-//         $lte: toDateISO,
-//       };
-//     }
-
-//     // 👇 Decide which collection to use (you can improve this logic further)
-//     // const useStudentsCollection = !!params.enquiryNumber;
-//     // const Model = useStudentsCollection ? Students : User;
-
-//     const results = await User.find(query).sort({ createdAt: sortDirection });
-//     const formatted = results.map(formatStudent);
-
-//     res.json(formatted);
-//   } catch (error) {
-//     console.error("Error in filter route:", error);
-//     res.status(500).json({ error: error.message });
-//   }
-// });
 
 router.post("/filter", async (req, res) => {
   const { sortOrder = "desc", ...params } = req.body;
   const sortDirection = sortOrder === "asc" ? 1 : -1;
-
+  console.log("filter adminDashboard", params);
+  
   try {
     let query = {};
-
-    // 🔍 Class filter
+    
+    // 🔍 Handle class filter
     if (params.class) {
       query.courseOfIntrested = params.class;
     }
-
+    
+    // 🔍 Handle name filter (case-insensitive partial match)
     if (params.name) {
-      query.studentName = { $regex: params.name.trim(), $options: "i" };
+      query.studentName = { $regex: params.name, $options: "i" };
     }
-
+    
+    // 🔍 Handle ID/enquiryNumber filter
     if (params.enquiryNumber) {
-      query.enquiryNumber = {
-        $regex: params.enquiryNumber.trim(),
-        $options: "i",
-      };
+      query.enquiryNumber = { $regex: params.enquiryNumber, $options: "i" };
     }
-
+    
+    // 🔍 Handle date range filter - Works with Z format (2026-01-21T12:47:37.526Z)
     if (params.startingDate && params.lastDate) {
       const fromDate = new Date(params.startingDate);
-      fromDate.setHours(0, 0, 0, 0); 
+      fromDate.setUTCHours(0, 0, 0, 0); // Start of day in UTC
       
       const toDate = new Date(params.lastDate);
-      toDate.setHours(23, 59, 59, 999); 
-
+      toDate.setUTCHours(23, 59, 59, 999); // End of day in UTC
+      
       query.updatedAt = {
-        $gte: fromDate,  
-        $lte: toDate,   
+        $gte: fromDate,
+        $lte: toDate,
       };
+      
+      console.log("Date filter applied:", {
+        from: fromDate.toISOString(),
+        to: toDate.toISOString()
+      });
     }
-
-    console.log("Mongo query:", query);
-
-    // ✅ Apply filters
-    const results = await User.find({ createdAt: {
-    $gte: "2025-10-31T18:30:00.000Z",
-    $lte: "2026-02-02T18:29:59.999Z"
-  }}).sort({ updatedAt: sortDirection });
-
-    console.log("results count:", results.length);
+    
+    console.log("query from the filter", JSON.stringify(query, null, 2));
+    
+    const results = await User.find(query).sort({ createdAt: sortDirection });
     const formatted = results.map(formatStudent);
-    console.log("formatted filter from mongo query");
-
+    
+    console.log(`Found ${results.length} results`);
+    
     res.json(formatted);
   } catch (error) {
     console.error("Error in filter route:", error);
     res.status(500).json({ error: error.message });
   }
 });
+
+
+
+
+
+// router.post("/migrate-dates-to-date-type", async (req, res) => {
+//   try {
+//     const users = await User.find({fatherContactNumber : "9389689936"});
+//     let migrated = 0;
+//     let alreadyDate = 0;
+//     let errors = 0;
+    
+//     for (const user of users) {
+//       let needsSave = false;
+      
+//       // Fix createdAt
+//       if (user.createdAt && typeof user.createdAt === 'string') {
+//         user.createdAt = new Date(user.createdAt);
+//         needsSave = true;
+//         migrated++;
+//       } else if (user.createdAt instanceof Date) {
+//         alreadyDate++;
+//       }
+      
+//       // Fix updatedAt
+//       if (user.updatedAt && typeof user.updatedAt === 'string') {
+//         user.updatedAt = new Date(user.updatedAt);
+//         needsSave = true;
+//         migrated++;
+//       } else if (user.updatedAt instanceof Date) {
+//         alreadyDate++;
+//       }
+      
+//       if (needsSave) {
+//         try {
+//           await user.save();
+//         } catch (err) {
+//           console.error(`Error saving user ${user._id}:`, err);
+//           errors++;
+//         }
+//       }
+//     }
+    
+//     res.json({
+//       success: true,
+//       message: "Migration completed",
+//       stats: {
+//         totalDocuments: users.length,
+//         migrated: migrated,
+//         alreadyDate: alreadyDate,
+//         errors: errors
+//       }
+//     });
+//   } catch (error) {
+//     console.error("Migration error:", error);
+//     res.status(500).json({ error: error.message });
+//   }
+// });
+
+
+
+
+// router.post("/migrate-dates-to-date-type", async (req, res) => {
+//   try {
+//     const users = await User.find({ fatherContactNumber: "9389689936" });
+//     let migrated = 0;
+//     let alreadyDate = 0;
+//     let errors = 0;
+    
+//     for (const user of users) {
+//       const updateFields = {};
+      
+//       // Check createdAt
+//       if (user.createdAt && typeof user.createdAt === 'string') {
+//         updateFields.createdAt = new Date(user.createdAt);
+//         console.log(`Converting createdAt: ${user.createdAt} -> ${updateFields.createdAt}`);
+//         migrated++;
+//       }
+      
+//       // Check updatedAt
+//       if (user.updatedAt && typeof user.updatedAt === 'string') {
+//         updateFields.updatedAt = new Date(user.updatedAt);
+//         console.log(`Converting updatedAt: ${user.updatedAt} -> ${updateFields.updatedAt}`);
+//         migrated++;
+//       }
+      
+//       // Use native MongoDB driver to bypass Mongoose restrictions
+//       if (Object.keys(updateFields).length > 0) {
+//         try {
+//           const result = await User.collection.updateOne(
+//             { _id: user._id },
+//             { $set: updateFields }
+//           );
+//           console.log(`✅ Updated user ${user._id}:`, result.modifiedCount);
+//         } catch (err) {
+//           console.error(`❌ Error updating user ${user._id}:`, err);
+//           errors++;
+//         }
+//       } else {
+//         alreadyDate++;
+//       }
+//     }
+    
+//     // Verify the changes
+//     const verifyUser = await User.findOne({ fatherContactNumber: "9389689936" }).lean();
+    
+//     res.json({
+//       success: true,
+//       message: "Migration completed",
+//       stats: {
+//         totalDocuments: users.length,
+//         migrated: migrated,
+//         alreadyDate: alreadyDate,
+//         errors: errors
+//       },
+//       verification: {
+//         createdAt: verifyUser.createdAt,
+//         createdAtType: typeof verifyUser.createdAt,
+//         updatedAt: verifyUser.updatedAt,
+//         updatedAtType: typeof verifyUser.updatedAt
+//       }
+//     });
+//   } catch (error) {
+//     console.error("Migration error:", error);
+//     res.status(500).json({ error: error.message });
+//   }
+// });
+
+
+
+
+
+
+
 router.post("/export", async (req, res) => {
   const { sortOrder = "desc", format = "csv", ...params } = req.body;
   const sortDirection = sortOrder === "asc" ? 1 : -1;

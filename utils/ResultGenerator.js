@@ -212,7 +212,7 @@ const generateReportCardPDF = async (data, pdfFilePath) => {
     }
 
     function formatDate(input) {
-      const [dayStr, monthStr, yearStr] = input.split(".");
+      const [dayStr, monthStr, yearStr] = input.split(/[./]/);
       const day = parseInt(dayStr, 10);
       const month = parseInt(monthStr, 10) - 1; // JS months are 0-based
       const year = yearStr?.slice(-2);
@@ -1401,13 +1401,17 @@ const processCSVAndGenerateReportCards = async (csvFilePath, res) => {
         const { names, numbers, totalMarks } = await extractData(student);
 
         let checkMarksData = numbers.map((item, index) => {
+
+          console.log("************************************");
+          console.log("student from processCSV", student);
+          console.log("student from processCSV", numbers);
           return {
             name: item.key.toUpperCase(),
             obtained: item.value,
-            average: student[item.key.toUpperCase() + " Average"],
-            highestScore: student[item.key.toUpperCase() + "_Highest Score"],
+            average: student[item.key + " Average"],
+            highestScore: student[item.key + "_Highest Score"],
             subjectWiseRank:
-              student[item.key.toUpperCase() + "_Subjectwise_Rank"],
+              student[item.key + "_Subjectwise_Rank"],
             fullMarks: item.number,
           };
         });

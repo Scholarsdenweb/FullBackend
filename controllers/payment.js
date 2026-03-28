@@ -19,182 +19,30 @@ const { default: mongoose } = require("mongoose");
 require("dotenv").config();
 
 const checkout = async (req, res) => {
-  console.log("checkout");
   try {
+    const { studentId } = req.body;
+
     const amount = await Amount.findOne();
 
-    console.log("amount from create-invoice", amount);
 
     const options = {
-      amount: amount.amount * 100, // amount in the smallest currency unit
+      amount: amount.amount * 100,
       currency: "INR",
-      // receipt: "order_rcptid_11"
+      notes: {
+        studentId: studentId, // ← Razorpay sends this back in webhook
+      },
     };
-    console.log("options", options);
     const order = await instance.orders.create(options);
 
-    console.log("order", order);
 
     res.status(200).json({
       success: true,
       order,
     });
   } catch (error) {
-    console.log("checkout error");
-    console.log(error);
+     res.status(500).json({ success: false });
   }
 };
-
-// const paymentVerification = async (req, res) => {
-//   try {
-//     const {
-//       razorpay_payment_id,
-//       razorpay_order_id,
-//       razorpay_signature,
-//       studentId,
-//       payment_amount, // Now receiving payment_amount from frontend
-//     } = req.body;
-
-//     console.log("Payment verification request:", {
-//       razorpay_payment_id,
-//       razorpay_order_id,
-//       razorpay_signature,
-//       studentId,
-//       payment_amount,
-//     });
-
-//     // Validate required fields
-//     if (
-//       !razorpay_payment_id ||
-//       !razorpay_order_id ||
-//       !razorpay_signature ||
-//       !studentId ||
-//       !payment_amount
-//     ) {
-//       return res.status(400).json({
-//         success: false,
-//         message: "Missing required payment verification fields",
-//       });
-//     }
-
-//     // Verify signature
-//     const body = razorpay_order_id + "|" + razorpay_payment_id;
-//     const expectedSign = crypto
-//       .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
-//       .update(body.toString())
-//       .digest("hex");
-
-//     console.log("Expected signature:", expectedSign);
-//     console.log("Received signature:", razorpay_signature);
-
-//     const isAuthentic = expectedSign === razorpay_signature;
-
-//     if (isAuthentic) {
-//       // Save payment details to database
-//       const payment = await Payment.create({
-//         razorpay_payment_id,
-//         razorpay_order_id,
-//         razorpay_signature,
-//         studentId,
-//         payment_amount, // Save the amount
-//         payment_status: "success",
-//         payment_date: new Date(),
-//       });
-
-//       console.log("Payment saved successfully:", payment);
-
-//       // Get student details for WhatsApp notification
-//       const student = await Students.findOne({ StudentsId: studentId });
-
-//       console.log("Student details for WhatsApp notification:", student);
-
-//       if (student) {
-//         // // Send WhatsApp notification
-//         // const whatsappResult = await sendAdmitCardNotification({
-//         //   studentId: student._id,
-//         //   studentName: student.studentName || student.name,
-//         //   contactNumber: student.contactNumber || student.phone,
-//         //   paymentId: razorpay_payment_id,
-//         //   amount: payment_amount,
-//         //   admitCardUrl: student.admitCard, // If you have PDF URL
-//         // });
-//         // if (whatsappResult.success) {
-//         //   console.log("Admit card notification sent via WhatsApp");
-//         // } else {
-//         //   console.error("Failed to send WhatsApp notification:", whatsappResult.error);
-//         //   // Don't fail the payment if WhatsApp fails
-//         // }
-//       }
-
-//       return res.status(200).json({
-//         success: true,
-//         message: "Payment verified successfully",
-//         paymentId: razorpay_payment_id,
-//       });
-//     } else {
-//       console.error("Payment signature verification failed");
-//       return res.status(400).json({
-//         success: false,
-//         message: "Payment verification failed - Invalid signature",
-//       });
-//     }
-//   } catch (error) {
-//     console.error("Error in payment verification:", error);
-//     return res.status(500).json({
-//       success: false,
-//       message: "Internal server error during payment verification",
-//       error: error.message,
-//     });
-//   }
-// };
-
-// ===== HELPER FUNCTION: Verify Payment Signature =====
-
-
-// const checkout = async (req, res) => {
-//   console.log("checkout");
-//   try {
-//     const amountDoc = await Amount.findOne(); // e.g. amount = 500
-//     const baseAmount = amountDoc.amount; // 500
-
-//     const razorpayFeePercent = 2.36;
-
-//     // Calculate amount customer should pay
-//     const finalAmount = Math.ceil(
-//       baseAmount / (1 - razorpayFeePercent / 100)
-//     );
-
-//     console.log("Base Amount:", baseAmount);
-//     console.log("Customer Pays:", finalAmount);
-
-//     const options = {
-//       amount: finalAmount * 100, // Razorpay expects paise
-//       currency: "INR",
-//     };
-
-//     const order = await instance.orders.create(options);
-
-//     res.status(200).json({
-//       success: true,
-//       order,
-//       breakdown: {
-//         baseAmount,
-//         razorpayCharges: finalAmount - baseAmount,
-//         totalPayable: finalAmount,
-//       },
-//     });
-//   } catch (error) {
-//     console.log("checkout error", error);
-//     res.status(500).json({ success: false });
-//   }
-// };
-
-
-
-
-
-
-
 
 const verifyPaymentSignature = (orderId, paymentId, signature) => {
   try {
@@ -212,129 +60,167 @@ const verifyPaymentSignature = (orderId, paymentId, signature) => {
 
 // routes/payment.js
 
+// const paymentVerification = async (req, res) => {
+//   const session = await mongoose.startSession();
+
+//   // I want to create a webhook on the
+
+//   try {
+//     await session.startTransaction();
+
+//     console.log("Session started for payment verification:", session.id);
+
+//     console.log("req.body in paymentVerification", req.body);
+
+//     const {
+//       razorpay_payment_id,
+//       razorpay_order_id,
+//       razorpay_signature,
+//       studentId,
+//       payment_amount,
+//     } = req.body;
+
+//     console.log("Payment verification request:", req.body);
+//     // Verify payment
+//     const isValid = verifyPaymentSignature(
+//       razorpay_order_id,
+//       razorpay_payment_id,
+//       razorpay_signature,
+//     );
+
+//     if (!isValid) {
+//       await session.abortTransaction();
+//       return res.status(400).json({
+//         success: false,
+//         message: "Invalid payment signature",
+//       });
+//     }
+
+//     // Get student
+//     const student = await Students.findById(studentId).session(session);
+
+//     console.log("student found in payment verification", student);
+
+//     if (!student) {
+//       await session.abortTransaction();
+//       return res.status(404).json({
+//         success: false,
+//         message: "Student not found",
+//       });
+//     }
+
+//     // Check duplicate payment
+//     if (student.paymentId) {
+//       await session.abortTransaction();
+//       return res.status(400).json({
+//         success: false,
+//         message: "Payment already completed",
+//         studentsId: student.StudentsId,
+//       });
+//     }
+
+//     // Get batch details
+//     const BatchRelatedDetails = mongoose.model("BatchRelatedDetails");
+//     const batchDetails = await BatchRelatedDetails.findOne({
+//       student_id: studentId,
+//     }).session(session);
+
+//     if (!batchDetails || !batchDetails.classForAdmission) {
+//       await session.abortTransaction();
+//       return res.status(400).json({
+//         success: false,
+//         message: "Batch details not found",
+//       });
+//     }
+
+//     // Generate StudentsId using RegistrationCounter (much faster!)
+//     const studentsId = await Students.allocateStudentsId(
+//       batchDetails.classForAdmission,
+//       session,
+//     );
+
+//     console.log("Generated StudentsId:", studentsId);
+
+//     // Update student
+//     await Students.findByIdAndUpdate(
+//       studentId,
+//       {
+//         paymentId: razorpay_payment_id,
+//         StudentsId: studentsId,
+//       },
+//       { session, new: true },
+//     );
+
+//     const paymentRecord = new Payment({
+//       razorpay_payment_id,
+//       razorpay_order_id,
+//       razorpay_signature,
+//       studentId,
+//       StudentsId: studentsId,
+//       payment_amount,
+//       payment_status: "success",
+//       payment_date: new Date(),
+//     });
+
+//     await paymentRecord.save({ session });
+
+//     console.log("Payment record created:", paymentRecord._id);
+
+//     await session.commitTransaction();
+
+//     return res.status(200).json({
+//       success: true,
+//       message: "Payment verified and Student ID allocated",
+//       studentsId: studentsId,
+//       paymentId: razorpay_payment_id,
+//     });
+//   } catch (error) {
+//     await session.abortTransaction();
+//     console.error("Payment verification error:", error);
+//     return res.status(500).json({
+//       success: false,
+//       message: "Payment verification failed",
+//       error: error.message,
+//     });
+//   } finally {
+//     session.endSession();
+//   }
+// };
+
+
+
 const paymentVerification = async (req, res) => {
-  const session = await mongoose.startSession();
-
   try {
-    await session.startTransaction();
+    const { razorpay_payment_id } = req.body;
 
-
-    console.log("req.body in paymentVerification", req.body);
-
-    const {
-      razorpay_payment_id,
-      razorpay_order_id,
-      razorpay_signature,
-      studentId,
-      payment_amount,
-    } = req.body;
-
-    console.log("Payment verification request:", req.body);
-    // Verify payment
-    const isValid = verifyPaymentSignature(
-      razorpay_order_id,
-      razorpay_payment_id,
-      razorpay_signature
-    );
-
-    if (!isValid) {
-      await session.abortTransaction();
-      return res.status(400).json({
-        success: false,
-        message: "Invalid payment signature",
-      });
+    // Poll until webhook has processed (max ~10 seconds)
+    let payment = null;
+    for (let i = 0; i < 5; i++) {
+      payment = await Payment.findOne({ razorpay_payment_id });
+      if (payment) break;
+      await new Promise((r) => setTimeout(r, 2000)); // wait 2s between retries
     }
 
-    // Get student
-    const student = await Students.findById(studentId).session(session);
-
-    console.log("student found in payment verification", student);
-
-    if (!student) {
-      await session.abortTransaction();
-      return res.status(404).json({
+    if (!payment) {
+      return res.status(202).json({
         success: false,
-        message: "Student not found",
+        message: "Payment processing, please wait...",
       });
     }
-
-    // Check duplicate payment
-    if (student.paymentId) {
-      await session.abortTransaction();
-      return res.status(400).json({
-        success: false,
-        message: "Payment already completed",
-        studentsId: student.StudentsId,
-      });
-    }
-
-    // Get batch details
-    const BatchRelatedDetails = mongoose.model("BatchRelatedDetails");
-    const batchDetails = await BatchRelatedDetails.findOne({
-      student_id: studentId,
-    }).session(session);
-
-    if (!batchDetails || !batchDetails.classForAdmission) {
-      await session.abortTransaction();
-      return res.status(400).json({
-        success: false,
-        message: "Batch details not found",
-      });
-    }
-
-    // Generate StudentsId using RegistrationCounter (much faster!)
-    const studentsId = await Students.allocateStudentsId(
-      batchDetails.classForAdmission,
-      session
-    );
-
-    console.log("Generated StudentsId:", studentsId);
-
-    // Update student
-    await Students.findByIdAndUpdate(
-      studentId,
-      {
-        paymentId: razorpay_payment_id,
-        StudentsId: studentsId,
-      },
-      { session, new: true }
-    );
-
-    const paymentRecord = new Payment({
-      razorpay_payment_id,
-      razorpay_order_id,
-      razorpay_signature,
-      studentId,
-      StudentsId: studentsId,
-      payment_amount,
-      payment_status: "success",
-      payment_date: new Date(),
-    });
-
-    await paymentRecord.save({ session });
-
-    console.log("Payment record created:", paymentRecord._id);
-
-    await session.commitTransaction();
 
     return res.status(200).json({
       success: true,
-      message: "Payment verified and Student ID allocated",
-      studentsId: studentsId,
+      message: "Payment verified",
+      studentsId: payment.StudentsId,
       paymentId: razorpay_payment_id,
     });
+
   } catch (error) {
-    await session.abortTransaction();
-    console.error("Payment verification error:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Payment verification failed",
-      error: error.message,
-    });
-  } finally {
-    session.endSession();
+    console.error("paymentVerification error:", error);
+    res.status(500).json({ success: false, message: error.message });
   }
 };
+
 
 const generateAdmitCard = async (req, res) => {
   console.log("GenerateAdmit card function working");
@@ -388,14 +274,15 @@ const generateAdmitCard = async (req, res) => {
       class: batchDetails.classForAdmission,
       stream: batchDetails.program,
       examDate: basicDetails.examDate,
-      examTime: "11:00 AM",
+      examTime: "10:00 AM",
       profilePicture: student.profilePicture,
 
       paymentId: student.paymentId,
       studentId: student.StudentsId,
       FatherName: familyDetails.FatherName,
       CenterName: "SD Campus",
-      CenterAddress: "Near Tehsil, Sonakpur Overbridge Road, Moradabad, Uttar Pradesh",
+      CenterAddress:
+        "Near Tehsil, Sonakpur Overbridge Road, Moradabad, Uttar Pradesh",
     };
     // Generate admit card
     const admitCard = await processHTMLAndGenerateAdmitCards(data);
@@ -422,79 +309,6 @@ const generateAdmitCard = async (req, res) => {
     });
   }
 };
-
-// router.post("/sendVerification", async (req, res) => {
-//   try {
-//     const { mobileNumber } = req.body;
-//     console.log("req.body from sendVerification", req.body);
-
-//     if (!mobileNumber) {
-//       return res
-//         .status(400)
-//         .json({ success: false, message: "Mobile number is required." });
-//     }
-
-//     console.log(mobileNumber);
-//     console.log(process.env.FAST2SMS_API_KEY);
-
-//     // Generate a random 4-digit OTP
-//     const otp = Math.floor(1000 + Math.random() * 9000);
-
-//     console.log("otp code ", otp);
-
-//     const options = {
-//       method: "POST",
-//       url: "https://www.fast2sms.com/dev/bulkV2",
-//       headers: {
-//         authorization: `${process.env.FAST2SMS_API_KEY}`,
-//         "Content-Type": "application/x-www-form-urlencoded",
-//       },
-//       data: {
-//         route: "dlt",
-//         sender_id: "SCHDEN",
-//         message: "182187",
-//         variables_values: `${otp}|`,
-//         flash: 0,
-//         numbers: `${mobileNumber}`,
-//       },
-//     };
-//     let otpStoreData;
-//     // Make the API request to Fast2SMS
-//     const response = await axios.post(options.url, options.data, {
-//       headers: options.headers,
-//     });
-
-//     console.log(response.data);
-
-//     // Store the OTP in the database
-//     const existingOtp = await OtpStore.findOne({ mobileNumber });
-
-//     if (existingOtp) {
-//       // Update the existing document if an OTP is already stored for this number
-//       existingOtp.otp = otp;
-//       existingOtp.createdAt = new Date();
-//       await existingOtp.save();
-//     } else {
-//       // Create a new document if no OTP exists for this number
-//       otpStoreData = await OtpStore.create({ otp, mobileNumber });
-//     }
-
-//     // Construct and send a custom response
-//     return res.status(200).json({
-//       success: true,
-//       message: "OTP sent successfully",
-//       smsResponse: response.data, // Include the response from Fast2SMS
-//       otpStoreData,
-//     });
-//   } catch (error) {
-//     console.error(error);
-//     return res.status(500).json({
-//       success: false,
-//       message: "Failed to send OTP.",
-//       error: error.message, // Include the error message for easier debugging
-//     });
-//   }
-// });
 
 const getKey = async (req, res) => {
   try {

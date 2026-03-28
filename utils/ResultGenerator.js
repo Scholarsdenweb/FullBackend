@@ -883,13 +883,13 @@ gap: 10px;
       </div>
 
       <!-- Footer -->
-      <div class="footer">
-        <div>
-          BUILDING 1, 2 & 4: Near Qila, Kanth Road, Moradabad (UP) 244001<br />
+        <div class="footer">
+           SD Campus Near Tehsil, Sonakpur Overbridge Road, Moradabad (UP) 244001<br />
           SD House (Corporate Office): Sai Mandir Road, Deen Dayal Nagar-I,
           Moradabad (UP) 244001
+          <br />
+          Contact: +91 8126555222 / 333 | www.scholarsden.in / scholarsden
         </div>
-      </div>
 
       <div class="secondPage">
         <div class="secondPageLogo">

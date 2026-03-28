@@ -11,6 +11,7 @@ const fileUpload = require("express-fileupload");
 const admissionAdminRoute = require("./routes/admissionAdminRoute");
 const amountRoute = require("./routes/amount");
 
+
 const mongoose = require("mongoose");
 const port = process.env.PORT || 5004;
 require("dotenv").config();
@@ -35,6 +36,23 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
   exposedHeaders: ['Set-Cookie']
 }));
+
+
+const { razorpayWebhook } = require("./controllers/webhookHandler");
+
+// ⚠️ Raw body required for webhook signature verification
+app.post(
+  "/api/v1/payment/webhook",
+  express.raw({ type: "application/json" }), // captures raw Buffer
+  (req, res, next) => {
+    req.rawBody = req.body;         // save raw Buffer
+    req.body = JSON.parse(req.body); // parse for handler use
+    next();
+  },
+  razorpayWebhook
+);
+
+
 
 // 3. Body parsers
 app.use(express.json());

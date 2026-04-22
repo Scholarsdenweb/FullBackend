@@ -90,6 +90,7 @@ app.use("/api/user", userRoute);
 app.use("/api/amount", amountRoute);
 app.use("/api/admin", adminRoute);
 app.use("/api/admission-admin", admissionAdminRoute);
+app.use("/api/integration", require("./routes/integration"));
 
 // ====== START SERVER ======
 app.listen(port, () => {

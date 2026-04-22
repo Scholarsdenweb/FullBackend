@@ -155,6 +155,8 @@ const isFileValid = (file) => {
 
 router.post("/generateResult", upload.single("csvFile"), async (req, res) => {
   try {
+    console.log("generateResult from the employee");
+    console.log("Request Body:", req.body);
     if (!req.file) {
       return res.status(400).json({ error: "No file uploaded" });
     }
@@ -300,10 +302,12 @@ router.post("/generate-zip", async (req, res) => {
     
     if (!formattedDate)
       return res.status(400).json({ message: "Exam date is required." });
+
+    console.log("formattedDate from the generate-zip", formattedDate)
     
     // Fetch students who have results using bulk query
     const allResults = await Result.find({
-      examDate: formattedDate,
+      examDate: "29.3.2026",
       resultUrl: { $exists: true, $ne: null, $ne: "" },
     }).select("resultUrl");
     

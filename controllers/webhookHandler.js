@@ -7,8 +7,10 @@ const Students = require("../models/Student");
 const BasicDetails = require("../models/form/BasicDetails");
 const BatchRelatedDetails = require("../models/form/BatchRelatedDetails");
 const FamilyDetails = require("../models/form/FamilyDetails");
+const EducationalDetails = require("../models/form/EducationalDetails");
 const processHTMLAndGenerateAdmitCards = require("../utils/AdmitCardGenerator");
 const { sendAdmitCardNotification } = require("../utils/services/whatsappService");
+const { syncRegistrationToCims } = require("../utils/cimsSyncService");
 
 // ─── 1. Verify Razorpay webhook signature ────────────────────────────────────
 const verifyWebhookSignature = (rawBody, signature) => {
@@ -48,11 +50,19 @@ const razorpayWebhook = async (req, res) => {
     notes, // studentId must be passed in notes from frontend
   } = paymentEntity;
 
-  const studentId = notes?.studentId;
+
+  console.log("notes from the razorpayWebhook", notes)
+  const studentId =
+    notes?.studentId ||
+    notes?.studentID ||
+    notes?.student_id ||
+    notes?.registrationId ||
+    notes?.registration_id;
 
   if (!studentId) {
-    console.error("Webhook: studentId missing in payment notes");
-    return res.status(400).json({ message: "studentId missing in notes" });
+
+    console.error("Webhook: studentId missing in payment notes. Notes received:", notes);
+    return res.status(400).json({ message: "studentId missing in notes", notes });
   }
 
   // ── Idempotency check: skip if already processed ──────────────────────────
@@ -78,6 +88,8 @@ const razorpayWebhook = async (req, res) => {
     const batchDetails = await BatchRelatedDetails.findOne({
       student_id: studentId,
     }).session(session);
+
+    console.log("batchDetailes", batchDetails)
 
     if (!batchDetails?.classForAdmission) {
       await session.abortTransaction();
@@ -115,12 +127,19 @@ const razorpayWebhook = async (req, res) => {
     await paymentRecord.save({ session });
     await session.commitTransaction();
 
+
+    
+
     console.log("Webhook: Payment saved, StudentsId:", studentsId);
 
     // ── Generate Admit Card (outside transaction — heavy async task) ──────────
-    generateAndNotify(studentId, studentsId).catch((err) =>
-      console.error("Webhook: Background task failed:", err.message)
-    );
+    postPaymentFlow({
+      registrationId: studentId,
+      studentsId,
+      razorpay_payment_id,
+      razorpay_order_id,
+      payment_amount: amount / 100,
+    }).catch((err) => console.error("Webhook: Background task failed:", err.message));
 
     // Respond to Razorpay immediately (must be fast — Razorpay expects <5s)
     return res.status(200).json({ message: "Webhook processed successfully" });
@@ -146,10 +165,13 @@ const generateAndNotify = async (studentId, studentsId) => {
 
     if (!student || !basicDetails || !batchDetails || !familyDetails) {
       console.error("Background: Missing student data, skipping admit card");
-      return;
+      return { admitCardUrl: "", student, basicDetails, batchDetails, familyDetails, educationalDetails: null };
     }
 
+    const educationalDetails = await EducationalDetails.findOne({ student_id: studentId });
+
     // Skip if admit card already generated
+    let admitCardUrl = student.admitCard || "";
     if (student.admitCard) {
       console.log("Background: Admit card already exists, skipping generation");
     } else {
@@ -167,7 +189,7 @@ const generateAndNotify = async (studentId, studentsId) => {
         CenterAddress: "Near Tehsil, Sonakpur Overbridge Road, Moradabad, Uttar Pradesh",
       };
 
-      const admitCardUrl = await processHTMLAndGenerateAdmitCards(data);
+      admitCardUrl = await processHTMLAndGenerateAdmitCards(data);
       student.admitCard = admitCardUrl;
       await student.save();
       console.log("Background: Admit card generated:", admitCardUrl);
@@ -176,11 +198,56 @@ const generateAndNotify = async (studentId, studentsId) => {
     // Send WhatsApp notification
     const notifyResult = await sendAdmitCardNotification(studentsId);
     console.log("Background: WhatsApp notification result:", notifyResult);
+    return { admitCardUrl, student, basicDetails, batchDetails, familyDetails, educationalDetails };
 
   } catch (error) {
     console.error("Background: generateAndNotify error:", error.message);
     throw error;
   }
+};
+
+const postPaymentFlow = async ({
+  registrationId,
+  studentsId,
+  razorpay_payment_id,
+  razorpay_order_id,
+  payment_amount,
+}) => {
+  console.log(`[CIMS_SYNC][post_payment][STEP 1] start registrationId=${registrationId}`);
+  const details = await generateAndNotify(registrationId, studentsId);
+  console.log(`[CIMS_SYNC][post_payment][STEP 2] admit card stage done registrationId=${registrationId}`);
+
+  const payload = {
+    registrationId: String(registrationId),
+    student_id: studentsId,
+    student_name: details?.student?.studentName || "",
+    student_phone: details?.student?.contactNumber || "",
+    student_email: details?.student?.email || "",
+    current_class: details?.batchDetails?.classForAdmission || "",
+    school_name: details?.educationalDetails?.SchoolName || "",
+    board: details?.educationalDetails?.Board || "",
+    medium: "",
+    last_percentage:
+      details?.educationalDetails?.Percentage != null
+        ? String(details.educationalDetails.Percentage)
+        : "",
+    father_name: details?.familyDetails?.FatherName || "",
+    father_phone: details?.familyDetails?.FatherContactNumber || "",
+    mother_name: details?.familyDetails?.MotherName || "",
+    annual_income: details?.familyDetails?.FamilyIncome || "",
+    exam_date: details?.basicDetails?.examDate || "",
+    payment_mode: "online",
+    payment_status: "paid",
+    payment_amount,
+    registration_fee: payment_amount,
+    payment_date: new Date().toISOString(),
+    razorpay_payment_id,
+    razorpay_order_id,
+    admit_card_url: details?.admitCardUrl || "",
+  };
+
+  await syncRegistrationToCims(payload, "post_payment_webhook");
+  console.log(`[CIMS_SYNC][post_payment][STEP 3] cims upsert done registrationId=${registrationId}`);
 };
 
 module.exports = { razorpayWebhook };

@@ -6,6 +6,7 @@ const csv = require("csv-parser");
 const cloudinary = require("cloudinary").v2;
 require("dotenv").config();
 const path = require("path");
+const axios = require("axios");
 const Students = require("../models/Student");
 const Result = require("../models/Result");
 
@@ -18,6 +19,36 @@ cloudinary.config({
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const sendResultReadyWebhook = async (studentId, resultUrl) => {
+  const webhookUrl = (process.env.CIMS_RESULT_WEBHOOK_URL || "").trim();
+  const internalApiKey = (process.env.INTERNAL_API_KEY || "").trim();
+
+  if (!webhookUrl || !internalApiKey || !studentId || !resultUrl) {
+    return;
+  }
+
+  const payload = { studentId, resultUrl };
+  let lastError = null;
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      await axios.post(webhookUrl, payload, {
+        headers: { "x-internal-api-key": internalApiKey },
+        timeout: 12000,
+      });
+      return;
+    } catch (error) {
+      lastError = error;
+      if (attempt < 3) {
+        await sleep(1000 * attempt);
+      }
+    }
+  }
+
+  console.error(`Failed to deliver result-ready webhook for ${studentId}:`, lastError?.message || lastError);
+};
 
 // Function to check if the file is valid (non-empty)
 const isFileValid = (pdfFilePath) => {
@@ -1487,12 +1518,14 @@ const processCSVAndGenerateReportCards = async (csvFilePath, res) => {
               );
 
               console.log("Result record (created/updated):", resultRecord);
+              await sendResultReadyWebhook(student["Roll No"], url);
             } catch (error) {
               console.error(
                 `Error uploading report card for Roll Number: ${student["Roll No"]}`,
                 error,
               );
-            } finally {
+            } 
+            finally {
               if (fs.existsSync(pdfFilePath)) fs.unlinkSync(pdfFilePath);
             }
           } else {

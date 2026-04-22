@@ -6,7 +6,9 @@ const Students = require("../models/Student");
 const BatchRelatedDetails = require("../models/form/BatchRelatedDetails");
 const BasicDetails = require("../models/form/BasicDetails");
 const FamilyDetails = require("../models/form/FamilyDetails");
+const EducationalDetails = require("../models/form/EducationalDetails");
 const RegistrationCounter = require("../models/RegistrationCounter"); // Updated import
+const { syncRegistrationToCims } = require("../utils/cimsSyncService");
 
 const {
   sendAdmitCardNotification,
@@ -20,26 +22,78 @@ require("dotenv").config();
 
 const checkout = async (req, res) => {
   try {
-    const { studentId } = req.body;
+    const studentId =
+      req.body?.studentId ||
+      req.body?.studentID ||
+      req.body?.student_id ||
+      req.body?.registrationId ||
+      req.body?.registration_id;
+
+    if (!studentId) {
+      return res.status(400).json({
+        success: false,
+        message: "studentId (or studentID/registrationId) is required",
+      });
+    }
 
     const amount = await Amount.findOne();
+    const student = await Students.findById(studentId).lean();
+    const basicDetails = await BasicDetails.findOne({ student_id: studentId }).lean();
+    const batchDetails = await BatchRelatedDetails.findOne({ student_id: studentId }).lean();
+    const familyDetails = await FamilyDetails.findOne({ student_id: studentId }).lean();
+    const educationalDetails = await EducationalDetails.findOne({ student_id: studentId }).lean();
+
+    if (!student) {
+      return res.status(404).json({ success: false, message: "Student not found" });
+    }
 
 
     const options = {
       amount: amount.amount * 100,
       currency: "INR",
       notes: {
-        studentId: studentId, // ← Razorpay sends this back in webhook
+        // Keep multiple aliases so webhook parsing is resilient
+        studentId: String(studentId),
+        studentID: String(studentId),
+        student_id: String(studentId),
+        registrationId: String(studentId),
       },
+      // add agiain when this feature allow on my account
+      // fee_bearer: "customer",
     };
     const order = await instance.orders.create(options);
+
+    const prePaymentPayload = {
+      registrationId: String(studentId),
+      student_name: student.studentName || "",
+      student_phone: student.contactNumber || "",
+      student_email: student.email || "",
+      current_class: batchDetails?.classForAdmission || "",
+      school_name: educationalDetails?.SchoolName || "",
+      board: educationalDetails?.Board || "",
+      medium: "",
+      last_percentage:
+        educationalDetails?.Percentage != null ? String(educationalDetails.Percentage) : "",
+      father_name: familyDetails?.FatherName || "",
+      father_phone: familyDetails?.FatherContactNumber || "",
+      mother_name: familyDetails?.MotherName || "",
+      annual_income: familyDetails?.FamilyIncome || "",
+      exam_date: basicDetails?.examDate || "",
+      payment_mode: "online",
+      payment_status: "pending",
+      registration_fee: amount?.amount || 0,
+      razorpay_order_id: order?.id || "",
+    };
+    const preSyncResult = await syncRegistrationToCims(prePaymentPayload, "pre_payment");
 
 
     res.status(200).json({
       success: true,
       order,
+      cimsSync: preSyncResult,
     });
   } catch (error) {
+    console.log("Error form the catch", error)
      res.status(500).json({ success: false });
   }
 };

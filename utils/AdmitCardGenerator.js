@@ -719,6 +719,9 @@ const processHTMLAndGenerateAdmitCards = async (student) => {
     ? await compressImageForPDF(student.profilePicture)
     : student.profilePicture;
 
+
+    console.log("compressImageForPDF", compressedProfilePicture)
+
   const studentData = {
     studentName: student.name,
     Registration: student.studentId,

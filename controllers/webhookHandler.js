@@ -41,6 +41,7 @@ const razorpayWebhook = async (req, res) => {
     return res.status(200).json({ message: "Event ignored" });
   }
 
+
   const paymentEntity = req.body.payload.payment.entity;
 
   const {
@@ -189,6 +190,8 @@ const generateAndNotify = async (studentId, studentsId) => {
         CenterAddress: "Near Tehsil, Sonakpur Overbridge Road, Moradabad, Uttar Pradesh",
       };
 
+      console.log("Data from the generateAndNotify", data );
+
       admitCardUrl = await processHTMLAndGenerateAdmitCards(data);
       student.admitCard = admitCardUrl;
       await student.save();
@@ -212,6 +215,7 @@ const postPaymentFlow = async ({
   razorpay_payment_id,
   razorpay_order_id,
   payment_amount,
+  payment_mode = "online",
 }) => {
   console.log(`[CIMS_SYNC][post_payment][STEP 1] start registrationId=${registrationId}`);
   const details = await generateAndNotify(registrationId, studentsId);
@@ -236,7 +240,7 @@ const postPaymentFlow = async ({
     mother_name: details?.familyDetails?.MotherName || "",
     annual_income: details?.familyDetails?.FamilyIncome || "",
     exam_date: details?.basicDetails?.examDate || "",
-    payment_mode: "online",
+    payment_mode,
     payment_status: "paid",
     payment_amount,
     registration_fee: payment_amount,
@@ -250,4 +254,4 @@ const postPaymentFlow = async ({
   console.log(`[CIMS_SYNC][post_payment][STEP 3] cims upsert done registrationId=${registrationId}`);
 };
 
-module.exports = { razorpayWebhook };
+module.exports = { razorpayWebhook, postPaymentFlow };

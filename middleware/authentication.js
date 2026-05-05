@@ -115,14 +115,22 @@ const verifyTokenForRegistration = (allowedModels = []) => {
 
       const { _id, role } = decoded;
 
-      if (!allowedModels.includes(role)) {
+      const allowedRoles = Array.isArray(allowedModels)
+        ? allowedModels
+        : [allowedModels];
+      const normalizedRole = String(role || "").toLowerCase();
+      const normalizedAllowedRoles = allowedRoles.map((item) =>
+        String(item || "").toLowerCase(),
+      );
+
+      if (!normalizedAllowedRoles.includes(normalizedRole)) {
         return res.status(403).json({
           message: "Access denied. Invalid user type for this operation",
         });
       }
 
       // Determine the correct model based on role
-      const UserModel = role === "Student" ? Student : Employee;
+      const UserModel = normalizedRole === "student" ? Student : Employee;
 
       const user = await UserModel.findById(_id).select("-password");
 
@@ -278,7 +286,13 @@ const checkRole = (allowedRoles = []) => {
       });
     }
 
-    if (!allowedRoles.includes(userRole)) {
+    const roles = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
+    const normalizedUserRole = String(userRole || "").toLowerCase();
+    const normalizedAllowedRoles = roles.map((role) =>
+      String(role || "").toLowerCase(),
+    );
+
+    if (!normalizedAllowedRoles.includes(normalizedUserRole)) {
       return res.status(403).json({
         message: "Access denied. Insufficient permissions",
       });

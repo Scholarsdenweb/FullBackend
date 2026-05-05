@@ -22,7 +22,14 @@ cloudinary.config({
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const sendResultReadyWebhook = async (studentId, resultUrl) => {
+const sendResultReadyWebhook = async ({
+  studentId,
+  resultUrl,
+  registrationId,
+  scholarshipPercentage,
+  student,
+}) => {
+  console.log("z", scholarshipPercentage)
   const webhookUrl = (process.env.CIMS_RESULT_WEBHOOK_URL || "").trim();
   const internalApiKey = (process.env.INTERNAL_API_KEY || "").trim();
 
@@ -30,7 +37,14 @@ const sendResultReadyWebhook = async (studentId, resultUrl) => {
     return;
   }
 
-  const payload = { studentId, resultUrl };
+  const payload = {
+    studentId,
+    resultUrl,
+    registrationId: registrationId || "",
+    registration_id: registrationId || "",
+    scholarshipPercentage: scholarshipPercentage || "",
+    student: student || null,
+  };
   let lastError = null;
   for (let attempt = 1; attempt <= 3; attempt += 1) {
     try {
@@ -38,6 +52,7 @@ const sendResultReadyWebhook = async (studentId, resultUrl) => {
         headers: { "x-internal-api-key": internalApiKey },
         timeout: 12000,
       });
+      console.log(`Result-ready webhook delivered for ${studentId}`);
       return;
     } catch (error) {
       lastError = error;
@@ -47,7 +62,10 @@ const sendResultReadyWebhook = async (studentId, resultUrl) => {
     }
   }
 
-  console.error(`Failed to deliver result-ready webhook for ${studentId}:`, lastError?.message || lastError);
+  console.error(
+    `Failed to deliver result-ready webhook for ${studentId}:`,
+    lastError?.message || lastError,
+  );
 };
 
 // Function to check if the file is valid (non-empty)
@@ -128,18 +146,19 @@ const generateReportCardPDF = async (data, pdfFilePath) => {
     // const studentImagePath = data.studentLastName
     //   ? `../Photographs/${data.studentFirstName} ${data.studentLastName}_${data.Registration}.jpeg`
     //   : `../Photographs/${data.studentFirstName}_${data.Registration}.jpeg`;
-    const formatName = (name) => name ? name.replace(/\s+/g, '_') : '';
+    const formatName = (name) => (name ? name.replace(/\s+/g, "_") : "");
+    console.log("Data from the gernerateReport Card", data);
 
     const studentImagePath = data.studentLastName
-  ? `https://res.cloudinary.com/dtytgoj3f/image/upload/Student_Pictures/${formatName(data.studentFirstName)}_${formatName(data.studentLastName)}_${data.Registration}.jpg`
-      : `https://res.cloudinary.com/dtytgoj3f/image/upload/Student_Pictures/${data.studentFirstName}_${data.Registration}.jpg`;
+      ? `https://res.cloudinary.com/dtytgoj3f/image/upload/Student_Pictures/${formatName(data.studentFirstName)}_${formatName(data.studentLastName)}_${data.registration_id}.jpg`
+      : `https://res.cloudinary.com/dtytgoj3f/image/upload/Student_Pictures/${data.studentFirstName}_${data.registration_id}.jpg`;
 
     console.log("studentImagePath", studentImagePath);
 
     console.log("studentImagePath", studentImagePath);
 
-    // const imagePath = studentImagePath;
-    const imagePath = getImageAsBase64(studentImagePath);
+    // Prefer student photo from DB (profilePicture). Fallback to name-based Cloudinary path.
+    const imagePath = data.photo || studentImagePath;
 
     console.log("imagePath", imagePath);
 
@@ -1358,7 +1377,7 @@ scholarshipMessageElement.innerHTML = \`
 const uploadToCloudinary = async (pdfFilePath, studentName, rollNumber) => {
   try {
     const folder = "report_cards"; // Folder name in Cloudinary
-        const sanitizedStudentName = studentName.replace(/\s+/g, '_'); // or use '-' for hyphens
+    const sanitizedStudentName = studentName.replace(/\s+/g, "_"); // or use '-' for hyphens
 
     const publicId = `${folder}/${sanitizedStudentName}_${rollNumber}`; // Store the file with the student's roll number as the name
 
@@ -1381,174 +1400,222 @@ const processCSVAndGenerateReportCards = async (csvFilePath, res) => {
   const students = [];
 
   // Read CSV file and parse data
-  await fs
-    .createReadStream(csvFilePath)
-    .pipe(csv())
-    .on("data", (row) => {
-      students.push(row);
-      console.log("row from processCSVAndGenerateReportCards", row);
-    })
-    .on("end", async () => {
+  await new Promise((resolve, reject) => {
+    fs.createReadStream(csvFilePath)
+      .pipe(csv())
+      .on("data", (row) => {
+        students.push(row);
+        console.log("row from processCSVAndGenerateReportCards", row);
+      })
+      .on("end", resolve)
+      .on("error", reject);
+  });
+
+  try {
       for (const [StudentIndex, student] of students.entries()) {
-        const pdfFilePath = `./reportCards/${student["Candidate Name"]}_${student["Roll No"]}.pdf`;
-        const allKeys = Object.keys(student);
+        if (!student?.["Roll No"]) {
+          console.warn("Skipping row because Roll No is missing:", student);
+          continue;
+        }
 
-        // Function to extract names and numbers
-        function extractData(studentData) {
-          let names = [];
-          let numbers = [];
-          let totalMarks = [];
+        const studentDoc = await Students.findOne({
+          StudentsId: student["Roll No"],
+        })
+          .select("_id studentName email contactNumber profilePicture")
+          .lean();
 
-          // Iterate through the data object
-          for (let key in studentData) {
-            let value = studentData[key];
+      const pdfFilePath = `./reportCards/${student["Candidate Name"]}_${student["Roll No"]}.pdf`;
+      const allKeys = Object.keys(student);
 
-            // Check if the key contains a number in parentheses (indicating marks/subjects)
-            const match = key.match(/\((\d+)\)/);
+      // Function to extract names and numbers
+      function extractData(studentData) {
+        let names = [];
+        let numbers = [];
+        let totalMarks = [];
 
-            if (
-              key === "Total(100)" ||
-              key === "Total(240)" ||
-              key === "Total(480)"
-            ) {
-              totalMarks.push({
-                key: key.split("(")[0],
-                obtainedMarks: match[1],
-                value,
-              });
-            } else if (match) {
-              // If the key contains a number in parentheses, extract the number and store it as a number
-              numbers.push({ key: key.split("(")[0], number: match[1], value });
-            } else {
-              // If it's not one of the excluded keys, store it as a name
-              names.push({ key, value });
-            }
+        // Iterate through the data object
+        for (let key in studentData) {
+          let value = studentData[key];
+
+          // Check if the key contains a number in parentheses (indicating marks/subjects)
+          const match = key.match(/\((\d+)\)/);
+
+          if (
+            key === "Total(100)" ||
+            key === "Total(240)" ||
+            key === "Total(480)"
+          ) {
+            totalMarks.push({
+              key: key.split("(")[0],
+              obtainedMarks: match[1],
+              value,
+            });
+          } else if (match) {
+            // If the key contains a number in parentheses, extract the number and store it as a number
+            numbers.push({ key: key.split("(")[0], number: match[1], value });
+          } else {
+            // If it's not one of the excluded keys, store it as a name
+            names.push({ key, value });
           }
-
-          return { names, numbers, totalMarks };
         }
 
-        // Extracted studentData
-        const { names, numbers, totalMarks } = await extractData(student);
+        return { names, numbers, totalMarks };
+      }
 
-        let checkMarksData = numbers.map((item, index) => {
+      // Extracted studentData
+      const { names, numbers, totalMarks } = await extractData(student);
 
-          console.log("************************************");
-          console.log("student from processCSV", student);
-          console.log("student from processCSV", numbers);
-          return {
-            name: item.key.toUpperCase(),
-            obtained: item.value,
-            average: student[item.key + " Average"],
-            highestScore: student[item.key + "_Highest Score"],
-            subjectWiseRank:
-              student[item.key + "_Subjectwise_Rank"],
-            fullMarks: item.number,
-          };
-        });
+      let checkMarksData = numbers.map((item, index) => {
+        console.log("************************************");
+        console.log("student from processCSV", student);
+        console.log("student from processCSV", numbers);
+        return {
+          name: item.key.toUpperCase(),
+          obtained: item.value,
+          average: student[item.key + " Average"],
+          highestScore: student[item.key + "_Highest Score"],
+          subjectWiseRank: student[item.key + "_Subjectwise_Rank"],
+          fullMarks: item.number,
+        };
+      });
 
-        function capitalizeWords(str) {
-          return str
-            ?.split(" ")
-            ?.map(
-              (word) =>
-                word.charAt(0).toUpperCase() + word.slice(1).toLowerCase(),
-            )
-            .join(" ");
-        }
-
+      function capitalizeWords(str) {
+        return str
+          ?.split(" ")
+          ?.map(
+            (word) =>
+              word.charAt(0).toUpperCase() + word.slice(1).toLowerCase(),
+          )
+          .join(" ");
+      }
+      console.log("STduent fromthe precessCSVANDGENERATE", student);
+      console.log("STduent fromthe precessCSVANDGENERATE", studentDoc);
         let data = {
-          studentFirstName: capitalizeWords(
-            student["Candidate Name"]?.split(" ")[0],
-          ),
-          studentLastName: capitalizeWords(
-            student["Candidate Name"]?.split(" ").length > 1
-              ? student["Candidate Name"]?.split(" ").slice(1).join(" ")
-              : "",
-          ),
-          Registration: student["Roll No"],
-          Rank: student["Rank"],
-          Scholarship: student["Scholarship"],
-          Father: capitalizeWords(student["Father's Name"]),
-          Class: student["Class"],
+          student_id: studentDoc?._id ? String(studentDoc._id) : "",
+          studentFirstName: student["Candidate Name"]?.split(" ")[0] ,
+          // capitalizeWords(
+          //   student["Candidate Name"]?.split(" ")[0],
+          // ),
+        studentLastName: capitalizeWords(
+          student["Candidate Name"]?.split(" ").length > 1
+            ? student["Candidate Name"]?.split(" ").slice(1).join(" ")
+            : "",
+        ),
+        Registration: student["Roll No"],
+        registration_id: studentDoc._id,
+        Rank: student["Rank"],
+        Scholarship: student["Scholarship"],
+        Father: capitalizeWords(student["Father's Name"]),
+        Class: student["Class"],
           scholarshipValidDate: student["Scholarship Validation Date"],
           examDate: student["Exam Date"],
+          photo: studentDoc?.profilePicture || "",
           Rank: student[allKeys[0]],
           subjects: checkMarksData,
           totalMarks: totalMarks,
         };
 
-        try {
-          await generateReportCardPDF(data, pdfFilePath);
-          console.log(`Generated PDF check pdfFilePath`, pdfFilePath);
+      try {
+        await generateReportCardPDF(data, pdfFilePath);
+        console.log(`Generated PDF check pdfFilePath`, pdfFilePath);
 
-          // Ensure that the file is valid before uploading
-          if (isFileValid(pdfFilePath)) {
-            try {
-              // Upload the report card to Cloudinary
-              const url = await uploadToCloudinary(
-                pdfFilePath,
-                student["Candidate Name"],
-                student["Roll No"],
-              );
-              console.log("Report card uploaded to Cloudinary:", url);
-              console.log("Student role number:", student["Roll No"]);
-
-              // Update the student document with the Cloudinary URL
-              const updatedStudent = await Students.updateOne(
-                { StudentsId: student["Roll No"] },
-                { $set: { result: url } },
-              );
-              console.log("updatedStudent", updatedStudent);
-
-              // Use findOneAndUpdate with upsert option to update or create
-              const resultRecord = await Result.findOneAndUpdate(
-                { StudentId: student["Roll No"] },
-                {
-                  $set: {
-                    resultUrl: url,
-                    examDate: student["Exam Date"].replace(/[\/.-]/g, "."),
-                  },
-                },
-                {
-                  upsert: true, // Create if doesn't exist
-                  new: true, // Return the updated document
-                  setDefaultsOnInsert: true, // Apply schema defaults on insert
-                },
-              );
-
-              console.log("Result record (created/updated):", resultRecord);
-              await sendResultReadyWebhook(student["Roll No"], url);
-            } catch (error) {
-              console.error(
-                `Error uploading report card for Roll Number: ${student["Roll No"]}`,
-                error,
-              );
-            } 
-            finally {
-              if (fs.existsSync(pdfFilePath)) fs.unlinkSync(pdfFilePath);
-            }
-          } else {
-            console.log(
-              `Generated PDF for ${student["Roll No"]} is empty or invalid.`,
+        // Ensure that the file is valid before uploading
+        if (isFileValid(pdfFilePath)) {
+          try {
+            // Upload the report card to Cloudinary
+            const url = await uploadToCloudinary(
+              pdfFilePath,
+              student["Candidate Name"],
+              student["Roll No"],
             );
-          }
+            console.log("Report card uploaded to Cloudinary:", url);
+            console.log("Student role number:", student["Roll No"]);
 
-          // Optionally, delete the local file after upload
-        } catch (error) {
-          console.error(
-            `Error processing report card for Roll Number: `,
-            error,
+            // Update the student document with the Cloudinary URL
+            const updatedStudent = await Students.updateOne(
+              { StudentsId: student["Roll No"] },
+              { $set: { result: url } },
+            );
+            console.log("updatedStudent", updatedStudent);
+
+            // Use findOneAndUpdate with upsert option to update or create
+            const resultRecord = await Result.findOneAndUpdate(
+              { StudentId: student["Roll No"] },
+              {
+                $set: {
+                  resultUrl: url,
+                  examDate: String(student["Exam Date"] || "").replace(
+                    /[\/.-]/g,
+                    ".",
+                  ),
+                },
+              },
+              {
+                upsert: true, // Create if doesn't exist
+                new: true, // Return the updated document
+                setDefaultsOnInsert: true, // Apply schema defaults on insert
+              },
+            );
+
+            console.log("Result record (created/updated):", resultRecord);
+
+              const studentRecord = {
+                registrationId: studentDoc?._id ? String(studentDoc._id) : "",
+                studentId: student["Roll No"],
+              studentName:
+                studentDoc?.studentName || student["Candidate Name"] || "",
+              email: studentDoc?.email || "",
+              phone: studentDoc?.contactNumber || "",
+              scholarshipPercentage: String(student["Scholarship"] || "")
+                .replace("%", "")
+                .trim(),
+              resultUrl: url,
+              examDate: String(student["Exam Date"] || "").replace(
+                /[\/.-]/g,
+                ".",
+              ),
+            };
+
+            await sendResultReadyWebhook({
+              studentId: studentRecord.studentId,
+              resultUrl: studentRecord.resultUrl,
+              registrationId: studentRecord.registrationId,
+              scholarshipPercentage: studentRecord.scholarshipPercentage,
+              student: studentRecord,
+            });
+          } catch (error) {
+            console.error(
+              `Error uploading report card for Roll Number: ${student["Roll No"]}`,
+              error,
+            );
+          } finally {
+            if (fs.existsSync(pdfFilePath)) fs.unlinkSync(pdfFilePath);
+          }
+        } else {
+          console.log(
+            `Generated PDF for ${student["Roll No"]} is empty or invalid.`,
           );
         }
-      }
 
-      await res.write(`data: ${JSON.stringify({ complete: true })}\n\n`);
-      res.end();
-    })
-    .on("error", (error) => {
-      console.error("Error reading CSV file:", error);
-    });
+        // Optionally, delete the local file after upload
+      } catch (error) {
+        console.error(`Error processing report card for Roll Number: `, error);
+        if (fs.existsSync(pdfFilePath)) fs.unlinkSync(pdfFilePath);
+      }
+    }
+
+    await res.write(`data: ${JSON.stringify({ complete: true })}\n\n`);
+    res.end();
+  } catch (error) {
+    console.error("Error reading CSV file:", error);
+    await res.write(
+      `data: ${JSON.stringify({
+        complete: true,
+        error: error?.message || "Failed to process CSV",
+      })}\n\n`,
+    );
+    res.end();
+  }
 };
 
 // Run the script

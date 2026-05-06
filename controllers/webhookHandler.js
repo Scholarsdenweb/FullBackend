@@ -43,6 +43,7 @@ const razorpayWebhook = async (req, res) => {
 
 
   const paymentEntity = req.body.payload.payment.entity;
+  console.log("paymentEntity from the paymentEntity", paymentEntity)
 
   const {
     id: razorpay_payment_id,

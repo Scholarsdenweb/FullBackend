@@ -42,12 +42,7 @@ jobs:
             git pull origin "$BRANCH"
 
             npm ci --omit=dev
-
-            if [ -n "${{ secrets.APP_RESTART_COMMAND }}" ]; then
-              echo "Running custom restart command"
-              ${{ secrets.APP_RESTART_COMMAND }}
-            else
-              echo "No APP_RESTART_COMMAND secret provided. Using pm2 fallback."
-              pm2 describe fullbackend > /dev/null 2>&1 && pm2 restart fullbackend || pm2 start index.js --name fullbackend
-              pm2 save
-            fi
+            pm2 describe fullBackend > /dev/null 2>&1 \
+              && pm2 restart fullBackend --update-env \
+              || pm2 start index.js --name fullBackend
+            pm2 save

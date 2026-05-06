@@ -1,4 +1,4 @@
-const instance = require("../utils/razorpay");
+const getRazorpay = require("../utils/razorpay");
 const crypto = require("crypto");
 const Payment = require("../models/form/Payment");
 const processHTMLAndGenerateAdmitCards = require("../utils/AdmitCardGenerator");
@@ -22,6 +22,14 @@ require("dotenv").config();
 
 const checkout = async (req, res) => {
   try {
+    const instance = getRazorpay();
+    if (!instance) {
+      return res.status(500).json({
+        success: false,
+        message: "Razorpay is not configured on server",
+      });
+    }
+
     const studentId =
       req.body?.studentId ||
       req.body?.studentID ||

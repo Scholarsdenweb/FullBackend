@@ -1,3 +1,5 @@
+require("dotenv").config();
+
 const express = require("express");
 const app = express();
 const cors = require("cors");
@@ -14,7 +16,6 @@ const amountRoute = require("./routes/amount");
 
 const mongoose = require("mongoose");
 const port = process.env.PORT || 5004;
-require("dotenv").config();
 
 // ====== MIDDLEWARE ORDER IS CRITICAL ======
 

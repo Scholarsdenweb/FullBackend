@@ -1,3 +1,5 @@
+require("dotenv").config();
+
 const {
   checkout,
   getKey,
@@ -13,10 +15,19 @@ const {
 const Razorpay = require("razorpay");
 const crypto = require("crypto");
 
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID,
-  key_secret: process.env.RAZORPAY_KEY_SECRET,
-});
+const getRazorpay = () => {
+  const keyId = process.env.RAZORPAY_KEY_ID;
+  const keySecret = process.env.RAZORPAY_KEY_SECRET;
+
+  if (!keyId || !keySecret) {
+    return null;
+  }
+
+  return new Razorpay({
+    key_id: keyId,
+    key_secret: keySecret,
+  });
+};
 
 const express = require("express");
 const {
@@ -76,6 +87,13 @@ router.get(
 );
 
 router.post("/create-invoice", async (req, res) => {
+  const razorpay = getRazorpay();
+  if (!razorpay) {
+    return res.status(500).json({
+      error: "Razorpay is not configured on server",
+    });
+  }
+
   const { name, contact, email, amount } = req.body;
 
   console.log("name contact email amount", name, contact, email, amount);

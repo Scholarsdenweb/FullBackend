@@ -1,0 +1,53 @@
+name: Deploy Backend to VPS
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-backend-production
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Deploy on VPS via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          script_stop: true
+          script: |
+            set -e
+            APP_DIR="${{ secrets.VPS_APP_DIR }}"
+            BRANCH="${{ github.ref_name }}"
+
+            if [ -z "$APP_DIR" ]; then
+              echo "VPS_APP_DIR secret is missing"
+              exit 1
+            fi
+
+            cd "$APP_DIR"
+            git fetch origin "$BRANCH"
+            git checkout "$BRANCH"
+            git pull origin "$BRANCH"
+
+            npm ci --omit=dev
+
+            if [ -n "${{ secrets.APP_RESTART_COMMAND }}" ]; then
+              echo "Running custom restart command"
+              ${{ secrets.APP_RESTART_COMMAND }}
+            else
+              echo "No APP_RESTART_COMMAND secret provided. Using pm2 fallback."
+              pm2 describe fullbackend > /dev/null 2>&1 && pm2 restart fullbackend || pm2 start index.js --name fullbackend
+              pm2 save
+            fi

@@ -17,6 +17,10 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const { verifyToken } = require("../middleware/authentication");
 const { enquirySubmitionTemplate } = require("../utils/smsTemplates");
+const {
+  ensureLeadCounsellor,
+  syncLeadToCims,
+} = require("../utils/cimsLeadSyncService");
 
 const setAuthCookie = (res, token) => {
   res.cookie("authToken", token, {
@@ -36,6 +40,7 @@ const generateToken = (payload) => {
 
 router.post("/", async (req, res) => {
   try {
+    console.log("[ENQUIRY_CREATE] request body=", req.body);
     const { fatherContactNumber } = req.body;
 
     // Check if user already exists
@@ -50,6 +55,27 @@ router.post("/", async (req, res) => {
       fatherContactNumber,
     });
     await newUser.save();
+    console.log("[ENQUIRY_CREATE] user created _id=", newUser?._id, "enquiryNumber=", newUser?.enquiryNumber);
+    const assignedCounsellor = await ensureLeadCounsellor(newUser);
+    console.log("[ENQUIRY_CREATE] assignedCounsellor=", assignedCounsellor);
+
+    const cimsSync = await syncLeadToCims(
+      {
+        leadId: newUser.enquiryNumber,
+        enquiryId: String(newUser._id || ""),
+        student_name: newUser.studentName || "",
+        student_phone: newUser.studentContactNumber || "",
+        father_phone: newUser.fatherContactNumber || "",
+        student_email: newUser.email || "",
+        current_class: newUser.courseOfIntrested || "",
+        program: newUser.program || "",
+        school_name: newUser.schoolName || "",
+        counsellor_email: assignedCounsellor?.email || "",
+        counsellor_name: assignedCounsellor?.name || "",
+      },
+      "enquiry_create",
+    );
+    console.log("[ENQUIRY_CREATE] cimsSyncResult=", cimsSync);
 
     console.log("newUser created", newUser);
 
@@ -71,7 +97,7 @@ router.post("/", async (req, res) => {
     setAuthCookie(res, token);
 
     console.log("Token", token);
-    res.status(200).send({ token, newUser });
+    res.status(200).send({ token, newUser, cimsSync });
   } catch (error) {
     console.error("Error in signup:", error.message);
     console.error("Error in signup:", error);
@@ -204,6 +230,7 @@ router.post("/filter/filterByClass", async (req, res) => {
 
 router.patch("/putFormData", verifyToken(), async (req, res) => {
   try {
+    console.log("[ENQUIRY_UPDATE] request body=", req.body);
     const {
       studentName,
       email,
@@ -223,6 +250,7 @@ router.patch("/putFormData", verifyToken(), async (req, res) => {
       brochureGiven,
     } = req.body;
     const { _id } = req.user;
+    console.log("[ENQUIRY_UPDATE] tokenUser _id=", _id, "role=", req.user?.role);
 
     console.log("req.body", req.body);
 
@@ -250,6 +278,33 @@ router.patch("/putFormData", verifyToken(), async (req, res) => {
       },
       { new: true }
     );
+    console.log("[ENQUIRY_UPDATE] user updated=", user?._id, "enquiryNumber=", user?.enquiryNumber);
+    const assignedCounsellor = await ensureLeadCounsellor(
+      user,
+      enquiryTakenBy,
+    );
+    console.log("[ENQUIRY_UPDATE] assignedCounsellor=", assignedCounsellor);
+
+    const cimsSync = await syncLeadToCims(
+      {
+        leadId: user?.enquiryNumber,
+        enquiryId: String(user?._id || ""),
+        student_name: user?.studentName || "",
+        student_phone: user?.studentContactNumber || "",
+        father_phone: user?.fatherContactNumber || "",
+        student_email: user?.email || "",
+        current_class: user?.courseOfIntrested || "",
+        program: user?.program || "",
+        school_name: user?.schoolName || "",
+        city: user?.city || "",
+        state: user?.state || "",
+        remarks: user?.remarks || "",
+        counsellor_email: assignedCounsellor?.email || user?.enquiryTakenBy || "",
+        counsellor_name: assignedCounsellor?.name || "",
+      },
+      "enquiry_update",
+    );
+    console.log("[ENQUIRY_UPDATE] cimsSyncResult=", cimsSync);
 
     console.log("user", user);
 
@@ -257,7 +312,11 @@ router.patch("/putFormData", verifyToken(), async (req, res) => {
 
     // }
 
-    return res.status(200).send({ user });
+    return res.status(200).send({
+      user,
+      counsellorAssigned: assignedCounsellor?.email || user?.enquiryTakenBy || "",
+      cimsSync,
+    });
   } catch (error) {
     console.error("Error in signup:", error.message);
     res.status(500).send("Internal Server Error");

@@ -8,8 +8,14 @@ const BasicDetails = require("../models/form/BasicDetails");
 const BatchRelatedDetails = require("../models/form/BatchRelatedDetails");
 const EducationalDetails = require("../models/form/EducationalDetails");
 const FamilyDetails = require("../models/form/FamilyDetails");
+const User = require("../models/UserModel");
 const internalApiKeyMiddleware = require("../middleware/internalApiKey");
 const { postPaymentFlow } = require("../controllers/webhookHandler");
+const { syncRegistrationToCims } = require("../utils/cimsSyncService");
+const {
+  ensureLeadCounsellor,
+  syncLeadToCims,
+} = require("../utils/cimsLeadSyncService");
 
 const router = express.Router();
 
@@ -31,6 +37,83 @@ const pickDefined = (obj) =>
   Object.fromEntries(
     Object.entries(obj).filter(([, value]) => value !== undefined && value !== null && value !== "")
   );
+
+router.post("/enquiries/upsert", internalApiKeyMiddleware, async (req, res) => {
+  try {
+    console.log("[CIMS_TO_ENQUIRY] request body=", req.body);
+    const fatherContactNumber = String(
+      req.body.father_phone ||
+        req.body.fatherContactNumber ||
+        req.body.phone ||
+        req.body.student_phone ||
+        "",
+    ).trim();
+    const studentContactNumber = String(
+      req.body.student_phone || req.body.studentContactNumber || "",
+    ).trim();
+    const email = String(req.body.email || req.body.student_email || "").trim().toLowerCase();
+    const studentName = String(req.body.name || req.body.student_name || "").trim();
+    const enquiryTakenBy = String(
+      req.body.counsellor_email || req.body.enquiryTakenBy || "",
+    ).trim();
+
+    if (!fatherContactNumber && !studentContactNumber && !email) {
+      console.log("[CIMS_TO_ENQUIRY] rejected: missing phone/email");
+      return res.status(400).json({ error: "phone or email is required" });
+    }
+
+    const lookup = [];
+    if (fatherContactNumber) lookup.push({ fatherContactNumber });
+    if (studentContactNumber) lookup.push({ studentContactNumber });
+    if (email) lookup.push({ email });
+
+    let enquiry = await User.findOne({ $or: lookup });
+    if (!enquiry) {
+      console.log("[CIMS_TO_ENQUIRY] enquiry not found, creating new");
+      enquiry = new User({
+        fatherContactNumber: fatherContactNumber || studentContactNumber || "NA",
+      });
+    } else {
+      console.log("[CIMS_TO_ENQUIRY] existing enquiry found _id=", enquiry?._id);
+    }
+
+    const updatePayload = pickDefined({
+      studentName,
+      studentContactNumber,
+      fatherContactNumber,
+      email,
+      program: req.body.program,
+      courseOfIntrested: req.body.current_class || req.body.courseOfIntrested,
+      schoolName: req.body.school_name || req.body.schoolName,
+      fatherName: req.body.father_name || req.body.fatherName,
+      fatherOccupations: req.body.father_occupation || req.body.fatherOccupations,
+      city: req.body.city,
+      state: req.body.state,
+      remarks: req.body.remarks,
+    });
+    Object.assign(enquiry, updatePayload);
+    if (enquiryTakenBy) enquiry.enquiryTakenBy = enquiryTakenBy;
+
+    await enquiry.save();
+    console.log("[CIMS_TO_ENQUIRY] enquiry saved _id=", enquiry?._id, "enquiryNumber=", enquiry?.enquiryNumber);
+    const assignedCounsellor = await ensureLeadCounsellor(enquiry, enquiryTakenBy);
+    console.log("[CIMS_TO_ENQUIRY] assignedCounsellor=", assignedCounsellor);
+
+    return res.status(200).json({
+      message: "Enquiry synced successfully",
+      enquiryNumber: enquiry.enquiryNumber,
+      enquiryId: enquiry._id,
+      counsellor_email: assignedCounsellor?.email || enquiry.enquiryTakenBy || "",
+      counsellor_name: assignedCounsellor?.name || "",
+    });
+  } catch (error) {
+    console.error("[CIMS_TO_ENQUIRY] failed error=", error);
+    return res.status(500).json({
+      error: "Failed to upsert enquiry",
+      details: error?.message || String(error),
+    });
+  }
+});
 
 router.post("/generate-id", internalApiKeyMiddleware, async (req, res) => {
   console.log("integration from the generate_id is working", req.body )
@@ -76,6 +159,7 @@ router.post("/generate-id", internalApiKeyMiddleware, async (req, res) => {
   session.startTransaction();
 
   try {
+    console.log("[REGISTRATION_GENERATE_ID] start phone=", phone, "email=", email);
     const lookup = [{ contactNumber: phone }];
     if (email) lookup.push({ email });
 
@@ -157,10 +241,96 @@ router.post("/generate-id", internalApiKeyMiddleware, async (req, res) => {
 
     await session.commitTransaction();
     session.endSession();
+    console.log("[REGISTRATION_GENERATE_ID] student transaction committed studentId=", student?.id);
 
     console.log("stduent from the generate_id", student)
 
-    return res.status(200).json({ student_ObjectId: student.id });
+    let enquiry = await User.findOne({ fatherContactNumber: phone });
+    if (!enquiry) {
+      enquiry = new User({
+        fatherContactNumber: phone,
+        studentName,
+        studentContactNumber: phone,
+        email: email || undefined,
+        courseOfIntrested: classForAdmission,
+        program: program || undefined,
+        schoolName: schoolName || undefined,
+        fatherName: fatherName || undefined,
+      });
+      await enquiry.save();
+    } else {
+      Object.assign(
+        enquiry,
+        pickDefined({
+          studentName,
+          studentContactNumber: phone,
+          email: email || undefined,
+          courseOfIntrested: classForAdmission,
+          program: program || undefined,
+          schoolName: schoolName || undefined,
+          fatherName: fatherName || undefined,
+        }),
+      );
+      await enquiry.save();
+    }
+
+    const assignedCounsellor = await ensureLeadCounsellor(
+      enquiry,
+      req.body.counsellor_email || req.body.enquiryTakenBy,
+    );
+    console.log("[REGISTRATION_GENERATE_ID] assignedCounsellor=", assignedCounsellor);
+
+    const leadSyncResult = await syncLeadToCims(
+      {
+        leadId: enquiry.enquiryNumber,
+        student_name: enquiry.studentName || studentName,
+        student_phone: enquiry.studentContactNumber || phone,
+        father_phone: enquiry.fatherContactNumber || phone,
+        student_email: enquiry.email || email || "",
+        current_class: enquiry.courseOfIntrested || classForAdmission || "",
+        program: enquiry.program || program || "",
+        school_name: enquiry.schoolName || schoolName || "",
+        counsellor_email: assignedCounsellor?.email || enquiry.enquiryTakenBy || "",
+        counsellor_name: assignedCounsellor?.name || "",
+      },
+      "registration_enquiry_link",
+    );
+    console.log("[REGISTRATION_GENERATE_ID] leadSyncResult=", leadSyncResult);
+
+    const registrationSyncResult = await syncRegistrationToCims(
+      {
+        registrationId: String(student.id),
+        student_name: student.studentName || studentName || "",
+        student_phone: student.contactNumber || phone || "",
+        student_email: student.email || email || "",
+        current_class: classForAdmission || "",
+        school_name: schoolName || "",
+        board: board || "",
+        last_percentage: percentage != null ? String(percentage) : "",
+        father_name: fatherName || "",
+        father_phone: fatherContact || phone || "",
+        mother_name: motherName || "",
+        annual_income: familyIncome || "",
+        exam_date: examDate || "",
+        payment_mode: "not_started",
+        payment_status: "pending",
+        registration_fee: 0,
+        counsellor_email: assignedCounsellor?.email || enquiry.enquiryTakenBy || "",
+        counsellor_name: assignedCounsellor?.name || "",
+        enquiry_number: enquiry.enquiryNumber || "",
+      },
+      "registration_form_submit",
+    );
+    console.log("[REGISTRATION_GENERATE_ID] registrationSyncResult=", registrationSyncResult);
+
+    return res.status(200).json({
+      student_ObjectId: student.id,
+      enquiryNumber: enquiry.enquiryNumber || "",
+      counsellor_email: assignedCounsellor?.email || enquiry.enquiryTakenBy || "",
+      counsellor_name: assignedCounsellor?.name || "",
+      leadSyncResult,
+      registrationSyncResult,
+    });
   } catch (error) {
     console.log("error from the catch", error)
     await session.abortTransaction();

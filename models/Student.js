@@ -257,6 +257,28 @@ const romanToInt = (number) => {
   return romanNumerals[number];
 };
 
+const PREVIOUS_CLASS_MAP = {
+  II: "I",
+  III: "II",
+  IV: "III",
+  V: "IV",
+  VI: "V",
+  VII: "VI",
+  VIII: "VII",
+  IX: "VIII",
+  X: "IX",
+  "XI Engineering": "X",
+  "XII Engineering": "XI Engineering",
+  "XII Passed Engineering": "XII Engineering",
+  "XI Medical": "X",
+  "XII Medical": "XI Medical",
+  "XII Passed Medical": "XII Medical",
+};
+
+const getScholarshipClassFromAdmissionClass = (admissionClass) => {
+  return PREVIOUS_CLASS_MAP[admissionClass] || admissionClass;
+};
+
 // Updated Static Method - Now uses RegistrationCounter
 studentsSchema.statics.allocateStudentsId = async function (
   classForAdmission,
@@ -266,6 +288,7 @@ studentsSchema.statics.allocateStudentsId = async function (
   const currentMonth = new Date().getMonth();
 
   const admissionClass = normalizeValue(classForAdmission);
+  const scholarshipClass = getScholarshipClassFromAdmissionClass(admissionClass);
 
   // Adjust year if in October-December
   if (currentMonth >= 9 && currentMonth < 12) {
@@ -275,7 +298,7 @@ studentsSchema.statics.allocateStudentsId = async function (
   // Get next count from RegistrationCounter (atomic operation)
   const count = await RegistrationCounter.getNextCount(
     currentYear,
-    admissionClass,
+    scholarshipClass,
     session
   );
 
@@ -283,7 +306,7 @@ studentsSchema.statics.allocateStudentsId = async function (
   const studentNumber = String(count + 200).padStart(3, "0");
 
   // Generate StudentsId
-  const classCode = romanToInt(admissionClass);
+  const classCode = romanToInt(scholarshipClass);
   if (!classCode) {
     throw new Error(`Invalid class: ${admissionClass}`);
   }
@@ -294,7 +317,7 @@ studentsSchema.statics.allocateStudentsId = async function (
 
   // Update counter with last generated ID
   await RegistrationCounter.findOneAndUpdate(
-    { year: currentYear, classForAdmission: admissionClass },
+    { year: currentYear, classForAdmission: scholarshipClass },
     { lastStudentsId: StudentsId },
     { session }
   );

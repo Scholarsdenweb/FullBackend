@@ -149,6 +149,9 @@ const generateReportCardPDF = async (data, pdfFilePath) => {
     const formatName = (name) => (name ? name.replace(/\s+/g, "_") : "");
     console.log("Data from the gernerateReport Card", data);
 
+    // const studentImagePath = data.studentLastName
+    //   ? `https://res.cloudinary.com/dtytgoj3f/image/upload/Student_Pictures/${formatName(data.studentFirstName)}_${formatName(data.studentLastName)}_${data.Registration}.jpg`
+    //   : `https://res.cloudinary.com/dtytgoj3f/image/upload/Student_Pictures/${data.studentFirstName}_${data.Registration}.jpg`;
     const studentImagePath = data.studentLastName
       ? `https://res.cloudinary.com/dtytgoj3f/image/upload/Student_Pictures/${formatName(data.studentFirstName)}_${formatName(data.studentLastName)}_${data.registration_id}.jpg`
       : `https://res.cloudinary.com/dtytgoj3f/image/upload/Student_Pictures/${data.studentFirstName}_${data.registration_id}.jpg`;
@@ -1491,7 +1494,7 @@ const processCSVAndGenerateReportCards = async (csvFilePath, res) => {
       console.log("STduent fromthe precessCSVANDGENERATE", student);
       console.log("STduent fromthe precessCSVANDGENERATE", studentDoc);
         let data = {
-          student_id: studentDoc?._id ? String(studentDoc._id) : "",
+          student_id: studentDoc?._id ? String(studentDoc?._id) : "",
           studentFirstName: student["Candidate Name"]?.split(" ")[0] ,
           // capitalizeWords(
           //   student["Candidate Name"]?.split(" ")[0],
@@ -1502,7 +1505,7 @@ const processCSVAndGenerateReportCards = async (csvFilePath, res) => {
             : "",
         ),
         Registration: student["Roll No"],
-        registration_id: studentDoc._id,
+        registration_id: studentDoc?._id,
         Rank: student["Rank"],
         Scholarship: student["Scholarship"],
         Father: capitalizeWords(student["Father's Name"]),
@@ -1531,12 +1534,32 @@ const processCSVAndGenerateReportCards = async (csvFilePath, res) => {
             console.log("Report card uploaded to Cloudinary:", url);
             console.log("Student role number:", student["Roll No"]);
 
-            // Update the student document with the Cloudinary URL
-            const updatedStudent = await Students.updateOne(
-              { StudentsId: student["Roll No"] },
-              { $set: { result: url } },
-            );
-            console.log("updatedStudent", updatedStudent);
+              let studentDoc = await Students.findOne({
+                StudentsId: student["Roll No"],
+              });
+
+              // Support offline/non-registered students:
+              // create a minimal student record so result pipeline still works.
+              if (!studentDoc) {
+                studentDoc = await Students.create({
+                  studentName: student["Candidate Name"] || `Offline ${student["Roll No"]}`,
+                  StudentsId: student["Roll No"],
+                  role: "student",
+                  contactNumber: `offline-${student["Roll No"]}`,
+                });
+                console.log(
+                  "[RESULT_GENERATOR] Created minimal student record for offline student:",
+                  studentDoc?._id,
+                  student["Roll No"],
+                );
+              }
+
+              // Update the student document with the Cloudinary URL
+              const updatedStudent = await Students.updateOne(
+                { _id: studentDoc._id },
+                { $set: { result: url } },
+              );
+              console.log("updatedStudent", updatedStudent);
 
             // Use findOneAndUpdate with upsert option to update or create
             const resultRecord = await Result.findOneAndUpdate(
@@ -1588,9 +1611,10 @@ const processCSVAndGenerateReportCards = async (csvFilePath, res) => {
               `Error uploading report card for Roll Number: ${student["Roll No"]}`,
               error,
             );
-          } finally {
-            if (fs.existsSync(pdfFilePath)) fs.unlinkSync(pdfFilePath);
-          }
+          } 
+          // finally {
+          //   if (fs.existsSync(pdfFilePath)) fs.unlinkSync(pdfFilePath);
+          // }
         } else {
           console.log(
             `Generated PDF for ${student["Roll No"]} is empty or invalid.`,

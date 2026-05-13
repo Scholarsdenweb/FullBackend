@@ -109,6 +109,7 @@ const razorpayWebhook = async (req, res) => {
       studentId,
       {
         paymentId: razorpay_payment_id,
+        formFill: "online",
         StudentsId: studentsId,
       },
       { session, new: true }

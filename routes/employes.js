@@ -153,15 +153,37 @@ const isFileValid = (file) => {
 //   res.json({ message: "File uploaded successfully!", file: req.file.filename });
 // });
 
-router.post("/generateResult", upload.single("csvFile"), async (req, res) => {
+router.post("/generateResult", async (req, res) => {
   try {
     console.log("generateResult from the employee");
     console.log("Request Body:", req.body);
-    if (!req.file) {
+    const uploadedFile = req.files?.csvFile;
+
+    if (!uploadedFile) {
       return res.status(400).json({ error: "No file uploaded" });
     }
 
-    console.log("Uploaded File:", req.file);
+    const originalName = uploadedFile.name || "result.csv";
+    const extname = path.extname(originalName).toLowerCase();
+    if (extname !== ".csv") {
+      return res.status(400).json({ error: "Only CSV files are allowed." });
+    }
+
+    const uploadsDir = path.join(process.cwd(), "uploads");
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+
+    const safeName = originalName.replace(/[^a-z0-9._-]/gi, "_");
+    const filePath = path.join(uploadsDir, `${Date.now()}-${safeName}`);
+    await uploadedFile.mv(filePath);
+
+    console.log("Uploaded File:", {
+      name: originalName,
+      mimetype: uploadedFile.mimetype,
+      size: uploadedFile.size,
+      filePath,
+    });
 
     // Set SSE headers
     res.setHeader("Content-Type", "text/event-stream");
@@ -169,8 +191,6 @@ router.post("/generateResult", upload.single("csvFile"), async (req, res) => {
     res.setHeader("Connection", "keep-alive");
 
     // ✅ Pass the correct file path to the processing function
-    const filePath = req.file.path;
-
     await processCSVAndGenerateReportCards(filePath, res);
 
     // res.end();
@@ -307,7 +327,7 @@ router.post("/generate-zip", async (req, res) => {
     
     // Fetch students who have results using bulk query
     const allResults = await Result.find({
-      examDate: "29.3.2026",
+      examDate: formattedDate,
       resultUrl: { $exists: true, $ne: null, $ne: "" },
     }).select("resultUrl");
     

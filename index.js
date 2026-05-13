@@ -37,6 +37,13 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
   exposedHeaders: ['Set-Cookie']
 }));
+app.use(
+  fileUpload({
+    useTempFiles: false,
+    limits: { fileSize: 15 * 1024 * 1024 },
+    abortOnLimit: true,
+  }),
+);
 
 
 const { razorpayWebhook } = require("./controllers/webhookHandler");

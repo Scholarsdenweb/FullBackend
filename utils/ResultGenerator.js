@@ -9,6 +9,7 @@ const path = require("path");
 const axios = require("axios");
 const Students = require("../models/Student");
 const Result = require("../models/Result");
+const OfflineResultStudent = require("../models/OfflineResultStudent");
 
 const ExamDate = require("../models/ExamDate");
 const ErrorList = require("../models/ErrorList");
@@ -149,12 +150,12 @@ const generateReportCardPDF = async (data, pdfFilePath) => {
     const formatName = (name) => (name ? name.replace(/\s+/g, "_") : "");
     console.log("Data from the gernerateReport Card", data);
 
-    // const studentImagePath = data.studentLastName
-    //   ? `https://res.cloudinary.com/dtytgoj3f/image/upload/Student_Pictures/${formatName(data.studentFirstName)}_${formatName(data.studentLastName)}_${data.Registration}.jpg`
-    //   : `https://res.cloudinary.com/dtytgoj3f/image/upload/Student_Pictures/${data.studentFirstName}_${data.Registration}.jpg`;
     const studentImagePath = data.studentLastName
-      ? `https://res.cloudinary.com/dtytgoj3f/image/upload/Student_Pictures/${formatName(data.studentFirstName)}_${formatName(data.studentLastName)}_${data.registration_id}.jpg`
-      : `https://res.cloudinary.com/dtytgoj3f/image/upload/Student_Pictures/${data.studentFirstName}_${data.registration_id}.jpg`;
+      ? `https://res.cloudinary.com/dtytgoj3f/image/upload/Student_Pictures/${formatName(data.studentFirstName)}_${formatName(data.studentLastName)}_${data.Registration}.jpg`
+      : `https://res.cloudinary.com/dtytgoj3f/image/upload/Student_Pictures/${data.studentFirstName}_${data.Registration}.jpg`;
+    // const studentImagePath = data.studentLastName
+    //   ? `https://res.cloudinary.com/dtytgoj3f/image/upload/Student_Pictures/${formatName(data.studentFirstName)}_${formatName(data.studentLastName)}_${data.registration_id}.jpg`
+    //   : `https://res.cloudinary.com/dtytgoj3f/image/upload/Student_Pictures/${data.studentFirstName}_${data.registration_id}.jpg`;
 
     console.log("studentImagePath", studentImagePath);
 
@@ -1416,8 +1417,19 @@ const processCSVAndGenerateReportCards = async (csvFilePath, res) => {
 
   try {
       for (const [StudentIndex, student] of students.entries()) {
+        let generatedUrl = "";
+        let rowStatus = "processing";
+        let rowError = "";
         if (!student?.["Roll No"]) {
           console.warn("Skipping row because Roll No is missing:", student);
+          await res.write(
+            `data: ${JSON.stringify({
+              index: StudentIndex + 1,
+              total: students.length,
+              status: "skipped",
+              error: "Roll No is missing",
+            })}\n\n`,
+          );
           continue;
         }
 
@@ -1531,35 +1543,47 @@ const processCSVAndGenerateReportCards = async (csvFilePath, res) => {
               student["Candidate Name"],
               student["Roll No"],
             );
+            generatedUrl = url;
+            rowStatus = "success";
             console.log("Report card uploaded to Cloudinary:", url);
             console.log("Student role number:", student["Roll No"]);
 
-              let studentDoc = await Students.findOne({
+              const studentDoc = await Students.findOne({
                 StudentsId: student["Roll No"],
               });
 
-              // Support offline/non-registered students:
-              // create a minimal student record so result pipeline still works.
-              if (!studentDoc) {
-                studentDoc = await Students.create({
-                  studentName: student["Candidate Name"] || `Offline ${student["Roll No"]}`,
-                  StudentsId: student["Roll No"],
-                  role: "student",
-                  contactNumber: `offline-${student["Roll No"]}`,
-                });
+              if (studentDoc) {
+                // Registered student: update in Students collection.
+                const updatedStudent = await Students.updateOne(
+                  { _id: studentDoc._id },
+                  { $set: { result: url } },
+                );
+                console.log("updatedStudent", updatedStudent);
+              } else {
+                // Offline / non-registered student: store in dedicated collection.
+                const offlineRecord = await OfflineResultStudent.findOneAndUpdate(
+                  { rollNo: student["Roll No"] },
+                  {
+                    $set: {
+                      candidateName: student["Candidate Name"] || "",
+                      fatherName: student["Father's Name"] || "",
+                      className: student["Class"] || "",
+                      examDate: String(student["Exam Date"] || "").replace(
+                        /[\/.-]/g,
+                        ".",
+                      ),
+                      resultUrl: url,
+                      source: "offline_result_upload",
+                    },
+                  },
+                  { upsert: true, new: true, setDefaultsOnInsert: true },
+                );
                 console.log(
-                  "[RESULT_GENERATOR] Created minimal student record for offline student:",
-                  studentDoc?._id,
-                  student["Roll No"],
+                  "[RESULT_GENERATOR] Offline result student upserted:",
+                  offlineRecord?._id,
+                  offlineRecord?.rollNo,
                 );
               }
-
-              // Update the student document with the Cloudinary URL
-              const updatedStudent = await Students.updateOne(
-                { _id: studentDoc._id },
-                { $set: { result: url } },
-              );
-              console.log("updatedStudent", updatedStudent);
 
             // Use findOneAndUpdate with upsert option to update or create
             const resultRecord = await Result.findOneAndUpdate(
@@ -1611,6 +1635,8 @@ const processCSVAndGenerateReportCards = async (csvFilePath, res) => {
               `Error uploading report card for Roll Number: ${student["Roll No"]}`,
               error,
             );
+            rowStatus = "error";
+            rowError = error?.message || "Upload failed";
           } 
           // finally {
           //   if (fs.existsSync(pdfFilePath)) fs.unlinkSync(pdfFilePath);
@@ -1619,13 +1645,28 @@ const processCSVAndGenerateReportCards = async (csvFilePath, res) => {
           console.log(
             `Generated PDF for ${student["Roll No"]} is empty or invalid.`,
           );
+          rowStatus = "error";
+          rowError = "Generated PDF is empty or invalid";
         }
 
         // Optionally, delete the local file after upload
       } catch (error) {
         console.error(`Error processing report card for Roll Number: `, error);
+        rowStatus = "error";
+        rowError = error?.message || "Processing failed";
         if (fs.existsSync(pdfFilePath)) fs.unlinkSync(pdfFilePath);
       }
+      await res.write(
+        `data: ${JSON.stringify({
+          index: StudentIndex + 1,
+          total: students.length,
+          url: generatedUrl,
+          status: rowStatus,
+          error: rowError,
+          studentId: student["Roll No"] || "",
+          studentName: student["Candidate Name"] || "",
+        })}\n\n`,
+      );
     }
 
     await res.write(`data: ${JSON.stringify({ complete: true })}\n\n`);

@@ -170,6 +170,7 @@ router.post("/generate-id", internalApiKeyMiddleware, async (req, res) => {
         email: email || undefined,
         contactNumber: phone,
         profilePicture: profilePicture || undefined,
+        formFill: "online",
         role: "student",
       });
       console.log("Student from the generate_id", student)
@@ -417,6 +418,7 @@ router.post("/payments/cash/confirm", internalApiKeyMiddleware, async (req, res)
 
     if (!existingSuccessPayment) {
       student.paymentId = cashPaymentId;
+      student.formFill = "offline";
       await student.save({ session });
 
       const paymentRecord = new Payment({
@@ -433,6 +435,7 @@ router.post("/payments/cash/confirm", internalApiKeyMiddleware, async (req, res)
     } else {
       if (!student.paymentId) {
         student.paymentId = cashPaymentId;
+        student.formFill = "offline";
         await student.save({ session });
       }
     }

@@ -235,11 +235,92 @@ const sendAdmitCardNotification = async (StudentsId) => {
   }
 };
 
-module.exports = { sendAdmitCardNotification };
+const sendResultViaWATI = async (studentData, resultData) => {
+  try {
+    const whatsappApi = process.env.WATI_API_URL;
+
+    console.log("student data and the resultData", studentData, resultData)
+
+    if (!whatsappApi) {
+      console.error("WATI_API_URL is missing in environment variables");
+      return { success: false, error: "WATI API URL missing" };
+    }
+
+    if (!studentData?.contactNumber) {
+      return { success: false, error: "Student contact number missing" };
+    }
+
+    if (!resultData?.resultUrl) {
+      return { success: false, error: "Result PDF URL missing" };
+    }
+
+    const studentName = studentData?.studentName || "Student";
+    const studentId = studentData?.StudentsId || resultData?.StudentId || "";
+    const phoneDigits = String(studentData.contactNumber).replace(/\D/g, "");
+    if (!phoneDigits) {
+      return { success: false, error: "Student contact number is invalid" };
+    }
+    const formattedNumber = phoneDigits.startsWith("91") ? phoneDigits : `91${phoneDigits}`;
+    const fileName = `SDAT_Result_${String(studentId || "student").replace(/\s+/g, "_")}.pdf`;
+
+    const response = await axios.post(
+      "https://backend.api-wa.co/campaign/myoperator/api/v2",
+      {
+        apiKey: whatsappApi,
+        campaignName: process.env.WATI_RESULT_CAMPAIGN_NAME || "sdat_result_message",
+        destination: formattedNumber,
+        userName: "Scholars Den",
+        templateParams: [
+          studentName,
+          resultData.examDate || "Not Specified",
+          
+        ],
+        source: "new-landing-page-form",
+        media: {
+          url: resultData.resultUrl,
+          filename: fileName,
+        },
+      }
+    );
+
+    return { success: true, data: response.data };
+  } catch (error) {
+    console.error("Error sending result WhatsApp:", error?.response?.data || error.message);
+    return { success: false, error: error?.response?.data || error.message };
+  }
+};
+
+const sendResultNotification = async (StudentsId, resultData) => {
+  try {
+    if (!StudentsId || typeof StudentsId !== "string") {
+      return { success: false, error: "Invalid StudentsId provided" };
+    }
+
+    const studentData = await Students.findOne({ StudentsId }).lean();
+    if (!studentData) {
+      return { success: false, error: "Student not found" };
+    }
+
+    return sendResultViaWATI(studentData, resultData);
+  } catch (error) {
+    console.error("Error in sendResultNotification:", {
+      StudentsId,
+      error: error.message,
+      stack: error.stack,
+    });
+
+    return {
+      success: false,
+      error: error.message || "An unexpected error occurred",
+    };
+  }
+};
 
 module.exports = {
   sendAdmitCardViaWATI,
   sendAdmitCardNotification,
+  sendResultViaWATI,
+  sendResultNotification,
 };
 
 /*

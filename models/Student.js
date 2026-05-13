@@ -200,6 +200,11 @@ const studentsSchema = new mongoose.Schema(
     profilePicture: { type: String },
     result: { type: String },
     paymentId: { type: String },
+    formFill: {
+      type: String,
+      enum: ["online", "offline"],
+      default: "online",
+    },
     role: { type: String, required: true },
     contactNumber: { type: String, required: true },
     enquiryNumber: { type: String },

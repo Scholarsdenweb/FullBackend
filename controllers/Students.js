@@ -327,6 +327,7 @@ const continueWithExistingStudent = async (req, res) => {
     contactNumber,
     studentName,
     enquiryNumber,
+    formFill: "online",
   });
   await newStudent.save();
 
@@ -406,6 +407,7 @@ const createNewStudent = async (req, res) => {
     const newStudent = new Students({
       role,
       contactNumber,
+      formFill: "online",
     });
     await newStudent.save();
 

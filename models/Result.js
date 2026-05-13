@@ -13,6 +13,17 @@ const resultSchema = new mongoose.Schema({
     examDate: {
         type: String,
         required: true,
+    },
+    whatsappSent: {
+        type: Boolean,
+        default: false,
+    },
+    whatsappSentAt: {
+        type: Date,
+    },
+    whatsappError: {
+        type: String,
+        default: "",
     }
 });
 

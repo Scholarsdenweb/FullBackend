@@ -1,8 +1,22 @@
 const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const mongoose = require("mongoose");
+const ExcelJS = require("exceljs");
+const csv = require("csv-parser");
+const { Readable } = require("stream");
 const Admin = require("../models/Admin");
-const { verifyTokenForAdmission } = require("../middleware/authentication");
+const Students = require("../models/Student");
+const BasicDetails = require("../models/form/BasicDetails");
+const FamilyDetails = require("../models/form/FamilyDetails");
+const EducationalDetails = require("../models/form/EducationalDetails");
+const BatchRelatedDetails = require("../models/form/BatchRelatedDetails");
+const {
+  verifyTokenForAdmission,
+  verifyTokenForRegistration,
+} = require("../middleware/authentication");
+const { postPaymentFlow } = require("../controllers/webhookHandler");
+const { syncLeadToCims } = require("../utils/cimsLeadSyncService");
 const axios = require("axios");
 
 
@@ -11,6 +25,564 @@ const RegistrationCounter = require("../models/RegistrationCounter"); // Updated
 
 
 const router = express.Router();
+
+const offlineRegistrationRoles = [
+  "hr",
+  "admin",
+  "admissionHead",
+  "cashier",
+  "accounts",
+  "counsellor",
+];
+
+const normalizeKey = (key) =>
+  String(key || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+
+const getValueByAliases = (row, aliases = []) => {
+  const normalizedMap = {};
+  for (const [key, value] of Object.entries(row || {})) {
+    normalizedMap[normalizeKey(key)] = value;
+  }
+
+  for (const alias of aliases) {
+    const val = normalizedMap[normalizeKey(alias)];
+    if (val !== undefined && val !== null && String(val).trim() !== "") {
+      return val;
+    }
+  }
+  return "";
+};
+
+const toNumberOrNull = (value) => {
+  if (value === undefined || value === null || String(value).trim() === "") return null;
+  const num = Number(value);
+  return Number.isNaN(num) ? null : num;
+};
+
+const toDateOrNull = (value) => {
+  if (!value) return null;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
+const parseCsvBuffer = (buffer) =>
+  new Promise((resolve, reject) => {
+    const rows = [];
+    Readable.from(buffer)
+      .pipe(csv())
+      .on("data", (data) => rows.push(data))
+      .on("end", () => resolve(rows))
+      .on("error", reject);
+  });
+
+const parseXlsxBuffer = async (buffer) => {
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(buffer);
+  const worksheet = workbook.worksheets[0];
+  if (!worksheet) return [];
+
+  const headerRow = worksheet.getRow(1);
+  const headers = [];
+  headerRow.eachCell((cell, col) => {
+    headers[col] = String(cell.value || "").trim();
+  });
+
+  const rows = [];
+  worksheet.eachRow((row, rowNumber) => {
+    if (rowNumber === 1) return;
+    const data = {};
+    row.eachCell((cell, colNumber) => {
+      const header = headers[colNumber] || `col_${colNumber}`;
+      data[header] = cell.value && cell.value.text ? cell.value.text : cell.value;
+    });
+    rows.push(data);
+  });
+  return rows;
+};
+
+const syncOfflineRegistrationToCimsEnquiry = async ({
+  student,
+  basicDetails,
+  batchDetails,
+  familyDetails,
+  educationalDetails,
+  receiptId,
+  paymentDone,
+  paymentAmount,
+}) => {
+  return syncLeadToCims(
+    {
+      leadId: student.enquiryNumber || student.StudentsId || String(student._id),
+      enquiryId: String(student._id || ""),
+      enquiryNumber: student.enquiryNumber || student.StudentsId || String(student._id),
+      registrationId: String(student._id),
+      student_id: student.StudentsId || "",
+      student_name: student.studentName || "",
+      student_phone: student.contactNumber || "",
+      student_email: student.email || "",
+      current_class: batchDetails?.classForAdmission || "",
+      program: batchDetails?.program || "",
+      school_name: educationalDetails?.SchoolName || "",
+      board: educationalDetails?.Board || "",
+      last_percentage:
+        educationalDetails?.Percentage != null ? String(educationalDetails.Percentage) : "",
+      father_name: familyDetails?.FatherName || "",
+      father_phone: familyDetails?.FatherContactNumber || "",
+      mother_name: familyDetails?.MotherName || "",
+      annual_income: familyDetails?.FamilyIncome || "",
+      exam_date: basicDetails?.examDate || "",
+      payment_mode: "offline",
+      payment_status: paymentDone ? "paid" : "pending",
+      payment_amount: paymentAmount || 0,
+      registration_fee: paymentAmount || 0,
+      payment_id: receiptId || "",
+      receipt_id: receiptId || "",
+      formFill: "offline",
+    },
+    "offline_registration_import",
+  );
+};
+
+// Verify admin token issued by /admin/login (payload: { id: admin._id })
+const verifyAdminToken = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization || "";
+    const token = authHeader.startsWith("Bearer ")
+      ? authHeader.split(" ")[1]
+      : null;
+
+    if (!token) {
+      return res.status(401).json({ success: false, message: "Token is required" });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const admin = await Admin.findById(decoded.id).select("-password");
+
+    if (!admin) {
+      return res.status(404).json({ success: false, message: "Admin not found" });
+    }
+
+    req.admin = admin;
+    next();
+  } catch (error) {
+    return res.status(401).json({ success: false, message: "Invalid or expired token" });
+  }
+};
+
+// Admin API: Upload offline registration payment details.
+// receiptId present => paid, receiptId absent => unpaid.
+router.post("/offline-registration/payment", verifyTokenForRegistration(offlineRegistrationRoles), async (req, res) => {
+  try {
+    const { studentId, receiptId } = req.body;
+
+    if (!studentId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "studentId is required" });
+    }
+
+    const student = await Students.findById(studentId);
+    if (!student) {
+      return res.status(404).json({ success: false, message: "Student not found" });
+    }
+
+    const normalizedReceiptId = String(receiptId || "").trim();
+    const paymentDone = Boolean(normalizedReceiptId);
+
+    // Store offline receipt number in paymentId as requested.
+    student.paymentId = normalizedReceiptId || null;
+    student.formFill = "offline";
+    await student.save();
+
+    return res.status(200).json({
+      success: true,
+      message: paymentDone
+        ? "Offline payment marked as done"
+        : "Offline payment marked as pending",
+      data: {
+        studentId: student._id,
+        receiptId: student.paymentId || null,
+        paymentDone,
+        paymentStatus: paymentDone ? "done" : "pending",
+      },
+    });
+  } catch (error) {
+    console.error("offline-registration/payment error:", error);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+// Admin API: Check offline payment status by studentId.
+router.get(
+  "/offline-registration/payment/:studentId/status",
+  verifyTokenForRegistration(offlineRegistrationRoles),
+  async (req, res) => {
+    try {
+      const { studentId } = req.params;
+      const student = await Students.findById(studentId).select("paymentId");
+
+      if (!student) {
+        return res.status(404).json({ success: false, message: "Student not found" });
+      }
+
+      const receiptId = String(student.paymentId || "").trim();
+      const paymentDone = Boolean(receiptId);
+
+      return res.status(200).json({
+        success: true,
+        data: {
+          studentId: student._id,
+          receiptId: receiptId || null,
+          paymentDone,
+          paymentStatus: paymentDone ? "done" : "pending",
+        },
+      });
+    } catch (error) {
+      console.error("offline payment status error:", error);
+      return res.status(500).json({ success: false, message: "Server error" });
+    }
+  },
+);
+
+// Admin API: Bulk upload offline registration records where each row may contain
+// full student data. receiptId/reciptId present => paid, else pending.
+router.post(
+  "/offline-registration/payment/bulk",
+  verifyTokenForRegistration(offlineRegistrationRoles),
+  async (req, res) => {
+    try {
+      const rows = Array.isArray(req.body?.rows) ? req.body.rows : [];
+
+      if (!rows.length) {
+        return res.status(400).json({
+          success: false,
+          message: "rows array is required",
+        });
+      }
+
+      const results = [];
+      let updatedCount = 0;
+      let notFoundCount = 0;
+
+      for (const row of rows) {
+        const studentObjectId =
+          row?.studentId || row?.student_id || row?.registrationId || null;
+        const studentsId = String(row?.StudentsId || row?.studentsId || "").trim();
+        const contactNumber = String(
+          row?.contactNumber || row?.student_phone || row?.phone || "",
+        ).trim();
+        const email = String(row?.email || row?.student_email || "").trim().toLowerCase();
+        const receiptRaw = row?.receiptId ?? row?.reciptId ?? row?.payment_id ?? "";
+        const receiptId = String(receiptRaw || "").trim();
+        const paymentDone = Boolean(receiptId);
+
+        let student = null;
+
+        if (studentObjectId) {
+          student = await Students.findById(studentObjectId);
+        }
+        if (!student && studentsId) {
+          student = await Students.findOne({ StudentsId: studentsId });
+        }
+        if (!student && contactNumber) {
+          student = await Students.findOne({ contactNumber });
+        }
+        if (!student && email) {
+          student = await Students.findOne({ email });
+        }
+
+        if (!student) {
+          notFoundCount += 1;
+          results.push({
+            success: false,
+            paymentDone: false,
+            paymentStatus: "pending",
+            message: "Student not found",
+            lookup: {
+              studentId: studentObjectId || null,
+              StudentsId: studentsId || null,
+              contactNumber: contactNumber || null,
+              email: email || null,
+            },
+          });
+          continue;
+        }
+
+        student.paymentId = receiptId || null;
+        student.formFill = "offline";
+        await student.save();
+        updatedCount += 1;
+
+        results.push({
+          success: true,
+          studentId: student._id,
+          StudentsId: student.StudentsId || null,
+          receiptId: student.paymentId || null,
+          paymentDone,
+          paymentStatus: paymentDone ? "done" : "pending",
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: "Offline payment bulk upload processed",
+        summary: {
+          totalRows: rows.length,
+          updatedCount,
+          notFoundCount,
+        },
+        results,
+      });
+    } catch (error) {
+      console.error("offline-registration/payment/bulk error:", error);
+      return res.status(500).json({ success: false, message: "Server error" });
+    }
+  },
+);
+
+// Admin API: Create full student offline registrations from uploaded file (.csv/.xlsx).
+router.post(
+  "/offline-registration/import-file",
+  verifyTokenForRegistration(offlineRegistrationRoles),
+  async (req, res) => {
+    const session = await mongoose.startSession();
+    try {
+      const uploadedFile = req.files?.file;
+      if (!uploadedFile) {
+        return res.status(400).json({
+          success: false,
+          message: "Upload file is required in field name: file",
+        });
+      }
+
+      const fileName = String(uploadedFile.name || "").toLowerCase();
+      let rows = [];
+
+      if (fileName.endsWith(".xlsx")) {
+        rows = await parseXlsxBuffer(uploadedFile.data);
+      } else if (fileName.endsWith(".csv")) {
+        rows = await parseCsvBuffer(uploadedFile.data);
+      } else {
+        return res.status(400).json({
+          success: false,
+          message: "Only .csv and .xlsx files are supported",
+        });
+      }
+
+      if (!rows.length) {
+        return res.status(400).json({
+          success: false,
+          message: "No data rows found in uploaded file",
+        });
+      }
+
+      await session.startTransaction();
+
+      const results = [];
+      const postCommitSyncJobs = [];
+      let createdCount = 0;
+      let skippedCount = 0;
+
+      for (const row of rows) {
+        const studentName = String(
+          getValueByAliases(row, ["studentName", "student_name", "name"]),
+        ).trim();
+        const contactNumber = String(
+          getValueByAliases(row, ["contactNumber", "contact_number", "phone", "student_phone"]),
+        ).trim();
+        const email = String(
+          getValueByAliases(row, ["email", "student_email"]),
+        ).trim().toLowerCase();
+        const classForAdmission = String(
+          getValueByAliases(row, ["classForAdmission", "class_for_admission", "admissionClass"]),
+        ).trim();
+
+        if (!studentName || !contactNumber || !classForAdmission) {
+          skippedCount += 1;
+          results.push({
+            success: false,
+            message: "Missing required fields: studentName, contactNumber, classForAdmission",
+            row,
+          });
+          continue;
+        }
+
+        const duplicate = await Students.findOne({
+          $or: [{ contactNumber }, ...(email ? [{ email }] : [])],
+        }).session(session);
+
+        if (duplicate) {
+          skippedCount += 1;
+          results.push({
+            success: false,
+            message: "Student already exists",
+            studentId: duplicate._id,
+            contactNumber,
+            email: email || null,
+          });
+          continue;
+        }
+
+        const receiptId = String(
+          getValueByAliases(row, ["receiptId", "reciptId", "receipt_id", "paymentId", "payment_id"]),
+        ).trim();
+        const paymentDone = Boolean(receiptId);
+        const paymentAmount =
+          toNumberOrNull(
+            getValueByAliases(row, ["payment_amount", "paymentAmount", "registration_fee", "amount"]),
+          ) || 0;
+
+        const student = await Students.create(
+          [
+            {
+              studentName,
+              contactNumber,
+              email: email || undefined,
+              role: "Student",
+              paymentId: receiptId || null,
+              formFill: "offline",
+            },
+          ],
+          { session },
+        ).then((docs) => docs[0]);
+
+        const studentsId = await Students.allocateStudentsId(classForAdmission, session);
+        student.StudentsId = studentsId;
+        await student.save({ session });
+
+        const basicDetails = await BasicDetails.create(
+          [
+            {
+              student_id: student._id,
+              dob: toDateOrNull(getValueByAliases(row, ["dob", "dateOfBirth"])),
+              gender: String(getValueByAliases(row, ["gender"])).trim() || undefined,
+              examName: String(getValueByAliases(row, ["examName", "exam_name"])).trim() || "SDAT",
+              examDate: String(getValueByAliases(row, ["examDate", "exam_date"])).trim() || undefined,
+            },
+          ],
+          { session },
+        ).then((docs) => docs[0]);
+
+        const familyDetails = await FamilyDetails.create(
+          [
+            {
+              student_id: student._id,
+              FatherName: String(getValueByAliases(row, ["FatherName", "father_name"])).trim() || undefined,
+              FatherContactNumber:
+                String(getValueByAliases(row, ["FatherContactNumber", "father_phone"])).trim() || undefined,
+              FatherOccupation:
+                String(getValueByAliases(row, ["FatherOccupation", "father_occupation"])).trim() || undefined,
+              MotherName: String(getValueByAliases(row, ["MotherName", "mother_name"])).trim() || undefined,
+              MotherContactNumber:
+                String(getValueByAliases(row, ["MotherContactNumber", "mother_phone"])).trim() || undefined,
+              MotherOccupation:
+                String(getValueByAliases(row, ["MotherOccupation", "mother_occupation"])).trim() || undefined,
+              FamilyIncome: String(getValueByAliases(row, ["FamilyIncome", "family_income"])).trim() || undefined,
+            },
+          ],
+          { session },
+        ).then((docs) => docs[0]);
+
+        const educationalDetails = await EducationalDetails.create(
+          [
+            {
+              student_id: student._id,
+              SchoolName: String(getValueByAliases(row, ["SchoolName", "school_name"])).trim() || undefined,
+              Percentage: toNumberOrNull(getValueByAliases(row, ["Percentage", "percentage"])),
+              Class: String(getValueByAliases(row, ["Class", "previous_class"])).trim() || undefined,
+              YearOfPassing: toNumberOrNull(getValueByAliases(row, ["YearOfPassing", "year_of_passing"])),
+              Board: String(getValueByAliases(row, ["Board", "board"])).trim() || undefined,
+            },
+          ],
+          { session },
+        ).then((docs) => docs[0]);
+
+        const batchDetails = await BatchRelatedDetails.create(
+          [
+            {
+              student_id: student._id,
+              classForAdmission,
+              program: String(getValueByAliases(row, ["program"])).trim() || undefined,
+            },
+          ],
+          { session },
+        ).then((docs) => docs[0]);
+
+        postCommitSyncJobs.push(async () => {
+          const enquirySync = await syncOfflineRegistrationToCimsEnquiry({
+            student,
+            basicDetails,
+            batchDetails,
+            familyDetails,
+            educationalDetails,
+            receiptId,
+            paymentDone,
+            paymentAmount,
+          });
+
+          let postPaymentSync = null;
+          if (paymentDone) {
+            postPaymentSync = await postPaymentFlow({
+              registrationId: student._id,
+              studentsId: student.StudentsId,
+              razorpay_payment_id: receiptId,
+              razorpay_order_id: `offline_order_${student._id}`,
+              payment_amount: paymentAmount,
+              payment_mode: "offline",
+            });
+          }
+
+          return { enquirySync, postPaymentSync };
+        });
+
+        createdCount += 1;
+        results.push({
+          success: true,
+          studentId: student._id,
+          StudentsId: student.StudentsId,
+          receiptId: student.paymentId || null,
+          paymentDone,
+          paymentStatus: paymentDone ? "done" : "pending",
+        });
+      }
+
+      await session.commitTransaction();
+
+      Promise.allSettled(postCommitSyncJobs.map((job) => job())).then((syncResults) => {
+        const failedCount = syncResults.filter((result) => result.status === "rejected").length;
+        if (failedCount) {
+          console.error(
+            `[OFFLINE_IMPORT] CIMS/webhook sync failed for ${failedCount}/${syncResults.length} records`,
+          );
+        }
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: "Offline registration file processed",
+        summary: {
+          totalRows: rows.length,
+          createdCount,
+          skippedCount,
+        },
+        results,
+      });
+    } catch (error) {
+      await session.abortTransaction();
+      console.error("offline-registration/import-file error:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Failed to import offline registrations",
+        error: error.message,
+      });
+    } finally {
+      session.endSession();
+    }
+  },
+);
 
 // Admin Signup
 router.post("/signup", async (req, res) => {

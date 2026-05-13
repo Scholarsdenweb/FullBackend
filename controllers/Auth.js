@@ -156,6 +156,7 @@ const studentSignup = async (req, res) => {
       const newStudent = new Student({
         role,
         contactNumber,
+        formFill: "online",
         status: "pending",
         createdAt: new Date(),
       });

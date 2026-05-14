@@ -150,9 +150,12 @@ const generateReportCardPDF = async (data, pdfFilePath) => {
     const formatName = (name) => (name ? name.replace(/\s+/g, "_") : "");
     console.log("Data from the gernerateReport Card", data);
 
-    const studentImagePath = data.studentLastName
-      ? `https://res.cloudinary.com/dtytgoj3f/image/upload/Student_Pictures/${formatName(data.studentFirstName)}_${formatName(data.studentLastName)}_${data.Registration}.jpg`
-      : `https://res.cloudinary.com/dtytgoj3f/image/upload/Student_Pictures/${data.studentFirstName}_${data.Registration}.jpg`;
+    const student = data.student || null;
+    const studentImagePath = student?.profilePicture
+      ? student.profilePicture
+      : data.studentLastName
+        ? `https://res.cloudinary.com/dtytgoj3f/image/upload/Student_Pictures/${formatName(data.studentFirstName)}_${formatName(data.studentLastName)}_${data.Registration}.jpg`
+        : `https://res.cloudinary.com/dtytgoj3f/image/upload/Student_Pictures/${data.studentFirstName}_${data.Registration}.jpg`;
     // const studentImagePath = data.studentLastName
     //   ? `https://res.cloudinary.com/dtytgoj3f/image/upload/Student_Pictures/${formatName(data.studentFirstName)}_${formatName(data.studentLastName)}_${data.registration_id}.jpg`
     //   : `https://res.cloudinary.com/dtytgoj3f/image/upload/Student_Pictures/${data.studentFirstName}_${data.registration_id}.jpg`;
@@ -161,8 +164,7 @@ const generateReportCardPDF = async (data, pdfFilePath) => {
 
     console.log("studentImagePath", studentImagePath);
 
-    // Prefer student photo from DB (profilePicture). Fallback to name-based Cloudinary path.
-    const imagePath = data.photo || studentImagePath;
+    const imagePath = studentImagePath;
 
     console.log("imagePath", imagePath);
 
@@ -1525,6 +1527,7 @@ const processCSVAndGenerateReportCards = async (csvFilePath, res) => {
           scholarshipValidDate: student["Scholarship Validation Date"],
           examDate: student["Exam Date"],
           photo: studentDoc?.profilePicture || "",
+          student: studentDoc,
           Rank: student[allKeys[0]],
           subjects: checkMarksData,
           totalMarks: totalMarks,

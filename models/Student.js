@@ -308,7 +308,7 @@ studentsSchema.statics.allocateStudentsId = async function (
   );
 
   // Generate student number (counter + 100 for starting from 100)
-  const studentNumber = String(count + 200).padStart(3, "0");
+  const studentNumber = String(count).padStart(3, "0");
 
   // Generate StudentsId
   const classCode = romanToInt(scholarshipClass);

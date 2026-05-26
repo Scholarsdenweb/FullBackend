@@ -23,8 +23,67 @@ const axios = require("axios");
 // routes/admin.js
 const RegistrationCounter = require("../models/RegistrationCounter"); // Updated import
 
+// Create registragtion counter for XI and XII class same for both engineering and medical not required to create seprate like 11 medical and 11 engineering have one counter and 12 medical and 12 engineering have one counter
+
 
 const router = express.Router();
+
+const romanToInt = (number) => {
+  const romanNumerals = {
+    I: "01",
+    II: "02",
+    III: "03",
+    IV: "04",
+    V: "05",
+    VI: "06",
+    VII: "07",
+    VIII: "08",
+    IX: "09",
+    X: "10",
+    XI: "11",
+    XII: "12",
+    "XII Passed": "13",
+    "XI Engineering": "11",
+    "XII Engineering": "12",
+    "XII Passed Engineering": "13",
+    "XI Medical": "14",
+    "XII Medical": "15",
+    "XII Passed Medical": "16",
+  };
+  return romanNumerals[number];
+};
+
+const PREVIOUS_CLASS_MAP = {
+  II: "I",
+  III: "II",
+  IV: "III",
+  V: "IV",
+  VI: "V",
+  VII: "VI",
+  VIII: "VII",
+  IX: "VIII",
+  X: "IX",
+  "XI Engineering": "X",
+  "XII Engineering": "XI Engineering",
+  "XII Passed Engineering": "XII Engineering",
+  "XI Medical": "X",
+  "XII Medical": "XI Medical",
+  "XII Passed Medical": "XII Medical",
+};
+
+const getScholarshipClassFromAdmissionClass = (admissionClass) => {
+  return PREVIOUS_CLASS_MAP[admissionClass] || admissionClass;
+};
+
+const getRegistrationCounterClass = (className) => {
+  if (className === "XI Engineering" || className === "XI Medical") return "XI";
+  if (className === "XII Engineering" || className === "XII Medical") return "XII";
+  return className;
+};
+
+const getRegistrationCounterClassFromAdmissionClass = (admissionClass) => {
+  return getRegistrationCounterClass(getScholarshipClassFromAdmissionClass(admissionClass));
+};
 
 const offlineRegistrationRoles = [
   "hr",
@@ -791,15 +850,30 @@ router.get("/admin/registration-counters/compare/:year", async (req, res) => {
       year: parseInt(year) 
     });
 
+    const sharedXI = counters.find(c => c.classForAdmission === "XI")?.count || 0;
+    const sharedXII = counters.find(c => c.classForAdmission === "XII")?.count || 0;
+    const legacyXI =
+      counters.find(c => c.classForAdmission === "XI Engineering")?.count ||
+      counters.find(c => c.classForAdmission === "XI Medical")?.count ||
+      0;
+    const legacyXII =
+      counters.find(c => c.classForAdmission === "XII Engineering")?.count ||
+      counters.find(c => c.classForAdmission === "XII Medical")?.count ||
+      0;
+
     const comparison = {
+      shared: {
+        XI: sharedXI || legacyXI,
+        XII: sharedXII || legacyXII,
+      },
       engineering: {
-        XI: counters.find(c => c.classForAdmission === "XI Engineering")?.count || 0,
-        XII: counters.find(c => c.classForAdmission === "XII Engineering")?.count || 0,
+        XI: sharedXI || counters.find(c => c.classForAdmission === "XI Engineering")?.count || 0,
+        XII: sharedXII || counters.find(c => c.classForAdmission === "XII Engineering")?.count || 0,
         "XII Passed": counters.find(c => c.classForAdmission === "XII Passed Engineering")?.count || 0,
       },
       medical: {
-        XI: counters.find(c => c.classForAdmission === "XI Medical")?.count || 0,
-        XII: counters.find(c => c.classForAdmission === "XII Medical")?.count || 0,
+        XI: sharedXI || counters.find(c => c.classForAdmission === "XI Medical")?.count || 0,
+        XII: sharedXII || counters.find(c => c.classForAdmission === "XII Medical")?.count || 0,
         "XII Passed": counters.find(c => c.classForAdmission === "XII Passed Medical")?.count || 0,
       }
     };
@@ -818,7 +892,11 @@ router.get("/admin/registration-counters/compare/:year", async (req, res) => {
       success: true,
       year: parseInt(year),
       comparison: comparison,
-      grandTotal: comparison.engineering.total + comparison.medical.total,
+      grandTotal:
+        comparison.shared.XI +
+        comparison.shared.XII +
+        comparison.engineering["XII Passed"] +
+        comparison.medical["XII Passed"],
     });
   } catch (error) {
     console.error("Error comparing programs:", error);
@@ -870,16 +948,35 @@ router.post("/admin/registration-counters/initialize", async (req, res) => {
       },
     ]);
 
-    const operations = classYearGroups.map((group) => ({
+    const counterMap = new Map();
+    classYearGroups.forEach((group) => {
+      const counterClass = getRegistrationCounterClassFromAdmissionClass(group._id.class);
+      const key = `${group._id.year}:${counterClass}`;
+      const current = counterMap.get(key) || {
+        year: group._id.year,
+        classForAdmission: counterClass,
+        count: 0,
+        lastStudentsId: group.lastStudentsId,
+      };
+
+      current.count += group.count;
+      if (String(group.lastStudentsId || "") > String(current.lastStudentsId || "")) {
+        current.lastStudentsId = group.lastStudentsId;
+      }
+
+      counterMap.set(key, current);
+    });
+
+    const operations = Array.from(counterMap.values()).map((counter) => ({
       updateOne: {
         filter: {
-          year: group._id.year,
-          classForAdmission: group._id.class,
+          year: counter.year,
+          classForAdmission: counter.classForAdmission,
         },
         update: {
           $set: {
-            count: group.count,
-            lastStudentsId: group.lastStudentsId,
+            count: counter.count,
+            lastStudentsId: counter.lastStudentsId,
           },
         },
         upsert: true,

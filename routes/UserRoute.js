@@ -19,7 +19,7 @@ const { verifyToken } = require("../middleware/authentication");
 const { enquirySubmitionTemplate } = require("../utils/smsTemplates");
 const {
   ensureLeadCounsellor,
-  syncLeadToCims,
+  syncEnquiryToCims,
 } = require("../utils/cimsLeadSyncService");
 
 const setAuthCookie = (res, token) => {
@@ -59,22 +59,7 @@ router.post("/", async (req, res) => {
     const assignedCounsellor = await ensureLeadCounsellor(newUser);
     console.log("[ENQUIRY_CREATE] assignedCounsellor=", assignedCounsellor);
 
-    const cimsSync = await syncLeadToCims(
-      {
-        leadId: newUser.enquiryNumber,
-        enquiryId: String(newUser._id || ""),
-        student_name: newUser.studentName || "",
-        student_phone: newUser.studentContactNumber || "",
-        father_phone: newUser.fatherContactNumber || "",
-        student_email: newUser.email || "",
-        current_class: newUser.courseOfIntrested || "",
-        program: newUser.program || "",
-        school_name: newUser.schoolName || "",
-        counsellor_email: assignedCounsellor?.email || "",
-        counsellor_name: assignedCounsellor?.name || "",
-      },
-      "enquiry_create",
-    );
+    const cimsSync = await syncEnquiryToCims(newUser, "enquiry_create", assignedCounsellor);
     console.log("[ENQUIRY_CREATE] cimsSyncResult=", cimsSync);
 
     console.log("newUser created", newUser);
@@ -285,25 +270,7 @@ router.patch("/putFormData", verifyToken(), async (req, res) => {
     );
     console.log("[ENQUIRY_UPDATE] assignedCounsellor=", assignedCounsellor);
 
-    const cimsSync = await syncLeadToCims(
-      {
-        leadId: user?.enquiryNumber,
-        enquiryId: String(user?._id || ""),
-        student_name: user?.studentName || "",
-        student_phone: user?.studentContactNumber || "",
-        father_phone: user?.fatherContactNumber || "",
-        student_email: user?.email || "",
-        current_class: user?.courseOfIntrested || "",
-        program: user?.program || "",
-        school_name: user?.schoolName || "",
-        city: user?.city || "",
-        state: user?.state || "",
-        remarks: user?.remarks || "",
-        counsellor_email: assignedCounsellor?.email || user?.enquiryTakenBy || "",
-        counsellor_name: assignedCounsellor?.name || "",
-      },
-      "enquiry_update",
-    );
+    const cimsSync = await syncEnquiryToCims(user, "enquiry_update", assignedCounsellor);
     console.log("[ENQUIRY_UPDATE] cimsSyncResult=", cimsSync);
 
     console.log("user", user);
@@ -329,11 +296,24 @@ router.post("/formSubmit", async (req, res) => {
 
     console.log("phoneNumber from formSubmit", phoneNumber);
     const response = await enquirySubmitionTemplate(phoneNumber);
+    const enquiry = await User.findOne({
+      $or: [
+        { fatherContactNumber: phoneNumber },
+        { studentContactNumber: phoneNumber },
+      ],
+    });
+
+    let cimsSync = { ok: false, skipped: true, message: "enquiry_not_found" };
+    if (enquiry) {
+      const assignedCounsellor = await ensureLeadCounsellor(enquiry);
+      cimsSync = await syncEnquiryToCims(enquiry, "enquiry_submit", assignedCounsellor);
+    }
 
     console.log("response", response);
 
-    return res.status(200).json({ message: "Enquiry Submitted" });
+    return res.status(200).json({ message: "Enquiry Submitted", cimsSync });
   } catch (error) {
+    console.error("[ENQUIRY_SUBMIT] failed:", error);
     return res.status(500).json({ message: "Server Error" });
   }
 });

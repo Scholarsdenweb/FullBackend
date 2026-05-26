@@ -7,6 +7,38 @@ const BatchRelatedDetails = require("../../models/form/BatchRelatedDetails");
 
 require("dotenv").config(); // Load environment variables
 
+const PREVIOUS_CLASS_MAP = {
+  II: "I",
+  III: "II",
+  IV: "III",
+  V: "IV",
+  VI: "V",
+  VII: "VI",
+  VIII: "VII",
+  IX: "VIII",
+  X: "IX",
+  "XI Engineering": "X",
+  "XII Engineering": "XI Engineering",
+  "XII Passed Engineering": "XII Engineering",
+  "XI Medical": "X",
+  "XII Medical": "XI Medical",
+  "XII Passed Medical": "XII Medical",
+};
+
+const getScholarshipClassFromAdmissionClass = (admissionClass) => {
+  return PREVIOUS_CLASS_MAP[admissionClass] || admissionClass;
+};
+
+const getRegistrationCounterClass = (className) => {
+  if (className === "XI Engineering" || className === "XI Medical") return "XI";
+  if (className === "XII Engineering" || className === "XII Medical") return "XII";
+  return className;
+};
+
+const getRegistrationCounterClassFromAdmissionClass = (admissionClass) => {
+  return getRegistrationCounterClass(getScholarshipClassFromAdmissionClass(admissionClass));
+};
+
 
 async function migrateToRegistrationCounters() {
   try {
@@ -56,11 +88,30 @@ async function migrateToRegistrationCounters() {
 
     console.log(`Found ${counts.length} class-year combinations`);
 
-    for (const item of counts) {
+    const counterMap = new Map();
+    counts.forEach((item) => {
+      const counterClass = getRegistrationCounterClassFromAdmissionClass(item._id.class);
+      const key = `${item._id.year}:${counterClass}`;
+      const current = counterMap.get(key) || {
+        year: item._id.year,
+        classForAdmission: counterClass,
+        count: 0,
+        lastStudentsId: item.lastStudentsId,
+      };
+
+      current.count += item.count;
+      if (String(item.lastStudentsId || "") > String(current.lastStudentsId || "")) {
+        current.lastStudentsId = item.lastStudentsId;
+      }
+
+      counterMap.set(key, current);
+    });
+
+    for (const item of counterMap.values()) {
       await RegistrationCounter.findOneAndUpdate(
         {
-          year: item._id.year,
-          classForAdmission: item._id.class,
+          year: item.year,
+          classForAdmission: item.classForAdmission,
         },
         {
           count: item.count,
@@ -70,7 +121,7 @@ async function migrateToRegistrationCounters() {
       );
 
       console.log(
-        `✓ ${item._id.year} - ${item._id.class}: ${item.count} students (Last ID: ${item.lastStudentsId})`
+        `✓ ${item.year} - ${item.classForAdmission}: ${item.count} students (Last ID: ${item.lastStudentsId})`
       );
     }
 

@@ -254,7 +254,7 @@ const validRomans = new Set([
 const romanToInt = (number) => {
   const romanNumerals = {
     I: "01", II: "02", III: "03", IV: "04", V: "05", VI: "06",
-    VII: "07", VIII: "08", IX: "09", X: "10",
+    VII: "07", VIII: "08", IX: "09", X: "10", XI: "11", XII: "12",
     "XI Engineering": "11", "XII Engineering": "12",
     "XII Passed Engineering": "13", "XI Medical": "14",
     "XII Medical": "15", "XII Passed Medical": "16",
@@ -273,15 +273,31 @@ const PREVIOUS_CLASS_MAP = {
   IX: "VIII",
   X: "IX",
   "XI Engineering": "X",
-  "XII Engineering": "XI Engineering",
-  "XII Passed Engineering": "XII Engineering",
   "XI Medical": "X",
-  "XII Medical": "XI Medical",
-  "XII Passed Medical": "XII Medical",
+  "XII Engineering": "XI",
+  "XII Medical": "XI",
+  "XII Passed Engineering": "XII",
+  "XII Passed Medical": "XII",
 };
 
 const getScholarshipClassFromAdmissionClass = (admissionClass) => {
   return PREVIOUS_CLASS_MAP[admissionClass] || admissionClass;
+};
+
+const getStudentsIdClassKey = (admissionClass) => {
+  if (!admissionClass || typeof admissionClass !== "string") return admissionClass;
+
+  const normalized = admissionClass.trim().toUpperCase();
+
+  // For Student ID generation, XI/XII must be class-wise only, independent of stream.
+  if (normalized.startsWith("XI ") || normalized === "XI" || normalized.startsWith("11 ")) {
+    return "XI";
+  }
+  if (normalized.startsWith("XII ") || normalized === "XII" || normalized.startsWith("12 ")) {
+    return "XII";
+  }
+
+  return admissionClass;
 };
 
 // Updated Static Method - Now uses RegistrationCounter
@@ -294,6 +310,7 @@ studentsSchema.statics.allocateStudentsId = async function (
 
   const admissionClass = normalizeValue(classForAdmission);
   const scholarshipClass = getScholarshipClassFromAdmissionClass(admissionClass);
+  const studentsIdClassKey = getStudentsIdClassKey(scholarshipClass);
 
   // Adjust year if in October-December
   if (currentMonth >= 9 && currentMonth < 12) {
@@ -303,7 +320,7 @@ studentsSchema.statics.allocateStudentsId = async function (
   // Get next count from RegistrationCounter (atomic operation)
   const count = await RegistrationCounter.getNextCount(
     currentYear,
-    scholarshipClass,
+    studentsIdClassKey,
     session
   );
 
@@ -311,7 +328,7 @@ studentsSchema.statics.allocateStudentsId = async function (
   const studentNumber = String(count).padStart(3, "0");
 
   // Generate StudentsId
-  const classCode = romanToInt(scholarshipClass);
+  const classCode = romanToInt(studentsIdClassKey);
   if (!classCode) {
     throw new Error(`Invalid class: ${admissionClass}`);
   }
@@ -322,7 +339,7 @@ studentsSchema.statics.allocateStudentsId = async function (
 
   // Update counter with last generated ID
   await RegistrationCounter.findOneAndUpdate(
-    { year: currentYear, classForAdmission: scholarshipClass },
+    { year: currentYear, classForAdmission: studentsIdClassKey },
     { lastStudentsId: StudentsId },
     { session }
   );

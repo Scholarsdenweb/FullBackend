@@ -41,12 +41,14 @@ On push to `main`, workflow will:
 1. SSH to VPS
 2. `cd` into `VPS_APP_DIR`
 3. `git fetch`, `checkout`, `pull`
-4. `npm ci --omit=dev`
+4. `npm ci --omit=dev --no-audit --no-fund`
 5. Restart app via `APP_RESTART_COMMAND` (or PM2 fallback)
 
 ## 4. Notes
 
 - Production env values stay on VPS in `/root/FullBackend/.env`.
 - `node_modules` on VPS will be rebuilt from lock file.
+- The deploy sets `PUPPETEER_SKIP_DOWNLOAD=true` so CI does not spend time downloading Puppeteer's browser bundle. Production code should keep using `puppeteer-core`/server Chromium.
+- NPM deprecation notices are warnings. The workflow timeout was fixed by increasing the SSH command timeout to 30 minutes and disabling npm audit/fund calls during deployment.
 - A new script was added in `package.json`:
   - `start:prod`: `node index.js`

@@ -28,7 +28,7 @@ app.use(cors({
     'https://registration.scholarsden.in',
     'https://www.scholarsden.in',
     'https://scholarsden.in',
-    'https://x.scholarsden.in',
+    'https://enquiry.scholarsden.in',
     'https://admissionform.scholarsden.in',
     'http://localhost:5173', // Vite default port
   ], // Your frontend URL

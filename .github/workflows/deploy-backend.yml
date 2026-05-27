@@ -26,10 +26,14 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT || 2222 }}
           script_stop: true
+          command_timeout: 30m
           script: |
             set -e
             APP_DIR="${{ secrets.VPS_APP_DIR }}"
             BRANCH="${{ github.ref_name }}"
+            export PUPPETEER_SKIP_DOWNLOAD=true
+            export npm_config_audit=false
+            export npm_config_fund=false
 
             if [ -z "$APP_DIR" ]; then
               echo "VPS_APP_DIR secret is missing"
@@ -41,8 +45,8 @@ jobs:
             git checkout "$BRANCH"
             git pull origin "$BRANCH"
 
-            npm ci --omit=dev
+            npm ci --omit=dev --no-audit --no-fund --loglevel=error
             pm2 describe fullBackend > /dev/null 2>&1 \
               && pm2 restart fullBackend --update-env \
-              || pm2 start index.js --name fullBackend
+              || NODE_ENV=production pm2 start index.js --name fullBackend
             pm2 save
